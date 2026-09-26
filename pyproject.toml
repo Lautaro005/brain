@@ -9,6 +9,7 @@ dependencies = [
     "python-frontmatter",
     "requests",
     "playwright",
+    "httpx",
 ]
 
 [tool.uv]

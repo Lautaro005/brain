@@ -28,7 +28,8 @@ One memory shared across competing AI apps, owned and stored locally by the user
 - Connects to Claude Desktop, ChatGPT desktop (Codex and ChatGPT Work modes only), Claude Code, Codex CLI, Cursor, VS Code (Copilot), Windsurf, Gemini CLI, and any client that runs local (stdio) MCP servers. It does not expose a remote URL.
 - Local embeddings with Ollama (`nomic-embed-text`); vector search with Chroma; scraping with trafilatura plus a Playwright fallback.
 - Version history for every write, with restore.
-- Dashboard tabs: Dashboard, Profile, Connect agent, Graph, Knowledge, Logs. English and Spanish UI.
+- Connections: brain is also an MCP client. It proxies tools from other MCP servers (local command, URL, or Composio) into every connected agent, with per-connection on/off, and auto-captures results into the vault and Chroma. Composio stores OAuth tokens in its own cloud; local-command connections keep tokens on the machine (.env).
+- Dashboard tabs: Dashboard, Profile, Connect agent, Connections, Graph, Knowledge, Logs. English and Spanish UI; styled with the landing's monochrome system.
 - Open source under the MIT license. Repo: https://github.com/Lautaro005/brain
 
 ## Brand Commitments

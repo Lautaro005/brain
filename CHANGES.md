@@ -236,3 +236,62 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 **Verificado**
 - **Capturas de página completa** a 1440 y 390 px (Playwright): sin desborde horizontal; el cambio EN/ES funciona en todas las secciones; el hero entinta referencias y memorias.
 - **Pages** responde el alta con `html_url` https://lautaro005.github.io/brain/, fuente `main /docs`. Publica después del push.
+
+## 2026-09-26 — Conexiones (brain como cliente MCP, con Composio opcional), dashboard con el estilo de la landing y rutas por instalación
+
+**Qué se hizo**
+- **Conexiones** (`brain_mcp/connectors.py`, vista "Conexiones" en el sidebar, endpoints `/api/connections*` y `/api/composio/*`):
+  - brain ahora también es cliente MCP. Se conecta a otros servers MCP y re-expone sus tools a todos los agentes conectados, con el prefijo de la conexión (`<prefijo>__<tool>`).
+  - Tres tipos: **comando local** (stdio; los tokens quedan en la máquina), **URL** (server remoto, con headers) y **Composio** (opcional).
+  - Cada conexión tiene dos switches, **Activa** y **Guardar en memoria**, más los botones "Actualizar tools", "Editar" y "Eliminar".
+  - `server.py` pasa a usar `BrainServer`, una subclase de `MCPServer` que sobrescribe `list_tools`/`call_tool`. Las tools proxeadas se leen en cada pedido, así que desactivar una conexión la saca de los agentes sin reiniciar; llamarla desactivada devuelve un error claro.
+  - Tools nuevas: `list_connections` y `refresh_connectors`.
+- **Auto-captura**: el resultado de cada tool proxeada se guarda en `vault/knowledge/connections/<conexión>/<tool>-<fecha>-<hash>.md` (o `knowledge/composio/<app>/…` para Composio), con frontmatter (`tool`, `connection`, `args`, `fetched_at`, `chroma_ids`, `indexed`), y se indexa en Chroma con `source_md_path`. Queda buscable con `search_knowledge` y aparece en el grafo. Corre en un thread para no trabar el event loop y nunca rompe la llamada: sin Chroma u Ollama, el `.md` se guarda igual con `indexed: false`.
+- **Secretos**: los valores de env y headers, la API key y el user_id de Composio van a `ROOT/.env` (permisos 600, en `.gitignore`), y la config guarda solo referencias `$env:CLAVE`. El dashboard nunca devuelve secretos: muestra qué claves están cargadas y la URL con los parámetros enmascarados. Al editar, un valor vacío conserva el guardado; al borrar una conexión, se limpian sus secretos. La lista de conexiones está en `data/connections.json` y el caché de tools en `data/connections_tools.json`.
+- **Composio (opcional)**: se carga la API key y el user ID, "Elegir apps" lista las auth configs (`GET /api/v3.1/auth_configs`) y "Crear conexión" crea el server MCP (`POST /api/v3.1/mcp/servers` con `auth_config_ids`). Después arma la URL con `user_id` y la guarda como conexión `composio` con el header `x-api-key`.
+- **Dashboard con el sistema de la landing**, en versión de trabajo:
+  - Monocromo, Archivo + Courier Prime, esquinas de 3–4 px, encabezados de tarjeta con regla de tinta y títulos en Courier caps, estados como sellos, switches y navegación activa en tinta, KPIs en Archivo condensado y logo de ficha.
+  - Tema oscuro que invierte tinta y papel. Rojo solo para errores y acciones destructivas.
+  - Grafo monocromo: cada tipo de nodo se distingue por relleno, contorno y trazo (perfil con anillo grueso, memoria hueca, fuentes punteadas…).
+  - DESIGN.md amplía su alcance al dashboard.
+- **Rutas por instalación**: los valores de "Conectar agente" (comando `uv`, `--directory`) siempre se calcularon en cada Mac a partir de la carpeta instalada y del `uv` del usuario. Ahora la vista lo dice explícitamente y muestra la carpeta de esta instalación (`install_path`, con `~`).
+- La métrica "Conexiones" del Panel pasó a llamarse "Enlaces" (cuenta enlaces del grafo) para no confundirse con la vista nueva.
+- `httpx` agregado a `pyproject.toml`, porque la API de Composio lo usa directamente.
+
+**En qué se apartó del pedido y por qué**
+- **Composio no se puede hostear local** en sus planes self-serve: guarda los tokens OAuth de las cuentas conectadas en su nube, y la versión self-hosted es una oferta paga para empresas, sin código abierto. La spec que pasó el usuario usaba igualmente `backend.composio.dev`. Con el acuerdo del usuario se implementó un **hub local** (conexiones por comando local, con tokens en la máquina) donde Composio es un tipo de conexión opcional, y la UI y el README avisan dónde quedan sus tokens.
+- **Una sesión por llamada** en lugar de sesiones persistentes: es más simple y robusto con varios procesos de `server.py` (uno por agente). El costo es que un server stdio se relanza en cada llamada.
+- **El grafo no usa color**, ni siquiera por tipo de nodo, para respetar la regla Ink-Only del sistema; lo reemplazan relleno, contorno y trazo.
+
+**Verificado**
+- **Server MCP de prueba por stdio** (vault, `data/` y `.env` temporales):
+  - alta con un secreto: queda solo en `.env` (600), nunca en la config;
+  - descubrimiento de 2 tools, que aparecen como `mail__fetch_emails` y `mail__send_email` en `list_tools` de brain;
+  - llamada proxeada con el resultado real, auto-captura en `knowledge/connections/mail/…md`, y `search_knowledge` la encuentra;
+  - desactivada: desaparece de la lista y llamarla da error;
+  - borrada: el secreto sale del `.env`.
+- **El mismo server por HTTP** (`run_streamable_http_async`) con header `Authorization`: descubre, llama y muestra la URL enmascarada.
+- **UI con Playwright**: alta desde la API y tarjeta con tools; el switch "Activa" apaga y atenúa la tarjeta; "Editar" precarga las claves sin valores y muestra "Cancelar"; "Elegir apps" sin API key da el error claro; "Eliminar" borra. Capturas del Panel, Conexiones, Conectar agente y Grafo en claro y oscuro, y de Conexiones a 390 px sin desborde.
+- **Server real por stdio**: 16 tools, con `list_connections` y `refresh_connectors`.
+- **No probado en vivo**: el provisioning contra la API real de Composio, porque no hay API key en esta máquina. El código sigue la documentación de `/api/v3.1/auth_configs` y `/api/v3.1/mcp/servers` y maneja los errores HTTP con mensajes claros.
+
+## 2026-09-26 — Composio con consumer keys (`ck_`), errores HTTP legibles y release v0.01.0
+
+**Qué se hizo**
+- **Soporte de consumer keys de Composio** (`ck_…`): el usuario cargó una y recibió `401 Invalid API key`, porque el código mandaba cualquier key como `x-api-key` a la API de desarrollador (`backend.composio.dev/api/v3.1`), que solo acepta keys de proyecto (`ak_…`).
+  - Ahora `composio_configure()` detecta el tipo por el prefijo. Con `ck_` crea directamente la conexión `composio` contra `https://connect.composio.dev/mcp` con el header `x-consumer-api-key`: no hace falta user ID ni elegir apps, porque vienen las que el usuario vinculó en Composio.
+  - Con `ak_` sigue el flujo anterior (auth configs + `POST /api/v3.1/mcp/servers` con `x-api-key`).
+  - `_composio()` rechaza una consumer key con `composio_consumer_key` y un mensaje claro, en vez de dejar que la API devuelva 401.
+- **Dashboard (Composio)**: "Guardar y conectar" con una `ck_` conecta y descubre las tools en un paso. "Elegir apps" se oculta con consumer keys. Hay un botón nuevo "Desconectar" (con confirmación) que borra la conexión y la key/user ID del `.env`, más un texto que explica los dos tipos de key. Todo en ES/EN. Endpoint nuevo: `POST /api/composio/disconnect`.
+- **Errores de conexión legibles**: el cliente MCP solo devolvía "Server returned an error response", sin el status HTTP. Si falla una conexión por URL, `_http_probe()` repite el `initialize` a mano y muestra, por ejemplo, `HTTP 401 de connect.composio.dev: {…}`.
+- **`.env` vacío**: a pedido del usuario se borraron del `.env` la API key y el user ID que había cargado para probar; quedó solo el comentario de cabecera. El archivo sigue en `.gitignore` y nunca se subió.
+- **Release `v0.01.0`** en GitHub, con el número exacto que pidió el usuario.
+- README (Composio, troubleshooting del 401) y CLAUDE.md actualizados.
+
+**Verificado**
+- Con una `ck_` falsa, en carpetas temporales:
+  - la conexión se crea con la URL `connect.composio.dev/mcp` y el header `x-consumer-api-key`, y la key no queda en la config;
+  - la API de desarrollador se rechaza con `composio_consumer_key`;
+  - el descubrimiento contra el endpoint real devuelve un error legible (`HTTP 401 de connect.composio.dev: {"error":"Authorization required",…}`);
+  - "Desconectar" deja el `.env` vacío y sin conexiones.
+- No se probó con una key real válida, porque no hay ninguna en esta máquina.

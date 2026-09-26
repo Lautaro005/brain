@@ -273,6 +273,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "chromadb" },
+    { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
     { name = "playwright" },
     { name = "python-frontmatter" },
@@ -283,6 +284,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "chromadb" },
+    { name = "httpx" },
     { name = "mcp", extras = ["cli"], specifier = ">=2" },
     { name = "playwright" },
     { name = "python-frontmatter" },

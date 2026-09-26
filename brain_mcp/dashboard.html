@@ -5,40 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brain Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
 <style>
   :root {
     color-scheme: light;
-    --bg: #f6f5f2; --surface: #fcfcfb; --surface-2: #f0efec; --line: #e6e4df; --line-strong: #d6d3cc;
-    --text: #0b0b0b; --text-2: #52514e; --text-3: #8a8780;
-    --accent: #2a78d6; --accent-soft: #e4effc; --accent-ink: #1c5cab;
-    --bar: #2a78d6; --bar-hover: #1c5cab; --grid: #ebe9e4;
-    --good: #0f8a4f; --good-soft: #e3f4ea; --warn: #b87400; --warn-soft: #fbf0d9;
-    --bad: #cf3b3a; --bad-soft: #fbe6e5; --idle: #8a8780; --idle-soft: #efeee9;
-    --shadow: 0 1px 2px rgba(20,20,15,.04), 0 2px 8px rgba(20,20,15,.04);
-    --radius: 12px;
+    --bg: #ececea; --surface: #ffffff; --surface-2: #f5f5f3; --line: #e3e3e0; --line-strong: #cfcfcc;
+    --text: #0a0a0a; --text-2: #3d3d3d; --text-3: #5e5e5e;
+    --accent: #0a0a0a; --accent-soft: #e6e6e3; --accent-ink: #0a0a0a;
+    --bar: #0a0a0a; --bar-hover: #5e5e5e; --grid: #ececea;
+    --good: #0a0a0a; --good-soft: #e6e6e3; --warn: #3d3d3d; --warn-soft: #efefec;
+    --bad: #b42318; --bad-soft: #fbeae8; --idle: #5e5e5e; --idle-soft: #efefec;
+    --shadow: 0 1px 0 rgba(10,10,10,.06), 0 3px 5px -2px rgba(10,10,10,.12);
+    --radius: 4px; --memory: #0a0a0a;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --bg: #131312; --surface: #1a1a19; --surface-2: #222220; --line: #2a2a28; --line-strong: #3a3936;
-      --text: #ffffff; --text-2: #c3c2b7; --text-3: #85837b;
-      --accent: #3987e5; --accent-soft: #1c2a3d; --accent-ink: #86b6ef;
-      --bar: #3987e5; --bar-hover: #86b6ef; --grid: #262624;
-      --good: #3fbf7f; --good-soft: #15291e; --warn: #e0a83a; --warn-soft: #2e2413;
-      --bad: #ee6b6a; --bad-soft: #321a1a; --idle: #85837b; --idle-soft: #242422;
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.2);
+      --bg: #0f0f0e; --surface: #191918; --surface-2: #222221; --line: #2a2a29; --line-strong: #3a3a38;
+      --text: #f2f2f0; --text-2: #c8c8c4; --text-3: #9a9a95;
+      --accent: #f2f2f0; --accent-soft: #2a2a29; --accent-ink: #f2f2f0;
+      --bar: #f2f2f0; --bar-hover: #9a9a95; --grid: #232322;
+      --good: #f2f2f0; --good-soft: #2a2a29; --warn: #c8c8c4; --warn-soft: #232322;
+      --bad: #f07167; --bad-soft: #3a1d1a; --idle: #9a9a95; --idle-soft: #232322;
+      --shadow: 0 1px 0 rgba(0,0,0,.4), 0 3px 6px -2px rgba(0,0,0,.5); --memory: #f2f2f0;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #131312; --surface: #1a1a19; --surface-2: #222220; --line: #2a2a28; --line-strong: #3a3936;
-    --text: #ffffff; --text-2: #c3c2b7; --text-3: #85837b;
-    --accent: #3987e5; --accent-soft: #1c2a3d; --accent-ink: #86b6ef;
-    --bar: #3987e5; --bar-hover: #86b6ef; --grid: #262624;
-    --good: #3fbf7f; --good-soft: #15291e; --warn: #e0a83a; --warn-soft: #2e2413;
-    --bad: #ee6b6a; --bad-soft: #321a1a; --idle: #85837b; --idle-soft: #242422;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.2);
+      --bg: #0f0f0e; --surface: #191918; --surface-2: #222221; --line: #2a2a29; --line-strong: #3a3a38;
+      --text: #f2f2f0; --text-2: #c8c8c4; --text-3: #9a9a95;
+      --accent: #f2f2f0; --accent-soft: #2a2a29; --accent-ink: #f2f2f0;
+      --bar: #f2f2f0; --bar-hover: #9a9a95; --grid: #232322;
+      --good: #f2f2f0; --good-soft: #2a2a29; --warn: #c8c8c4; --warn-soft: #232322;
+      --bad: #f07167; --bad-soft: #3a1d1a; --idle: #9a9a95; --idle-soft: #232322;
+      --shadow: 0 1px 0 rgba(0,0,0,.4), 0 3px 6px -2px rgba(0,0,0,.5); --memory: #f2f2f0;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -46,7 +46,7 @@
     -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01"; }
   button, input { font: inherit; color: inherit; }
   a { color: var(--accent); text-decoration: none; }
-  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  .mono { font-family: "Courier Prime", "Courier New", monospace; }
 
   /* ---------- layout ---------- */
   .app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
@@ -69,7 +69,7 @@
   header.page h1 { margin: 0; font-size: 24px; letter-spacing: -.025em; font-weight: 650; }
   header.page p { margin: 2px 0 0; color: var(--text-3); font-size: 13px; }
   .updated { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
-  .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 var(--good); animation: pulse 2s infinite; }
+  .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 var(--good); }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 50%, transparent); } 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
   section.view { display: none; }
   section.view.active { display: block; }
@@ -205,8 +205,8 @@
   .tab .dot { width: 7px; height: 7px; border-radius: 50%; }
   pre.logs { margin: 0; height: calc(100vh - 220px); min-height: 360px; overflow: auto; padding: 16px 18px; font-size: 12px; line-height: 1.6;
     background: #111110; color: #d9d8d2; border-radius: var(--radius); border: 1px solid var(--line); white-space: pre-wrap; word-break: break-all; }
-  pre.logs .cmd { color: #86b6ef; }
-  pre.logs .end { color: #e0a83a; }
+  pre.logs .cmd { color: #ffffff; font-weight: 700; }
+  pre.logs .end { color: #b4b4b0; font-style: italic; }
 
   .toast { position: fixed; bottom: 20px; right: 20px; z-index: 60; background: var(--text); color: var(--surface); padding: 10px 14px;
     border-radius: 10px; font-size: 13px; max-width: 420px; box-shadow: 0 6px 24px rgba(0,0,0,.2); opacity: 0; transform: translateY(8px); transition: .2s; }
@@ -263,7 +263,7 @@
   .src { font-size: 11px; color: var(--text-3); font-weight: 500; }
   .mem-items { list-style: none; margin: 0; padding: 0; }
   .mem-items li { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; font-size: 13px; color: var(--text-2); }
-  .mem-items li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--memory, #0f8f9c); margin-top: 8px; flex: none; }
+  .mem-items li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--text); margin-top: 8px; flex: none; }
   .mem-items li span { flex: 1; }
   .x-btn { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 2px 4px; border-radius: 5px; line-height: 1; font-size: 15px; }
   .x-btn:hover { color: var(--bad); background: var(--bad-soft); }
@@ -287,18 +287,118 @@
   .conn-row:last-child { border-bottom: 0; }
   .conn-row .warn { color: var(--warn); font-size: 12px; }
   .tab .count { margin-left: 2px; }
+
+  /* ---------- conexiones ---------- */
+  .conns-list { display: grid; gap: 12px; }
+  .conn { display: grid; gap: 10px; padding: 14px 16px; }
+  .conn.off { background: var(--surface-2); }
+  .conn.off .conn-name { color: var(--text-3); }
+  .conn-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .conn-name { font-weight: 700; font-size: 15px; }
+  .conn-meta { font: 400 12.5px/1.4 "Courier Prime", monospace; color: var(--text-3); word-break: break-all; }
+  .conn-sw { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .conn-sw label.lbl { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+  .tool-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tool-chips span { font: 400 11.5px/1 "Courier Prime", monospace; padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 3px; color: var(--text-2); }
+  .conn-err { font-size: 12.5px; color: var(--bad); }
+  .conn-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  [hidden] { display: none !important; }
+  textarea.mono, input.mono { font-family: "Courier Prime", "Courier New", monospace; font-size: 13.5px; }
+  .form-hint { font-size: 12.5px; color: var(--text-3); margin: 6px 0 0; }
+  .notice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 3px; font-size: 13px; color: var(--text-2); background: var(--surface-2); }
+  .notice svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+  .ac-list { display: grid; gap: 2px; max-height: 260px; overflow: auto; margin: 10px 0; }
+  .ac-list label { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 13.5px; cursor: pointer; }
+  .ac-list .tk { margin-left: auto; font: 400 12px/1 "Courier Prime", monospace; color: var(--text-3); }
+  .kind-stamp { font: 700 10.5px/1.5 "Courier Prime", monospace; letter-spacing: .1em; text-transform: uppercase; border: 1.5px solid currentColor; border-radius: 3px; padding: 0 6px; font-size: 11px; }
+  .install-path { font-size: 12.5px; color: var(--text-3); margin: -4px 0 10px; }
+  @media (max-width: 760px) { .form-grid { grid-template-columns: 1fr; } .conn-sw { margin-left: 0; } }
+
+  /* =====================================================================
+     Sistema "fichero" (el de la landing, DESIGN.md) en versión de trabajo:
+     monocromo, Archivo para la interfaz, Courier Prime solo para etiquetas,
+     referencias y código; rojo reservado para errores y acciones destructivas.
+     ===================================================================== */
+  body { font: 400 14.5px/1.5 "Archivo", "Helvetica Neue", Arial, sans-serif; font-feature-settings: normal; }
+  .mono, code, pre { font-family: "Courier Prime", "Courier New", monospace; }
+  a { color: var(--text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  ::selection { background: var(--text); color: var(--surface); }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  html { scrollbar-color: var(--line-strong) var(--bg); }
+
+  .logo { font: 800 20px/1 "Archivo", sans-serif; font-stretch: 86%; letter-spacing: -.03em; gap: 9px; }
+  .logo small { font: 400 11.5px/1.3 "Courier Prime", monospace; letter-spacing: 0; margin-top: 3px; }
+  .logo-mark { width: auto; height: auto; background: none; color: var(--text); border-radius: 0; }
+  .nav-item { border-radius: 3px; font-weight: 600; }
+  .nav-item.active, .nav-item.active:hover { background: var(--text); color: var(--surface); }
+
+  header.page h1 { font: 800 34px/1 "Archivo", sans-serif; font-stretch: 84%; letter-spacing: -.03em; }
+  header.page p { font-size: 13.5px; color: var(--text-2); margin-top: 6px; }
+  .section-title { font: 700 11.5px/1 "Courier Prime", monospace; letter-spacing: .1em; color: var(--text-2); }
+
+  .card { border: 1px solid var(--line-strong); border-radius: 4px; }
+  .card-h { padding: 11px 16px 9px; border-bottom: 1px solid var(--text); align-items: center; }
+  .card-h h2 { font: 700 12px/1.2 "Courier Prime", monospace; letter-spacing: .07em; text-transform: uppercase; }
+  .card-h .sub { font: 400 12.5px/1.2 "Courier Prime", monospace; color: var(--text-3); }
+  .card-b { padding: 14px 16px 16px; }
+
+  .pill { font: 700 11px/1.5 "Courier Prime", monospace; letter-spacing: .1em; text-transform: uppercase;
+    border: 1.5px solid currentColor; border-radius: 3px; padding: 1px 7px 0 5px; background: transparent; }
+  .st-running { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .st-external { color: var(--text); background: transparent; }
+  .st-starting { color: var(--text-2); background: transparent; }
+  .st-stopped, .st-none { color: var(--text-3); background: transparent; }
+  .st-error { color: var(--bad); background: var(--bad-soft); }
+
+  .switch .track { background: var(--line-strong); }
+  .switch .track::after { background: var(--surface); box-shadow: 0 0 0 1px var(--line-strong), 0 1px 2px rgba(0,0,0,.2); }
+  .switch input:checked + .track { background: var(--text); }
+  .switch input:checked + .track::after { box-shadow: none; }
+
+  .btn { border-radius: 3px; border-color: var(--line-strong); color: var(--text); font-weight: 600; text-decoration: none; }
+  .btn:hover { border-color: var(--text); }
+  .btn.primary { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .btn.primary:hover { opacity: 1; background: var(--text-2); border-color: var(--text-2); }
+
+  .kpi .label { font: 700 11px/1.2 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+  .kpi .value { font: 800 32px/1.1 "Archivo", sans-serif; font-stretch: 84%; letter-spacing: -.03em; margin-top: 6px; }
+  .kpi .foot { font: 400 12px/1.3 "Courier Prime", monospace; }
+
+  .input { border-radius: 3px; border-color: var(--line-strong); }
+  .input:focus { border-color: var(--text); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .tabs { border-radius: 4px; }
+  .tab { border-radius: 3px; }
+  .tab.active { background: var(--text); color: var(--surface); box-shadow: none; }
+  .op { font: 700 10.5px/1.6 "Courier Prime", monospace; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line-strong); background: transparent; border-radius: 3px; font-size: 11px; }
+  .checks .ok .ic { background: var(--text); color: var(--surface); }
+  .result { border-radius: 3px; }
+  .result.ok { background: var(--surface-2); color: var(--text); }
+  .result.err { background: var(--bad-soft); color: var(--bad); }
+  .graph-frame, pre.logs, .toast, .preview, .hit { border-radius: 4px; }
+  .prompt-box, .agent-note, .code-block pre, .seg button { border-radius: 3px; }
+  .seg button.on { background: var(--text); border-color: var(--text); color: var(--surface); }
+  .avatar { background: var(--text); color: var(--surface); }
+  .icon-btn { border-radius: 3px; border-color: var(--line-strong); }
+  .step-n { background: var(--text); color: var(--surface); }
+  .score-bar i { background: var(--text); }
+  .tip { border-radius: 3px; font-size: 12.5px; }
+  .code-label { font: 700 11.5px/1.3 "Courier Prime", monospace; letter-spacing: .05em; text-transform: uppercase; }
+  .agent-name, .svc-name { font-weight: 700; font-size: 15px; }
 </style>
 </head>
 <body>
 <div class="app">
   <nav class="side">
     <div class="logo">
-      <div class="logo-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8.3 6.6 15.6 7.6M16.6 10.1 11.5 16M7.1 8.3 9.2 15.6"/></svg></div>
+      <div class="logo-mark"><svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="2" fill="var(--surface)" stroke="currentColor" stroke-width="2.2"/><path d="M3 12.5h26" stroke="currentColor" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="currentColor" stroke-width="1.8"/></svg></div>
       <div>brain<small data-i18n="tagline"></small></div>
     </div>
     <button class="nav-item" data-view="panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span data-i18n="nav.panel"></span></button>
     <button class="nav-item" data-view="perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span data-i18n="nav.profile"></span></button>
     <button class="nav-item" data-view="agentes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5"/></svg><span data-i18n="nav.agents"></span></button>
+    <button class="nav-item" data-view="conexiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span data-i18n="nav.connections"></span></button>
     <button class="nav-item" data-view="grafo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.8 6.2M7.3 13l9.5 4.8"/></svg><span data-i18n="nav.graph"></span></button>
     <button class="nav-item" data-view="conocimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="nav.knowledge"></span></button>
     <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg><span data-i18n="nav.logs"></span></button>
@@ -408,6 +508,56 @@
       </div>
     </section>
 
+    <!-- CONEXIONES -->
+    <section class="view" id="view-conexiones">
+      <header class="page"><div><h1 data-i18n="conn.title"></h1><p data-i18n="conn.sub"></p></div></header>
+      <div class="grid two" style="align-items:start">
+        <div class="grid" style="align-content:start">
+          <div class="card"><div class="card-h"><h2 data-i18n="conn.yours"></h2><span class="sub" id="conn-count"></span></div>
+            <div class="card-b"><div class="conns-list" id="conns"></div></div></div>
+        </div>
+        <div class="grid" style="align-content:start">
+          <div class="card" id="conn-form-card"><div class="card-h"><h2 id="conn-form-title"></h2><span class="sub" data-i18n="conn.formSub"></span></div>
+            <div class="card-b">
+              <div class="seg" id="conn-kind" style="margin-bottom:14px">
+                <button type="button" data-kind="stdio" class="on" data-i18n="conn.kindStdio"></button>
+                <button type="button" data-kind="http" data-i18n="conn.kindHttp"></button>
+              </div>
+              <form id="conn-form" class="form-grid" autocomplete="off">
+                <div class="field"><label for="cf-name" data-i18n="conn.fName"></label><input class="input full" id="cf-name" placeholder="gmail" required></div>
+                <div class="field kind-stdio"><label for="cf-cmd" data-i18n="conn.fCmd"></label><input class="input full mono" id="cf-cmd" placeholder="npx"></div>
+                <div class="field kind-http full" hidden><label for="cf-url" data-i18n="conn.fUrl"></label><input class="input full mono" id="cf-url" placeholder="https://mcp.example.com/mcp"></div>
+                <div class="field kind-stdio"><label for="cf-args" data-i18n="conn.fArgs"></label><textarea class="input mono" id="cf-args" placeholder="-y&#10;@modelcontextprotocol/server-github"></textarea></div>
+                <div class="field kind-stdio"><label for="cf-env" data-i18n="conn.fEnv"></label><textarea class="input mono" id="cf-env" placeholder="GITHUB_TOKEN=…"></textarea></div>
+                <div class="field kind-http full" hidden><label for="cf-headers" data-i18n="conn.fHeaders"></label><textarea class="input mono" id="cf-headers" placeholder="Authorization: Bearer …"></textarea></div>
+                <p class="form-hint full" id="cf-hint" data-i18n="conn.secretHint"></p>
+                <div class="full" style="display:flex;gap:8px;align-items:center">
+                  <button class="btn primary" type="submit" id="cf-save" data-i18n="conn.save"></button>
+                  <button class="btn" type="button" id="cf-cancel" hidden data-i18n="conn.cancel"></button>
+                </div>
+              </form>
+              <div class="result" id="conn-result"></div>
+            </div></div>
+          <div class="card"><div class="card-h"><h2>Composio</h2><span class="sub" data-i18n="conn.optional"></span></div>
+            <div class="card-b">
+              <div class="notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg><span data-i18n="conn.composioNote"></span></div>
+              <form id="cmp-form" class="form-grid" style="margin-top:14px" autocomplete="off">
+                <div class="field"><label for="cmp-key" data-i18n="conn.cKey"></label><input class="input full mono" id="cmp-key" type="password"></div>
+                <div class="field"><label for="cmp-user" data-i18n="conn.cUser"></label><input class="input full mono" id="cmp-user" placeholder="me"></div>
+                <p class="form-hint full" data-i18n="conn.cKeyHint"></p>
+                <div class="full" style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn primary" type="submit" data-i18n="conn.cSave"></button>
+                  <button class="btn" type="button" id="cmp-load" data-i18n="conn.cLoad"></button>
+                  <button class="btn" type="button" id="cmp-off" hidden style="color:var(--bad)" data-i18n="conn.cOff"></button>
+                </div>
+              </form>
+              <div id="cmp-apps"></div>
+              <div class="result" id="cmp-result"></div>
+            </div></div>
+        </div>
+      </div>
+    </section>
+
     <!-- GRAFO -->
     <section class="view" id="view-grafo">
       <header class="page"><div><h1 data-i18n="graph.title"></h1><p data-i18n="graph.sub"></p></div></header>
@@ -476,7 +626,26 @@ Required format:
 const I18N = {
   es: {
     tagline: "knowledge server",
-    nav: { panel: "Panel", profile: "Perfil", agents: "Conectar agente", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
+    nav: { panel: "Panel", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
+    conn: { title: "Conexiones", sub: "Apps y servicios que brain usa por vos: sus tools aparecen en tus agentes y lo que traen queda en tu memoria",
+      yours: "Tus conexiones", count: n => `${n} en total`, formSub: "server MCP", add: "Agregar conexión", edit: n => `Editar ${n}`,
+      kindStdio: "Comando local", kindHttp: "URL", fName: "Nombre", fCmd: "Comando", fArgs: "Argumentos · uno por línea",
+      fEnv: "Variables · CLAVE=valor por línea", fUrl: "URL del server", fHeaders: "Headers · Nombre: valor por línea",
+      secretHint: "Tokens y claves se guardan en .env, en tu máquina, nunca en el repo. Al editar, dejá un valor vacío para conservar el guardado.",
+      save: "Guardar y conectar", cancel: "Cancelar", saved: n => `Listo: ${n} tools disponibles para tus agentes.`, savedErr: "Se guardó, pero no se pudo conectar:",
+      active: "Activa", capture: "Guardar en memoria", refresh: "Actualizar tools", editBtn: "Editar", del: "Eliminar",
+      delConfirm: n => `¿Eliminar la conexión ${n}? También se borran sus tokens del .env.`, noTools: "Sin tools todavía",
+      tools: n => `${n} tools`, local: "Local", url: "URL", composio: "Composio", updated: t => `actualizado ${t}`,
+      empty: "Todavía no hay conexiones. Agregá un server MCP (por ejemplo el de GitHub, Notion o Gmail) o configurá Composio.",
+      optional: "opcional", composioNote: "Composio conecta cientos de apps con OAuth en un click, pero guarda los tokens de tus cuentas en su nube. brain guarda en tu máquina la API key, la configuración y todo lo que trae.",
+      cKey: "API key", cUser: "User ID", cSave: "Guardar y conectar", cLoad: "Elegir apps", cSaved: "Guardado en .env.", cConfigured: "API key cargada", cOff: "Desconectar",
+      cKeyHint: "Consumer key (ck_…): conecta directo con las apps que ya vinculaste en Composio; el User ID no hace falta. Key de proyecto (ak_…): completá el User ID y usá «Elegir apps».",
+      cOffConfirm: "¿Desconectar Composio? Se borran la conexión y la key del .env.", cOffDone: "Composio desconectado: la key se borró del .env.",
+      cConsumerOk: n => `Conectado a Composio: ${n} tools disponibles para tus agentes.`,
+      cPick: "Elegí las apps conectadas en Composio que querés sumar:", cCreate: n => `Crear conexión con ${n}`, cNone: "No hay auth configs en tu proyecto de Composio. Conectá apps en platform.composio.dev y volvé.",
+      err: { missing_name: "Falta el nombre.", missing_command: "Falta el comando.", bad_url: "La URL tiene que empezar con http:// o https://.",
+        composio_not_configured: "Cargá primero la API key de Composio.", composio_no_user: "Cargá el User ID de Composio.",
+        composio_nothing_selected: "Elegí al menos una app.", composio_consumer_key: "Con una consumer key (ck_) no hace falta elegir apps: ya vienen las que conectaste en Composio.", composio_unreachable: "No se pudo contactar a Composio:", composio_http: "Composio respondió con un error:", other: "Error" } },
     agents: { title: "Conectar agente", sub: "Conectá brain a Claude, ChatGPT u otros agentes e IAs para que usen tu memoria y tus notas",
       tabConnect: "Conectar", tabMine: "Mis conexiones", desktop: "Apps de escritorio", others: "Otros agentes e IAs",
       connected: "Conectado", notConnected: "No conectado", notInstalled: "No instalado", elsewhere: "Apunta a otra carpeta",
@@ -511,6 +680,7 @@ const I18N = {
       manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
       formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» (no «Connect to a URL»: brain no expone una URL) y completá cada campo con estos valores.",
       fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (uno por línea)", fEnv: "Environment", fEnvEmpty: "(vacío: no hace falta nada)",
+      installPath: p => `Estos valores son los de esta instalación de brain (${p}) y se adaptan solos a la carpeta y al usuario de cada Mac.`,
       jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini y la mayoría)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Comando", copy: "Copiar", copied: "Copiado ✓",
       mineEmpty: "Todavía no conectaste brain a ningún agente. Hacelo desde la pestaña Conectar.",
       here: "Apunta a esta instalación", elsewhereLong: "Apunta a otra carpeta de brain (quizás una instalación vieja). Reconectalo para usar esta." },
@@ -527,7 +697,7 @@ const I18N = {
     open: "Abrir", logsBtn: "Logs",
     kpi: { files: "Archivos", words: n => `${n} palabras`, memories: "Memorias", memCats: n => `${n} categorías`,
       projects: "Proyectos", skills: "Skills", sources: "Fuentes", scraped: "scrapeadas", chunks: "Chunks",
-      inChroma: "en Chroma", chromaOff: "Chroma apagado", links: "Conexiones", tags: n => `${n} tags` },
+      inChroma: "en Chroma", chromaOff: "Chroma apagado", links: "Enlaces", tags: n => `${n} tags` },
     chart: { activity: "Cambios en el vault · últimos 30 días", changes: n => `${n} cambios`, domains: "Fuentes por dominio",
       ops: "Operaciones", opsSub: "historial completo", noSources: "Todavía no hay fuentes.<br>Guardá una URL desde Conocimiento.",
       noOps: "Sin operaciones todavía", table: "Ver como tabla", hideTable: "Ocultar tabla", day: "Día", count: "Cambios",
@@ -569,7 +739,26 @@ const I18N = {
   },
   en: {
     tagline: "knowledge server",
-    nav: { panel: "Dashboard", profile: "Profile", agents: "Connect agent", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
+    nav: { panel: "Dashboard", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
+    conn: { title: "Connections", sub: "Apps and services brain uses for you: their tools show up in your agents and what they bring back stays in your memory",
+      yours: "Your connections", count: n => `${n} total`, formSub: "MCP server", add: "Add connection", edit: n => `Edit ${n}`,
+      kindStdio: "Local command", kindHttp: "URL", fName: "Name", fCmd: "Command", fArgs: "Arguments · one per line",
+      fEnv: "Environment · KEY=value per line", fUrl: "Server URL", fHeaders: "Headers · Name: value per line",
+      secretHint: "Tokens and keys are stored in .env, on your machine, never in the repo. When editing, leave a value blank to keep the saved one.",
+      save: "Save and connect", cancel: "Cancel", saved: n => `Done: ${n} tools available to your agents.`, savedErr: "Saved, but couldn't connect:",
+      active: "Active", capture: "Save to memory", refresh: "Refresh tools", editBtn: "Edit", del: "Delete",
+      delConfirm: n => `Delete the ${n} connection? Its tokens are removed from .env too.`, noTools: "No tools yet",
+      tools: n => `${n} tools`, local: "Local", url: "URL", composio: "Composio", updated: t => `updated ${t}`,
+      empty: "No connections yet. Add an MCP server (for example GitHub, Notion or Gmail) or set up Composio.",
+      optional: "optional", composioNote: "Composio connects hundreds of apps with one-click OAuth, but it stores your accounts' tokens in its cloud. brain keeps the API key, the configuration and everything it fetches on your machine.",
+      cKey: "API key", cUser: "User ID", cSave: "Save and connect", cLoad: "Choose apps", cSaved: "Saved to .env.", cConfigured: "API key saved", cOff: "Disconnect",
+      cKeyHint: "Consumer key (ck_…): connects directly to the apps you already linked in Composio; no User ID needed. Project key (ak_…): fill in the User ID and use “Choose apps”.",
+      cOffConfirm: "Disconnect Composio? The connection and the key are removed from .env.", cOffDone: "Composio disconnected: the key was removed from .env.",
+      cConsumerOk: n => `Connected to Composio: ${n} tools available to your agents.`,
+      cPick: "Choose the apps connected in Composio you want to add:", cCreate: n => `Create connection with ${n}`, cNone: "Your Composio project has no auth configs. Connect apps at platform.composio.dev and come back.",
+      err: { missing_name: "Name is required.", missing_command: "Command is required.", bad_url: "The URL must start with http:// or https://.",
+        composio_not_configured: "Save your Composio API key first.", composio_no_user: "Save your Composio User ID.",
+        composio_nothing_selected: "Choose at least one app.", composio_consumer_key: "With a consumer key (ck_) there's nothing to choose: the apps you connected in Composio are already included.", composio_unreachable: "Couldn't reach Composio:", composio_http: "Composio returned an error:", other: "Error" } },
     agents: { title: "Connect agent", sub: "Connect brain to Claude, ChatGPT or other agents and AIs so they use your memory and notes",
       tabConnect: "Connect", tabMine: "My connections", desktop: "Desktop apps", others: "Other agents and AIs",
       connected: "Connected", notConnected: "Not connected", notInstalled: "Not installed", elsewhere: "Points to another folder",
@@ -604,6 +793,7 @@ const I18N = {
       manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
       formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” (not “Connect to a URL”: brain doesn't expose a URL) and fill each field with these values.",
       fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (one per line)", fEnv: "Environment", fEnvEmpty: "(empty: nothing needed)",
+      installPath: p => `These values belong to this brain install (${p}) and adapt automatically to each Mac's folder and user.`,
       jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini and most others)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Command", copy: "Copy", copied: "Copied ✓",
       mineEmpty: "You haven't connected brain to any agent yet. Do it from the Connect tab.",
       here: "Points to this installation", elsewhereLong: "Points to another brain folder (maybe an old install). Reconnect it to use this one." },
@@ -620,7 +810,7 @@ const I18N = {
     open: "Open", logsBtn: "Logs",
     kpi: { files: "Files", words: n => `${n} words`, memories: "Memories", memCats: n => `${n} categories`,
       projects: "Projects", skills: "Skills", sources: "Sources", scraped: "scraped", chunks: "Chunks",
-      inChroma: "in Chroma", chromaOff: "Chroma is off", links: "Connections", tags: n => `${n} tags` },
+      inChroma: "in Chroma", chromaOff: "Chroma is off", links: "Links", tags: n => `${n} tags` },
     chart: { activity: "Vault changes · last 30 days", changes: n => `${n} changes`, domains: "Sources by domain",
       ops: "Operations", opsSub: "full history", noSources: "No sources yet.<br>Save a URL from Knowledge.",
       noOps: "No operations yet", table: "Show as table", hideTable: "Hide table", day: "Day", count: "Changes",
@@ -688,7 +878,7 @@ function setLang(l) {
   applyStatic();
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
-  renderMemSource(); renderProfileView(); renderMemory(); renderAgents();
+  renderMemSource(); renderProfileView(); renderMemory(); renderAgents(); renderConnections();
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
   if (view === "logs") { logSig = ""; loadLogs(); }
@@ -708,7 +898,7 @@ const ICON = {
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/></svg>',
 };
 const STATUS_CLS = { running: "st-running", external: "st-external", starting: "st-starting", stopped: "st-stopped", error: "st-error" };
-const STATUS_COLOR = { running: "var(--good)", external: "var(--accent)", starting: "var(--warn)", stopped: "var(--idle)", error: "var(--bad)" };
+const STATUS_COLOR = { running: "var(--text)", external: "var(--text-2)", starting: "var(--text-3)", stopped: "var(--line-strong)", error: "var(--bad)" };
 const statusIcon = st => st === "starting" ? '<span class="spin" style="width:10px;height:10px;border-width:1.5px"></span>' : st === "error" ? ICON.alert : ICON.dot;
 const svcLabel = s => (T.svc[s.key] || [s.label])[0];
 
@@ -758,7 +948,7 @@ function showResult(el, kind, text, spinner = false) {
 const errText = r => T.err[r.code] ? (r.code === "scrape" || r.code === "other" ? `${T.err[r.code]} ${r.detail || ""}`.trim() : T.err[r.code]) : (r.detail || T.err.other);
 
 // ================= routing =================
-const VIEWS = ["panel", "perfil", "agentes", "grafo", "conocimiento", "logs"];
+const VIEWS = ["panel", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "logs"];
 let view = "panel";
 function go(v) {
   if (!VIEWS.includes(v)) v = "panel";
@@ -770,6 +960,7 @@ function go(v) {
   if (v === "logs") loadLogs();
   if (v === "perfil") loadProfile();
   if (v === "agentes") loadAgents();
+  if (v === "conexiones") loadConnections();
   if (v === "panel" || v === "conocimiento") loadStats();
   // los SVG se dibujan con el ancho real: si se dibujaron con la pestaña oculta se redibujan
   if (v === "panel" && stats) requestAnimationFrame(renderStats);
@@ -1100,7 +1291,7 @@ function renderAgents() {
   $("#agents-desktop").innerHTML = list.filter(a => a.group === "desktop").map(agentCard).join("");
   $("#agents-other").innerHTML = list.filter(a => a.group === "other").map(agentCard).join("");
   const m = agentsData.manual;
-  $("#agents-manual").innerHTML = `<div class="code-label" style="margin-bottom:6px">${esc(T.agents.formLabel)}</div>
+  $("#agents-manual").innerHTML = `<p class="install-path">${esc(T.agents.installPath(m.install_path))}</p><div class="code-label" style="margin-bottom:6px">${esc(T.agents.formLabel)}</div>
     <p class="muted" style="margin:0 0 10px;font-size:12.5px">${esc(T.agents.formHint)}</p>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:14px">
       <div>${codeBlock(T.agents.fName, m.form.name, "snip-f-name")}</div><div>${codeBlock(T.agents.fCommand, m.form.command, "snip-f-cmd")}</div>
@@ -1140,6 +1331,145 @@ function statusRefreshSoon() { setTimeout(loadStatus, 300); }
 document.querySelectorAll("#agent-tabs .tab").forEach(b => b.onclick = () => { agentTab = b.dataset.tab; renderAgents(); });
 async function loadAgents() {
   try { agentsData = await api("/api/agents"); renderAgents(); } catch (e) { /* reintenta */ }
+}
+
+// ================= conexiones =================
+let connData = null, connKind = "stdio", connEditing = null, cmpApps = null;
+const connErr = r => { const e = T.conn.err[r.code]; return e ? `${e} ${r.detail || ""}`.trim() : (r.detail || T.conn.err.other); };
+const lines = v => v.split("\n").map(x => x.trim()).filter(Boolean);
+function parsePairs(text, sep) {
+  const out = {};
+  lines(text).forEach(l => { const i = l.indexOf(sep); if (i > 0) out[l.slice(0, i).trim()] = l.slice(i + 1).trim(); else out[l] = ""; });
+  return out;
+}
+function setConnKind(k) {
+  connKind = k;
+  $("#conn-kind").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.kind === k));
+  document.querySelectorAll(".kind-stdio").forEach(el => el.hidden = k !== "stdio");
+  document.querySelectorAll(".kind-http").forEach(el => el.hidden = k === "stdio");
+}
+$("#conn-kind").querySelectorAll("button").forEach(b => b.onclick = () => setConnKind(b.dataset.kind));
+function resetConnForm() {
+  connEditing = null; $("#conn-form").reset(); setConnKind("stdio");
+  $("#cf-cancel").hidden = true; $("#conn-form-title").textContent = T.conn.add;
+}
+function editConnection(c) {
+  connEditing = c.id; setConnKind(c.kind === "stdio" ? "stdio" : "http");
+  $("#cf-name").value = c.name; $("#cf-cmd").value = c.command || ""; $("#cf-args").value = (c.args || []).join("\n");
+  $("#cf-env").value = Object.keys(c.env_keys || {}).map(k => `${k}=`).join("\n");
+  $("#cf-url").value = ""; $("#cf-url").placeholder = c.url || "https://…";
+  $("#cf-headers").value = Object.keys(c.header_keys || {}).map(k => `${k}: `).join("\n");
+  $("#cf-cancel").hidden = false; $("#conn-form-title").textContent = T.conn.edit(c.name);
+  $("#conn-form-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("#cf-cancel").onclick = resetConnForm;
+$("#conn-form").onsubmit = async e => {
+  e.preventDefault();
+  const btn = $("#cf-save"), out = $("#conn-result"); btn.disabled = true;
+  const body = { kind: connKind, name: $("#cf-name").value };
+  if (connKind === "stdio") Object.assign(body, { command: $("#cf-cmd").value, args: $("#cf-args").value, env: parsePairs($("#cf-env").value, "=") });
+  else Object.assign(body, { url: $("#cf-url").value, headers: parsePairs($("#cf-headers").value, ":") });
+  showResult(out, "info", "…", true);
+  try {
+    const r = await api(connEditing ? `/api/connections/${connEditing}` : "/api/connections", body);
+    if (!r.ok) showResult(out, "err", connErr(r));
+    else if (r.connection.error) showResult(out, "err", `${T.conn.savedErr} ${r.connection.error}`);
+    else { showResult(out, "ok", T.conn.saved(r.connection.tools.length)); resetConnForm(); }
+    loadConnections();
+  } catch (e2) { showResult(out, "err", e2.message); }
+  finally { btn.disabled = false; }
+};
+function connCard(c) {
+  const kind = c.kind === "stdio" ? T.conn.local : c.kind === "composio" ? T.conn.composio : T.conn.url;
+  const where = c.kind === "stdio" ? [c.command, ...(c.args || [])].join(" ") : c.url;
+  const tools = c.tools.slice(0, 14).map(t => `<span>${esc(t)}</span>`).join("") + (c.tools.length > 14 ? `<span>+${c.tools.length - 14}</span>` : "");
+  return `<div class="card conn ${c.enabled ? "" : "off"}" data-id="${esc(c.id)}">
+    <div class="conn-top"><span class="conn-name">${esc(c.name)}</span><span class="kind-stamp">${esc(kind)}</span>
+      <span class="sub mono" style="color:var(--text-3);font-size:12.5px">${esc(T.conn.tools(c.tools.length))}</span>
+      <div class="conn-sw">
+        <label class="lbl"><span>${esc(T.conn.capture)}</span><span class="switch"><input type="checkbox" role="switch" data-flag="capture" ${c.capture ? "checked" : ""}><span class="track"></span></span></label>
+        <label class="lbl"><span>${esc(T.conn.active)}</span><span class="switch"><input type="checkbox" role="switch" data-flag="enabled" ${c.enabled ? "checked" : ""}><span class="track"></span></span></label>
+      </div></div>
+    <div class="conn-meta">${esc(where)} · <span>${esc(c.prefix)}__…</span>${c.refreshed_at ? ` · ${esc(T.conn.updated(ago(c.refreshed_at)))}` : ""}</div>
+    ${c.error ? `<div class="conn-err">${esc(c.error)}</div>` : ""}
+    <div class="tool-chips">${tools || `<span>${esc(T.conn.noTools)}</span>`}</div>
+    <div class="conn-actions"><button class="btn" data-act="refresh">${esc(T.conn.refresh)}</button><button class="btn" data-act="edit">${esc(T.conn.editBtn)}</button><button class="btn" data-act="delete" style="color:var(--bad)">${esc(T.conn.del)}</button></div>
+  </div>`;
+}
+function renderConnections() {
+  if (!connData) return;
+  const list = connData.connections;
+  $("#conn-count").textContent = T.conn.count(list.length);
+  if (!connEditing) $("#conn-form-title").textContent = T.conn.add;
+  $("#conns").innerHTML = list.length ? list.map(connCard).join("") : `<div class="empty-chart" style="height:140px">${esc(T.conn.empty)}</div>`;
+  $("#conns").querySelectorAll(".conn").forEach(card => {
+    const c = list.find(x => x.id === card.dataset.id);
+    card.querySelectorAll("input[data-flag]").forEach(inp => inp.onchange = async () => {
+      try { await api(`/api/connections/${c.id}/toggle`, { field: inp.dataset.flag, value: inp.checked }); } catch (e) { toast(e.message); }
+      loadConnections();
+    });
+    card.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => {
+      if (b.dataset.act === "edit") return editConnection(c);
+      if (b.dataset.act === "delete" && !confirm(T.conn.delConfirm(c.name))) return;
+      b.disabled = true;
+      try { const r = await api(`/api/connections/${c.id}/${b.dataset.act}`, {}); if (!r.ok) toast(connErr(r)); } catch (e) { toast(e.message); }
+      loadConnections();
+    });
+  });
+  const cmp = connData.composio;
+  $("#cmp-key").placeholder = cmp.configured ? `${T.conn.cConfigured} ✓` : "ck_… / ak_…";
+  $("#cmp-load").hidden = cmp.key_kind === "consumer";
+  $("#cmp-off").hidden = !cmp.configured;
+  if (!$("#cmp-user").value) $("#cmp-user").value = cmp.user_id || "";
+  if (cmpApps) renderCmpApps();
+}
+async function loadConnections() {
+  try { connData = await api("/api/connections"); renderConnections(); } catch (e) { /* reintenta */ }
+}
+$("#cmp-form").onsubmit = async e => {
+  e.preventDefault();
+  const out = $("#cmp-result"); showResult(out, "info", "…", true);
+  try {
+    const r = await api("/api/composio/config", { api_key: $("#cmp-key").value, user_id: $("#cmp-user").value });
+    $("#cmp-key").value = "";
+    if (!r.ok) showResult(out, "err", connErr(r));
+    else if (r.connection && r.connection.error) showResult(out, "err", `${T.conn.savedErr} ${r.connection.error}`);
+    else if (r.connection) showResult(out, "ok", T.conn.cConsumerOk(r.connection.tools.length));
+    else showResult(out, "ok", T.conn.cSaved);
+    loadConnections();
+  } catch (e2) { showResult(out, "err", e2.message); }
+};
+$("#cmp-off").onclick = async () => {
+  if (!confirm(T.conn.cOffConfirm)) return;
+  try { await api("/api/composio/disconnect", {}); $("#cmp-user").value = ""; cmpApps = null; $("#cmp-apps").innerHTML = ""; showResult($("#cmp-result"), "ok", T.conn.cOffDone); loadConnections(); }
+  catch (e) { showResult($("#cmp-result"), "err", e.message); }
+};
+$("#cmp-load").onclick = async () => {
+  const out = $("#cmp-result"); showResult(out, "info", "…", true);
+  try {
+    const r = await api("/api/composio/auth_configs");
+    if (!r.ok) { cmpApps = null; $("#cmp-apps").innerHTML = ""; return showResult(out, "err", connErr(r)); }
+    out.className = "result"; cmpApps = r.items; renderCmpApps();
+  } catch (e) { showResult(out, "err", e.message); }
+};
+function renderCmpApps() {
+  if (!cmpApps.length) { $("#cmp-apps").innerHTML = `<p class="form-hint">${esc(T.conn.cNone)}</p>`; return; }
+  $("#cmp-apps").innerHTML = `<p class="form-hint" style="margin-top:14px">${esc(T.conn.cPick)}</p><div class="ac-list">${cmpApps.map(a =>
+    `<label><input type="checkbox" value="${esc(a.id)}" checked> ${esc(a.name)} <span class="tk">${esc(a.toolkit)}</span></label>`).join("")}</div>
+    <button class="btn primary" type="button" id="cmp-create"></button>`;
+  const upd = () => { $("#cmp-create").textContent = T.conn.cCreate($("#cmp-apps").querySelectorAll("input:checked").length); };
+  $("#cmp-apps").querySelectorAll("input").forEach(i => i.onchange = upd); upd();
+  $("#cmp-create").onclick = async () => {
+    const ids = [...$("#cmp-apps").querySelectorAll("input:checked")].map(i => i.value), out = $("#cmp-result");
+    showResult(out, "info", "…", true);
+    try {
+      const r = await api("/api/composio/provision", { auth_config_ids: ids });
+      if (!r.ok) showResult(out, "err", connErr(r));
+      else if (r.connection.error) showResult(out, "err", `${T.conn.savedErr} ${r.connection.error}`);
+      else { showResult(out, "ok", T.conn.saved(r.connection.tools.length)); cmpApps = null; $("#cmp-apps").innerHTML = ""; }
+      loadConnections();
+    } catch (e) { showResult(out, "err", e.message); }
+  };
 }
 
 // ================= conocimiento =================
@@ -1210,6 +1540,7 @@ setInterval(loadStatus, 2500);
 setInterval(() => { if (view === "panel" || view === "conocimiento") loadStats(); }, 5000);
 setInterval(() => { if (view === "logs") loadLogs(); }, 1500);
 setInterval(() => { if (view === "agentes") loadAgents(); }, 5000);
+setInterval(() => { if (view === "conexiones" && !connEditing) loadConnections(); }, 8000);
 </script>
 </body>
 </html>
