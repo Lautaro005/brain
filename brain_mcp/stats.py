@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import frontmatter
 
-from . import chroma_store, history, memory
+from . import agents, chroma_store, history, memory
 from .graph import build_graph
 from .vault import VAULT
 
@@ -93,12 +93,6 @@ def health(services_status: dict[str, str]) -> list[dict]:
         except Exception:
             pass
 
-    def registered(path: Path) -> bool:
-        try:
-            return "brain" in (json.loads(path.read_text()).get("mcpServers") or {})
-        except Exception:
-            return False
-
     pw = HOME / "Library" / "Caches" / "ms-playwright"
     # "cmd" = comando literal (no se traduce); si no hay, el dashboard muestra el hint traducido
     return [
@@ -107,8 +101,6 @@ def health(services_status: dict[str, str]) -> list[dict]:
         {"key": "chroma", "ok": services_status.get("chroma") in ("running", "external"), "cmd": None},
         {"key": "playwright", "ok": pw.exists() and any(pw.glob("chromium*")),
          "cmd": "uv run playwright install chromium"},
-        {"key": "claude_code", "ok": registered(HOME / ".claude.json"), "cmd": "claude mcp add -s user brain -- …"},
-        {"key": "claude_desktop",
-         "ok": registered(HOME / "Library/Application Support/Claude/claude_desktop_config.json"),
-         "cmd": "./register-desktop.sh"},
+        # al menos un agente conectado (detalle en la vista "Conectar agente")
+        {"key": "agents", "ok": any(x["connected"] for x in agents.all_status()), "cmd": None},
     ]

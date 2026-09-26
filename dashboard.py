@@ -22,7 +22,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
-from brain_mcp import chroma_store, history, memory, stats, vault  # noqa: E402
+from brain_mcp import agents, chroma_store, history, memory, stats, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -104,6 +104,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"meta": post.metadata, "content": post.content})
             elif u.path == "/api/profile":
                 self._json({"profile": memory.get_profile(), "memory": memory.list_all()})
+            elif u.path == "/api/agents":
+                self._json({"agents": agents.all_status(), "manual": agents.manual_snippets()})
             elif u.path == "/api/history":
                 self._json({"changes": history.list_changes(path=q.get("path", [None])[0], limit=int(q.get("limit", ["50"])[0]))})
             elif u.path.startswith("/api/logs/"):
@@ -164,6 +166,12 @@ class Handler(BaseHTTPRequestHandler):
                 if source not in memory.SOURCES:
                     return self._json({"error": "fuente desconocida"}, 400)
                 self._json({"ok": True, **memory.import_categories(body.get("categories") or [], source)})
+            elif len(parts) == 4 and parts[:2] == ["api", "agents"] and parts[3] in ("connect", "disconnect"):
+                try:
+                    st = agents.set_connected(parts[2], parts[3] == "connect", bool(body.get("restart_app")))
+                except agents.AgentError as e:
+                    return self._json({"ok": False, "code": e.code, "detail": e.detail})
+                self._json({"ok": True, "agent": st})
             elif u.path == "/api/memory/delete":
                 self._json({"ok": True, **memory.remove_item(str(body.get("category", "")), str(body.get("item", "")))})
             else:

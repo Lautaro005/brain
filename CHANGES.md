@@ -170,3 +170,36 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
   - El Panel muestra el KPI de memorias y la actividad desde el historial.
 - **Server MCP por stdio**: 14 tools; `read_file("BRAIN.md")` devuelve la plantilla nueva.
 - Los datos de prueba se borraron de nuevo: el vault quedó con solo la plantilla y `data/` no existe hasta el primer cambio.
+
+## 2026-09-26 — Conectar agente, instalador de un comando y README para GitHub
+
+**Qué se hizo**
+- **`README.md` → `CLAUDE.md`** (con `git mv`): la guía técnica pasó a ser el contexto para agentes que trabajen en el repo, con un encabezado nuevo que apunta al README y a CHANGES.
+- **`README.md` nuevo, para GitHub**: qué es, instalación de un comando, primeros pasos, cada pestaña del dashboard, tabla de agentes con sus archivos de config, arquitectura (diagrama mermaid), el flujo de `save_url` y del import de memoria, referencia de tools y del comando `brain`, privacidad y seguridad, solución de problemas, desinstalación y desarrollo.
+- **Vista "Conectar agente"** (sidebar, `brain_mcp/agents.py`, `/api/agents`, `/api/agents/<key>/connect|disconnect`):
+  - Pestaña **Conectar**: "Apps de escritorio" (Claude Desktop, ChatGPT), "Otros agentes e IAs" (Claude Code, Codex CLI, Cursor, VS Code/Copilot, Windsurf, Gemini CLI) y "Cualquier otro cliente MCP", con la config lista para copiar en JSON, TOML y como comando.
+  - Pestaña **Mis conexiones**: los agentes conectados, su archivo de config, si apuntan a esta instalación o a otra carpeta (en ese caso se puede reconectar), y botón para desconectar.
+  - Cada tarjeta muestra el estado (Conectado / No conectado / No instalado / Apunta a otra carpeta), la descripción, el path de config y, después de actuar, qué hacer (reiniciar la app, etc.). Todo traducido ES/EN.
+- **`agents.py`**:
+  - Escritura por tipo de archivo: JSON (`mcpServers`, o `servers` con `"type": "stdio"` para VS Code), TOML (`[mcp_servers.brain]` en `~/.codex/config.toml`) y CLI (`claude mcp add/remove -s user`).
+  - Hace backup `.bak-brain`, conserva el resto del archivo y valida el TOML antes de escribirlo.
+  - Detecta si el cliente está instalado (app en /Applications, CLI en el PATH o config existente) y si la app está abierta.
+- **Salud del sistema**: los chequeos "Registrado en Claude Code/Desktop" se reemplazaron por "Al menos un agente conectado", calculado con `agents.py`.
+- **Instalador `install.sh`** (`curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash`):
+  - Instala uv si falta, clona en `~/.brain` (o `git pull` si ya existe), corre `uv sync` e instala Chromium.
+  - Instala Ollama con Homebrew si falta, levanta Ollama temporalmente para bajar `nomic-embed-text` si no está, y crea `~/.local/bin/brain`, agregándolo al PATH en `~/.zshrc` si hace falta.
+  - Es idempotente. Variables: `BRAIN_HOME`, `BRAIN_REPO`, `BRAIN_BRANCH`, `BRAIN_BIN`.
+- **`brain.sh` con subcomandos**: `update` (git pull + uv sync), `path`, `uninstall` (saca solo el comando generado por el instalador y avisa que los datos siguen en la carpeta) y `help`. Sin argumento, o con flags, abre el dashboard. Busca uv también en `~/.local/bin`, porque el wrapper puede correr con un PATH mínimo.
+
+**En qué se apartó y por qué**
+- **ChatGPT se conecta por `~/.codex/config.toml`**, no por un archivo propio: la documentación de OpenAI indica que la app de escritorio solo usa servers MCP locales (stdio) en los modos Codex y ChatGPT Work, y que comparte esa config con Codex CLI. En el chat común de ChatGPT un server local no funciona sin un túnel; la UI lo aclara en vez de prometer algo que no anda.
+- **Claude Desktop con la app abierta**: como reescribe su config al salir, el dashboard pide confirmación, la cierra con `osascript`, espera a que termine, escribe y la vuelve a abrir. La confirmación avisa que, si brain corre desde la terminal de Claude, se corta.
+- **Claude Code usa su CLI** en vez de editar `~/.claude.json` directamente: ese archivo guarda mucho más que los servers MCP y lo maneja el propio CLI.
+- **URL del repo sin `.git`** (`https://github.com/Lautaro005/brain`), a pedido del usuario. `git clone` funciona igual.
+- **`uninstall` no borra la carpeta**: ahí viven `vault/` y `data/`. Borrar datos del usuario tiene que ser un paso explícito (`rm -rf ~/.brain`), que se indica.
+
+**Verificado**
+- **`agents.py` contra un HOME falso** (sin tocar las configs reales): conectar ChatGPT, Cursor y Gemini; Codex figura conectado por compartir el TOML; se conservan las otras entradas (`otro`, `profiles`, `model`, `theme`); un `mcp.json` de VS Code con comentarios devuelve `bad_config` sin escribir nada; desconectar deja los archivos como estaban; se generan los backups.
+- **Instalador** con un remoto local (`BRAIN_REPO=file://…`), en una carpeta y un bin temporales: instala, `brain help` y `brain path` funcionan, el dashboard instalado responde, detecta 8 agentes, la config manual apunta a la carpeta de la instalación y el vault se crea desde la plantilla. `brain update` trae un commit nuevo, reinstalar encima actualiza sin error, y `brain uninstall` saca solo el comando.
+- **UI "Conectar agente"** contra las configs reales, en modo solo lectura: Claude Desktop y Claude Code aparecen conectados ("apuntan a esta instalación"), ChatGPT instalado sin conectar, Cursor/Windsurf/Gemini no instalados. "Mis conexiones" lista los 2. La config manual se ve correcta.
+- **No probado en vivo**: conectar Claude Desktop con la app abierta (cierre y reapertura), porque cerraría la app donde se estaba trabajando. La lógica usa `osascript quit` + `pgrep`, igual que la detección que sí se probó.

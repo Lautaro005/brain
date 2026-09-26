@@ -268,6 +268,25 @@
   .x-btn { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 2px 4px; border-radius: 5px; line-height: 1; font-size: 15px; }
   .x-btn:hover { color: var(--bad); background: var(--bad-soft); }
   .mem-list { max-height: 560px; overflow: auto; }
+
+  /* ---------- conectar agente ---------- */
+  .agents { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .agent { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .agent-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .agent-name { font-weight: 600; font-size: 14.5px; }
+  .agent-desc { color: var(--text-3); font-size: 12.5px; }
+  .agent-path { font-size: 11.5px; color: var(--text-3); word-break: break-all; }
+  .agent-note { font-size: 12px; color: var(--text-2); background: var(--surface-2); border-radius: 8px; padding: 7px 10px; }
+  .agent-actions { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+  .st-none { color: var(--idle); background: var(--idle-soft); }
+  .code-block { position: relative; margin: 6px 0 14px; }
+  .code-block pre { margin: 0; background: #111110; color: #d9d8d2; border-radius: 9px; padding: 12px 14px; font-size: 12px; overflow-x: auto; white-space: pre; }
+  .code-block .btn { position: absolute; top: 8px; right: 8px; padding: 3px 9px; font-size: 11.5px; }
+  .code-label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .conn-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .conn-row:last-child { border-bottom: 0; }
+  .conn-row .warn { color: var(--warn); font-size: 12px; }
+  .tab .count { margin-left: 2px; }
 </style>
 </head>
 <body>
@@ -279,6 +298,7 @@
     </div>
     <button class="nav-item" data-view="panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span data-i18n="nav.panel"></span></button>
     <button class="nav-item" data-view="perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span data-i18n="nav.profile"></span></button>
+    <button class="nav-item" data-view="agentes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5"/></svg><span data-i18n="nav.agents"></span></button>
     <button class="nav-item" data-view="grafo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.8 6.2M7.3 13l9.5 4.8"/></svg><span data-i18n="nav.graph"></span></button>
     <button class="nav-item" data-view="conocimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="nav.knowledge"></span></button>
     <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg><span data-i18n="nav.logs"></span></button>
@@ -368,6 +388,26 @@
       </div>
     </section>
 
+    <!-- CONECTAR AGENTE -->
+    <section class="view" id="view-agentes">
+      <header class="page"><div><h1 data-i18n="agents.title"></h1><p data-i18n="agents.sub"></p></div></header>
+      <div class="tabs" id="agent-tabs">
+        <button class="tab active" data-tab="connect" data-i18n="agents.tabConnect"></button>
+        <button class="tab" data-tab="mine"><span data-i18n="agents.tabMine"></span><span class="count" id="agents-count">0</span></button>
+      </div>
+      <div id="agents-connect">
+        <div class="section-title" data-i18n="agents.desktop"></div>
+        <div class="grid agents" id="agents-desktop"></div>
+        <div class="section-title" data-i18n="agents.others"></div>
+        <div class="grid agents" id="agents-other"></div>
+        <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="agents.manualTitle"></h2><span class="sub" data-i18n="agents.manualSub"></span></div>
+          <div class="card-b"><p class="muted" style="margin:0 0 10px;font-size:13px" data-i18n="agents.manualText"></p><div id="agents-manual"></div></div></div>
+      </div>
+      <div id="agents-mine" hidden>
+        <div class="card"><div class="card-b" id="agents-list"></div></div>
+      </div>
+    </section>
+
     <!-- GRAFO -->
     <section class="view" id="view-grafo">
       <header class="page"><div><h1 data-i18n="graph.title"></h1><p data-i18n="graph.sub"></p></div></header>
@@ -436,7 +476,42 @@ Required format:
 const I18N = {
   es: {
     tagline: "knowledge server",
-    nav: { panel: "Panel", profile: "Perfil", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
+    nav: { panel: "Panel", profile: "Perfil", agents: "Conectar agente", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
+    agents: { title: "Conectar agente", sub: "Conectá brain a Claude, ChatGPT u otros agentes e IAs para que usen tu memoria y tus notas",
+      tabConnect: "Conectar", tabMine: "Mis conexiones", desktop: "Apps de escritorio", others: "Otros agentes e IAs",
+      connected: "Conectado", notConnected: "No conectado", notInstalled: "No instalado", elsewhere: "Apunta a otra carpeta",
+      connect: "Conectar", disconnect: "Desconectar", reconnect: "Reconectar", config: "Config",
+      sharesWith: n => `Comparte la configuración con ${n}.`,
+      desc: {
+        claude_desktop: "La app de escritorio de Claude (chat y Cowork).",
+        chatgpt: "La app de escritorio de ChatGPT. brain funciona en los modos Codex y ChatGPT Work: el chat común no usa servers locales.",
+        claude_code: "El CLI de Claude Code y la pestaña Code de la app de Claude.",
+        codex: "El CLI de Codex de OpenAI.",
+        cursor: "El editor Cursor.",
+        vscode: "VS Code con GitHub Copilot en modo agente.",
+        windsurf: "El editor Windsurf.",
+        gemini_cli: "El CLI de Gemini de Google.",
+      },
+      after: {
+        claude_desktop: "Listo. Si Claude estaba cerrado, abrilo: brain aparece en el menú de herramientas (+).",
+        chatgpt: "Listo. En ChatGPT andá a Settings → MCP servers → Restart, y usá el modo Codex o Work.",
+        claude_code: "Listo. Abrí una sesión nueva de Claude Code para que cargue brain.",
+        codex: "Listo. La próxima sesión de Codex ya carga brain.",
+        cursor: "Listo. Reiniciá Cursor o recargá los servers en Settings → MCP.",
+        vscode: "Listo. En VS Code, abrí el chat de Copilot en modo agente: brain aparece en las herramientas.",
+        windsurf: "Listo. Reiniciá Windsurf o recargá los MCP desde Cascade.",
+        gemini_cli: "Listo. La próxima sesión de gemini ya carga brain.",
+      },
+      removed: "Desconectado.",
+      restartConfirm: n => `${n} está abierto y tiene que estar cerrado para cambiar su configuración. ¿Lo cierro, conecto brain y lo vuelvo a abrir?\n\nOjo: si estás corriendo brain desde la terminal de ${n}, se va a cortar.`,
+      err: { app_running: n => `${n} está abierto. Cerralo y probá de nuevo.`, app_still_running: n => `${n} no se cerró. Cerralo a mano (Cmd+Q) y probá de nuevo.`,
+        bad_config: "El archivo de configuración tiene un formato que no puedo editar sin riesgo (por ejemplo, comentarios). Agregá brain a mano con la config de abajo.",
+        no_cli: c => `No encontré el comando «${c}». Instalalo o usá la config manual de abajo.`, cli_failed: "El CLI devolvió un error:", other: "Error" },
+      manualTitle: "Cualquier otro cliente MCP", manualSub: "configuración manual",
+      manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
+      jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini y la mayoría)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Comando", copy: "Copiar", copied: "Copiado ✓",
+      mineEmpty: "Todavía no conectaste brain a ningún agente. Hacelo desde la pestaña Conectar.",
+      here: "Apunta a esta instalación", elsewhereLong: "Apunta a otra carpeta de brain (quizás una instalación vieja). Reconectalo para usar esta." },
     panel: { title: "Panel", sub: "Servicios, contenido y actividad del vault", services: "Servicios", content: "Contenido", stats: "Estadísticas" },
     updated: t => `actualizado ${t}`, offline: "sin conexión con el dashboard", connecting: "conectando…",
     svc: {
@@ -460,8 +535,8 @@ const I18N = {
     op1: { create: "Creado", update: "Actualizado", edit: "Editado", append: "Agregado", delete: "Borrado", restore: "Restaurado" },
     health: { title: "Salud del sistema", ok: (a, b) => `${a} de ${b} en orden`,
       labels: { ollama: "Ollama responde", model: "Modelo nomic-embed-text", chroma: "Server de Chroma", playwright: "Chromium de Playwright",
-        claude_code: "Registrado en Claude Code", claude_desktop: "Registrado en Claude Desktop" },
-      hints: { ollama: "Prendé el switch de Ollama o abrí la app", chroma: "Prendé el switch de Chroma" } },
+        agents: "Al menos un agente conectado" },
+      hints: { ollama: "Prendé el switch de Ollama o abrí la app", chroma: "Prendé el switch de Chroma", agents: "Conectalo desde Conectar agente" } },
     recent: { title: "Últimos cambios", sub: "historial del vault", none: "Sin cambios todavía" },
     profile: { title: "Perfil", sub: "Contexto sobre vos y la memoria que Claude usa para conocerte", about: "Sobre vos",
       name: "Nombre", headline: "En una línea", headlinePh: "Ej: estudiante y desarrollador web", aboutField: "Sobre mí",
@@ -492,7 +567,42 @@ const I18N = {
   },
   en: {
     tagline: "knowledge server",
-    nav: { panel: "Dashboard", profile: "Profile", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
+    nav: { panel: "Dashboard", profile: "Profile", agents: "Connect agent", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
+    agents: { title: "Connect agent", sub: "Connect brain to Claude, ChatGPT or other agents and AIs so they use your memory and notes",
+      tabConnect: "Connect", tabMine: "My connections", desktop: "Desktop apps", others: "Other agents and AIs",
+      connected: "Connected", notConnected: "Not connected", notInstalled: "Not installed", elsewhere: "Points to another folder",
+      connect: "Connect", disconnect: "Disconnect", reconnect: "Reconnect", config: "Config",
+      sharesWith: n => `Shares its configuration with ${n}.`,
+      desc: {
+        claude_desktop: "Claude's desktop app (chat and Cowork).",
+        chatgpt: "ChatGPT's desktop app. brain works in Codex and ChatGPT Work modes: regular chat doesn't use local servers.",
+        claude_code: "The Claude Code CLI and the Code tab of the Claude app.",
+        codex: "OpenAI's Codex CLI.",
+        cursor: "The Cursor editor.",
+        vscode: "VS Code with GitHub Copilot in agent mode.",
+        windsurf: "The Windsurf editor.",
+        gemini_cli: "Google's Gemini CLI.",
+      },
+      after: {
+        claude_desktop: "Done. If Claude was closed, open it: brain shows up in the tools menu (+).",
+        chatgpt: "Done. In ChatGPT go to Settings → MCP servers → Restart, and use Codex or Work mode.",
+        claude_code: "Done. Start a new Claude Code session to load brain.",
+        codex: "Done. Your next Codex session loads brain.",
+        cursor: "Done. Restart Cursor or reload servers in Settings → MCP.",
+        vscode: "Done. In VS Code, open Copilot chat in agent mode: brain shows up in the tools.",
+        windsurf: "Done. Restart Windsurf or reload MCP servers from Cascade.",
+        gemini_cli: "Done. Your next gemini session loads brain.",
+      },
+      removed: "Disconnected.",
+      restartConfirm: n => `${n} is open and has to be closed to change its configuration. Should I quit it, connect brain and reopen it?\n\nNote: if you're running brain from ${n}'s terminal, it will stop.`,
+      err: { app_running: n => `${n} is open. Quit it and try again.`, app_still_running: n => `${n} didn't quit. Quit it by hand (Cmd+Q) and try again.`,
+        bad_config: "The config file has a format I can't edit safely (for example, comments). Add brain by hand with the config below.",
+        no_cli: c => `Couldn't find the “${c}” command. Install it or use the manual config below.`, cli_failed: "The CLI returned an error:", other: "Error" },
+      manualTitle: "Any other MCP client", manualSub: "manual configuration",
+      manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
+      jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini and most others)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Command", copy: "Copy", copied: "Copied ✓",
+      mineEmpty: "You haven't connected brain to any agent yet. Do it from the Connect tab.",
+      here: "Points to this installation", elsewhereLong: "Points to another brain folder (maybe an old install). Reconnect it to use this one." },
     panel: { title: "Dashboard", sub: "Services, content and vault activity", services: "Services", content: "Content", stats: "Statistics" },
     updated: t => `updated ${t}`, offline: "can't reach the dashboard", connecting: "connecting…",
     svc: {
@@ -516,8 +626,8 @@ const I18N = {
     op1: { create: "Created", update: "Updated", edit: "Edited", append: "Appended", delete: "Deleted", restore: "Restored" },
     health: { title: "System health", ok: (a, b) => `${a} of ${b} OK`,
       labels: { ollama: "Ollama responds", model: "nomic-embed-text model", chroma: "Chroma server", playwright: "Playwright Chromium",
-        claude_code: "Registered in Claude Code", claude_desktop: "Registered in Claude Desktop" },
-      hints: { ollama: "Turn on the Ollama switch or open the app", chroma: "Turn on the Chroma switch" } },
+        agents: "At least one agent connected" },
+      hints: { ollama: "Turn on the Ollama switch or open the app", chroma: "Turn on the Chroma switch", agents: "Connect one from Connect agent" } },
     recent: { title: "Recent changes", sub: "vault history", none: "No changes yet" },
     profile: { title: "Profile", sub: "Context about you and the memory Claude uses to know you", about: "About you",
       name: "Name", headline: "Headline", headlinePh: "E.g. student and web developer", aboutField: "About me",
@@ -574,7 +684,7 @@ function setLang(l) {
   applyStatic();
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
-  renderMemSource(); renderProfileView(); renderMemory();
+  renderMemSource(); renderProfileView(); renderMemory(); renderAgents();
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
   if (view === "logs") { logSig = ""; loadLogs(); }
@@ -644,7 +754,7 @@ function showResult(el, kind, text, spinner = false) {
 const errText = r => T.err[r.code] ? (r.code === "scrape" || r.code === "other" ? `${T.err[r.code]} ${r.detail || ""}`.trim() : T.err[r.code]) : (r.detail || T.err.other);
 
 // ================= routing =================
-const VIEWS = ["panel", "perfil", "grafo", "conocimiento", "logs"];
+const VIEWS = ["panel", "perfil", "agentes", "grafo", "conocimiento", "logs"];
 let view = "panel";
 function go(v) {
   if (!VIEWS.includes(v)) v = "panel";
@@ -655,6 +765,7 @@ function go(v) {
   if (location.hash !== `#${v}`) history.replaceState(null, "", `#${v}`);
   if (v === "logs") loadLogs();
   if (v === "perfil") loadProfile();
+  if (v === "agentes") loadAgents();
   if (v === "panel" || v === "conocimiento") loadStats();
   // los SVG se dibujan con el ancho real: si se dibujaron con la pestaña oculta se redibujan
   if (v === "panel" && stats) requestAnimationFrame(renderStats);
@@ -950,6 +1061,78 @@ function renderPreview() {
   };
 }
 
+// ================= conectar agente =================
+let agentsData = null, agentTab = "connect";
+const agentNote = {};  // mensaje post-acción por cliente (se ve en su tarjeta)
+function agentPill(a) {
+  if (a.connected) return `<span class="pill ${a.elsewhere ? "st-starting" : "st-running"}">${a.elsewhere ? ICON.alert : ICON.check}${esc(a.elsewhere ? T.agents.elsewhere : T.agents.connected)}</span>`;
+  return `<span class="pill ${a.installed ? "st-stopped" : "st-none"}">${ICON.dot}${esc(a.installed ? T.agents.notConnected : T.agents.notInstalled)}</span>`;
+}
+function agentCard(a) {
+  const share = a.shares ? agentsData.agents.find(x => x.key === a.shares) : null;
+  const btn = a.connected && !a.elsewhere
+    ? `<button class="btn" data-agent="${a.key}" data-act="disconnect">${esc(T.agents.disconnect)}</button>`
+    : `<button class="btn primary" data-agent="${a.key}" data-act="connect">${esc(a.elsewhere ? T.agents.reconnect : T.agents.connect)}</button>`;
+  const note = agentNote[a.key];
+  return `<div class="card agent">
+    <div class="agent-top"><div class="agent-name">${esc(a.name)}</div>${agentPill(a)}</div>
+    <div class="agent-desc">${esc(T.agents.desc[a.key] || "")}${share ? " " + esc(T.agents.sharesWith(share.name)) : ""}</div>
+    <div class="agent-path mono">${esc(T.agents.config)}: ${esc(a.config_path)}</div>
+    ${note ? `<div class="agent-note">${esc(note)}</div>` : ""}
+    <div class="agent-actions">${btn}${a.connected && a.elsewhere ? `<button class="btn" data-agent="${a.key}" data-act="disconnect">${esc(T.agents.disconnect)}</button>` : ""}</div>
+  </div>`;
+}
+function codeBlock(label, code, id) {
+  return `<div class="code-label">${esc(label)}</div><div class="code-block"><pre class="mono" id="${id}">${esc(code)}</pre>
+    <button class="btn" data-copy="${id}">${esc(T.agents.copy)}</button></div>`;
+}
+function renderAgents() {
+  if (!agentsData) return;
+  const list = agentsData.agents, connected = list.filter(a => a.connected);
+  $("#agents-count").textContent = connected.length;
+  document.querySelectorAll("#agent-tabs .tab").forEach(b => b.classList.toggle("active", b.dataset.tab === agentTab));
+  $("#agents-connect").hidden = agentTab !== "connect";
+  $("#agents-mine").hidden = agentTab !== "mine";
+  $("#agents-desktop").innerHTML = list.filter(a => a.group === "desktop").map(agentCard).join("");
+  $("#agents-other").innerHTML = list.filter(a => a.group === "other").map(agentCard).join("");
+  const m = agentsData.manual;
+  $("#agents-manual").innerHTML = codeBlock(T.agents.jsonLabel, m.json, "snip-json") + codeBlock(T.agents.tomlLabel, m.toml, "snip-toml") + codeBlock(T.agents.cmdLabel, m.command, "snip-cmd");
+  $("#agents-list").innerHTML = connected.length ? connected.map(a => `<div class="conn-row">
+      <div><div style="display:flex;gap:8px;align-items:center"><strong>${esc(a.name)}</strong>${agentPill(a)}</div>
+        <div class="agent-path mono" style="margin-top:3px">${esc(a.config_path)}</div>
+        <div class="${a.elsewhere ? "warn" : "muted"}" style="font-size:12px;margin-top:2px">${esc(a.elsewhere ? T.agents.elsewhereLong : T.agents.here)}</div></div>
+      <div class="agent-actions">${a.elsewhere ? `<button class="btn primary" data-agent="${a.key}" data-act="connect">${esc(T.agents.reconnect)}</button>` : ""}
+        <button class="btn" data-agent="${a.key}" data-act="disconnect">${esc(T.agents.disconnect)}</button></div></div>`).join("")
+    : `<div class="empty-chart" style="height:120px">${esc(T.agents.mineEmpty)}</div>`;
+  document.querySelectorAll("[data-agent]").forEach(b => b.onclick = () => agentAction(b.dataset.agent, b.dataset.act, b));
+  document.querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
+    try { await navigator.clipboard.writeText($("#" + b.dataset.copy).textContent); b.textContent = T.agents.copied; setTimeout(() => b.textContent = T.agents.copy, 1500); }
+    catch (e) { toast(e.message); }
+  });
+}
+async function agentAction(key, act, btn, restart = false) {
+  const a = agentsData.agents.find(x => x.key === key);
+  if (act === "connect" && a.app_running && !restart) {
+    if (!confirm(T.agents.restartConfirm(a.name))) return;
+    restart = true;
+  }
+  btn.disabled = true;
+  try {
+    const r = await api(`/api/agents/${key}/${act}`, { restart_app: restart });
+    if (r.ok) agentNote[key] = act === "connect" ? T.agents.after[key] : T.agents.removed;
+    else {
+      const e = T.agents.err[r.code];
+      agentNote[key] = typeof e === "function" ? e(r.code === "no_cli" ? r.detail : a.name) : `${e || T.agents.err.other} ${r.code === "cli_failed" ? r.detail : ""}`.trim();
+    }
+  } catch (e) { agentNote[key] = e.message; }
+  await loadAgents(); statusRefreshSoon();
+}
+function statusRefreshSoon() { setTimeout(loadStatus, 300); }
+document.querySelectorAll("#agent-tabs .tab").forEach(b => b.onclick = () => { agentTab = b.dataset.tab; renderAgents(); });
+async function loadAgents() {
+  try { agentsData = await api("/api/agents"); renderAgents(); } catch (e) { /* reintenta */ }
+}
+
 // ================= conocimiento =================
 $("#save-form").onsubmit = async e => {
   e.preventDefault();
@@ -1017,6 +1200,7 @@ loadStatus(); loadStats();
 setInterval(loadStatus, 2500);
 setInterval(() => { if (view === "panel" || view === "conocimiento") loadStats(); }, 5000);
 setInterval(() => { if (view === "logs") loadLogs(); }, 1500);
+setInterval(() => { if (view === "agentes") loadAgents(); }, 5000);
 </script>
 </body>
 </html>
