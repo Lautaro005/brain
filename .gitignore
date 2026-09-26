@@ -1,0 +1,8 @@
+# datos del usuario: nunca van al repo (el vault se crea solo desde una plantilla al arrancar)
+vault/
+data/
+chroma_db/
+
+.venv/
+__pycache__/
+.DS_Store
