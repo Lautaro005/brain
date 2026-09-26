@@ -509,6 +509,8 @@ const I18N = {
         no_cli: c => `No encontré el comando «${c}». Instalalo o usá la config manual de abajo.`, cli_failed: "El CLI devolvió un error:", other: "Error" },
       manualTitle: "Cualquier otro cliente MCP", manualSub: "configuración manual",
       manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
+      formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» (no «Connect to a URL»: brain no expone una URL) y completá cada campo con estos valores.",
+      fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (uno por línea)", fEnv: "Environment", fEnvEmpty: "(vacío: no hace falta nada)",
       jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini y la mayoría)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Comando", copy: "Copiar", copied: "Copiado ✓",
       mineEmpty: "Todavía no conectaste brain a ningún agente. Hacelo desde la pestaña Conectar.",
       here: "Apunta a esta instalación", elsewhereLong: "Apunta a otra carpeta de brain (quizás una instalación vieja). Reconectalo para usar esta." },
@@ -600,6 +602,8 @@ const I18N = {
         no_cli: c => `Couldn't find the “${c}” command. Install it or use the manual config below.`, cli_failed: "The CLI returned an error:", other: "Error" },
       manualTitle: "Any other MCP client", manualSub: "manual configuration",
       manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
+      formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” (not “Connect to a URL”: brain doesn't expose a URL) and fill each field with these values.",
+      fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (one per line)", fEnv: "Environment", fEnvEmpty: "(empty: nothing needed)",
       jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini and most others)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Command", copy: "Copy", copied: "Copied ✓",
       mineEmpty: "You haven't connected brain to any agent yet. Do it from the Connect tab.",
       here: "Points to this installation", elsewhereLong: "Points to another brain folder (maybe an old install). Reconnect it to use this one." },
@@ -1096,7 +1100,12 @@ function renderAgents() {
   $("#agents-desktop").innerHTML = list.filter(a => a.group === "desktop").map(agentCard).join("");
   $("#agents-other").innerHTML = list.filter(a => a.group === "other").map(agentCard).join("");
   const m = agentsData.manual;
-  $("#agents-manual").innerHTML = codeBlock(T.agents.jsonLabel, m.json, "snip-json") + codeBlock(T.agents.tomlLabel, m.toml, "snip-toml") + codeBlock(T.agents.cmdLabel, m.command, "snip-cmd");
+  $("#agents-manual").innerHTML = `<div class="code-label" style="margin-bottom:6px">${esc(T.agents.formLabel)}</div>
+    <p class="muted" style="margin:0 0 10px;font-size:12.5px">${esc(T.agents.formHint)}</p>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:14px">
+      <div>${codeBlock(T.agents.fName, m.form.name, "snip-f-name")}</div><div>${codeBlock(T.agents.fCommand, m.form.command, "snip-f-cmd")}</div>
+      <div>${codeBlock(T.agents.fArgs, m.form.args, "snip-f-args")}</div><div>${codeBlock(T.agents.fEnv, T.agents.fEnvEmpty, "snip-f-env")}</div>
+    </div>` + codeBlock(T.agents.jsonLabel, m.json, "snip-json") + codeBlock(T.agents.tomlLabel, m.toml, "snip-toml") + codeBlock(T.agents.cmdLabel, m.command, "snip-cmd");
   $("#agents-list").innerHTML = connected.length ? connected.map(a => `<div class="conn-row">
       <div><div style="display:flex;gap:8px;align-items:center"><strong>${esc(a.name)}</strong>${agentPill(a)}</div>
         <div class="agent-path mono" style="margin-top:3px">${esc(a.config_path)}</div>

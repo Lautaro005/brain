@@ -6,3 +6,8 @@ chroma_db/
 .venv/
 __pycache__/
 .DS_Store
+
+# capturas y trabajo temporal del skill de diseño (impeccable)
+.impeccable/review/
+.impeccable/build/
+.impeccable/mocks/

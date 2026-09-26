@@ -94,6 +94,10 @@ brain_mcp/
   services.py          procesos que maneja el dashboard (Chroma, Ollama, Inspector)
   stats.py             estadísticas del vault + chequeos de salud
   dashboard.html       UI del dashboard (ES/EN, gráficos en SVG a mano, sin librería)
+docs/index.html        landing page (GitHub Pages, main /docs): un solo HTML sin build, EN/ES, blanco y negro
+docs/.nojekyll         Pages sirve el HTML tal cual (sin Jekyll)
+PRODUCT.md / DESIGN.md contexto de producto y sistema visual de la landing (skill impeccable)
+LICENSE                MIT
 vault/                 (ignorado) la base de conocimiento, se crea sola
 data/                  (ignorado) historial, Chroma, lock
 ```
@@ -118,3 +122,5 @@ data/                  (ignorado) historial, Chroma, lock
 - **Idiomas**: los textos del dashboard y del grafo están en los diccionarios `I18N` de `dashboard.html` y `graph.html`. La API devuelve claves y códigos de error, no textos. Al agregar un texto, sumarlo en `es` y en `en`.
 - **Agentes (`agents.py`)**: nunca reescribir la config de un cliente sin backup (`.bak-brain`) ni borrar entradas ajenas. Si el archivo no se puede parsear de forma segura (por ejemplo, JSONC de VS Code o un TOML con `brain` en una tabla inline), se devuelve `bad_config` y el usuario lo agrega a mano. Claude Desktop reescribe su config al salir: solo se escribe con la app cerrada. ChatGPT desktop y Codex CLI comparten `~/.codex/config.toml`. Para probar sin tocar las configs reales: `BRAIN_AGENTS_HOME=/tmp/fakehome BRAIN_AGENTS_APPS=/tmp/fakeapps`.
 - **Instalador**: `install.sh` tiene que ser idempotente (correrlo de nuevo actualiza) y no puede pedir input, porque se ejecuta con `curl | bash`. Para probarlo sin GitHub: `BRAIN_REPO=file:///ruta/a/un/clon BRAIN_HOME=/tmp/x/.brain BRAIN_BIN=/tmp/x/bin bash install.sh`. Si se renombra el repo, cambiar la URL en `install.sh` (REPO) y en README.md.
+- **Docs públicas vs internas**: `README.md` está en inglés, porque es la cara del repo en GitHub. `CLAUDE.md`, `CHANGES.md` y `BUILD.md` siguen en español. Si cambia algo visible para usuarios (tools, agentes, instalación, comandos), actualizar README.md y la landing (`docs/index.html`, en sus dos idiomas).
+- **Landing**: textos en el diccionario `I18N` del final de `docs/index.html` (en/es); sin datos inventados (usuarios, métricas, testimonios): las demos están marcadas como ejemplo. La dirección visual (fichero Zettelkasten) está en `.impeccable/surfaces/docs-index-html.md` y DESIGN.md.

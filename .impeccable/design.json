@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-26T20:44:16.899346+00:00",
+  "title": "Design System: brain",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Typewriter Ink",
+        "canonical": "#0a0a0a",
+        "tonalRamp": [
+          "#1a1a1a",
+          "#333333",
+          "#4d4d4d",
+          "#666666",
+          "#808080",
+          "#a6a6a6",
+          "#cccccc",
+          "#f0f0f0"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Carbon Grey",
+        "canonical": "#3d3d3d",
+        "tonalRamp": [
+          "#1a1a1a",
+          "#333333",
+          "#4d4d4d",
+          "#666666",
+          "#808080",
+          "#a6a6a6",
+          "#cccccc",
+          "#f0f0f0"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Pencil Grey",
+        "canonical": "#5e5e5e",
+        "tonalRamp": [
+          "#1a1a1a",
+          "#333333",
+          "#4d4d4d",
+          "#666666",
+          "#808080",
+          "#a6a6a6",
+          "#cccccc",
+          "#f0f0f0"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Reference Line Grey",
+        "canonical": "#b4b4b0",
+        "tonalRamp": [
+          "#1b1b1a",
+          "#343432",
+          "#4e4e4b",
+          "#686864",
+          "#83837e",
+          "#aaaaa5",
+          "#cfcfcc",
+          "#f3f3f1"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Card Edge",
+        "canonical": "#cfcfcc",
+        "tonalRamp": [
+          "#1b1b1a",
+          "#343432",
+          "#4e4e4b",
+          "#686864",
+          "#83837e",
+          "#aaaaa5",
+          "#cfcfcc",
+          "#f3f3f1"
+        ]
+      },
+      "rule-soft": {
+        "role": "neutral",
+        "displayName": "Ruled Line",
+        "canonical": "#e3e3e0",
+        "tonalRamp": [
+          "#1b1b1a",
+          "#343432",
+          "#4e4e4b",
+          "#686864",
+          "#83837e",
+          "#aaaaa5",
+          "#cfcfcc",
+          "#f3f3f1"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Desk",
+        "canonical": "#ececea",
+        "tonalRamp": [
+          "#1b1b1a",
+          "#343432",
+          "#4e4e4b",
+          "#686864",
+          "#83837e",
+          "#aaaaa5",
+          "#cfcfcc",
+          "#f3f3f1"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card Stock",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#1a1a1a",
+          "#333333",
+          "#4d4d4d",
+          "#666666",
+          "#808080",
+          "#a6a6a6",
+          "#cccccc",
+          "#f0f0f0"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headline only; condensed Archivo 800."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel and step titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose, ledes and section intros."
+      },
+      "typed": {
+        "displayName": "Typed",
+        "purpose": "Everything written on a card; line-height equals ruled-line pitch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Card headers, stamps, copy button, group rows; uppercase typed caps."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 1px 0 rgba(10,10,10,.07), 0 3px 5px -2px rgba(10,10,10,.16)",
+        "purpose": "Every card, the drawer body, the catalog."
+      },
+      {
+        "name": "card-lift",
+        "value": "0 1px 0 rgba(10,10,10,.09), 0 9px 10px -6px rgba(10,10,10,.3)",
+        "purpose": "Active agent card (with 3px rise) and the dashboard window mock."
+      },
+      {
+        "name": "divider-tab",
+        "value": "0 2px 3px -2px rgba(10,10,10,.14)",
+        "purpose": "Section divider cards hanging off a rule."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "The single easing for all transitions and the file-out."
+      },
+      {
+        "name": "state",
+        "value": "150-250ms",
+        "purpose": "Hover, tab and reference-line transitions."
+      },
+      {
+        "name": "file-out",
+        "value": "900ms, 90ms stagger, 26px rise, ±1.2deg tilt",
+        "purpose": "Cards leave the drawer once on load; skipped under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "620px"
+      },
+      {
+        "name": "tablet",
+        "value": "760px"
+      },
+      {
+        "name": "stack",
+        "value": "1020px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink-filled action, e.g. View on GitHub.",
+      "html": "<a class=\"ds-btn ds-btn-dark\" href=\"#\"><svg viewBox=\"0 0 16 16\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z\"/></svg><span>View on GitHub</span></a>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-btn{display:inline-flex;align-items:center;gap:9px;height:46px;padding:0 18px;font:600 15px/1 var(--sans);border-radius:3px;cursor:pointer;border:1.5px solid var(--ink);transition:background .15s,color .15s,transform .15s var(--ease);} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px;} .ds-btn-dark{background:var(--ink);color:var(--card);text-decoration:none;} .ds-btn-dark:hover{background:#2a2a2a;}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Card-white button with ink border; hover inverts to ink.",
+      "html": "<button class=\"ds-btn ds-btn-outline\" type=\"button\">Open the repo</button>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-btn{display:inline-flex;align-items:center;gap:9px;height:46px;padding:0 18px;font:600 15px/1 var(--sans);border-radius:3px;cursor:pointer;border:1.5px solid var(--ink);transition:background .15s,color .15s,transform .15s var(--ease);} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px;} .ds-btn-outline{background:var(--card);color:var(--ink);} .ds-btn-outline:hover{background:var(--ink);color:var(--card);}"
+    },
+    {
+      "name": "Install Card with Copy",
+      "kind": "custom",
+      "refersTo": "button-copy",
+      "description": "Typed command card with the typed-label copy action.",
+      "html": "<div class=\"ds-card ds-install\" style=\"width:420px\"><div class=\"ds-card-h\"><span>Install · macOS</span><span class=\"ds-ref\">0</span></div><div class=\"ds-card-b\" style=\"background:none\"><div class=\"ds-cmd\"><code><span class=\"ds-p\">$ </span>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</code><button class=\"ds-copy\" type=\"button\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"8\" y=\"8\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2\"/></svg>Copy</button></div></div></div>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-card{background:var(--card);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow);width:260px;color:var(--ink);} .ds-card-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 14px 7px;border-bottom:1px solid var(--ink);font:700 11.5px/1.2 var(--type);letter-spacing:.06em;text-transform:uppercase;} .ds-card-h .ds-ref{font-weight:400;letter-spacing:0;text-transform:none;font-size:13px;} .ds-card-b{padding:10px 14px 12px;font:400 14.5px/26px var(--type);background-image:linear-gradient(to bottom,transparent 25px,var(--rule-soft) 25px,var(--rule-soft) 26px,transparent 26px);background-size:100% 26px;background-position:0 10px;} .ds-cmd{display:flex;align-items:flex-start;gap:12px;} .ds-cmd code{flex:1;font:400 14px/1.6 var(--type);overflow-wrap:anywhere;} .ds-p{color:var(--muted);} .ds-copy{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:3px;cursor:pointer;font:700 11.5px/1 var(--type);letter-spacing:.08em;text-transform:uppercase;} .ds-copy:hover{background:var(--ink);color:var(--card);} .ds-copy:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}"
+    },
+    {
+      "name": "Index Card",
+      "kind": "card",
+      "refersTo": "index-card",
+      "description": "The atom: ruled header, reference number, typed ruled body.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-h\"><span>brain · your memory</span><span class=\"ds-ref\">1</span></div><div class=\"ds-card-b\"><div><span class=\"ds-n\">1.1</span> Prefers short, direct answers</div><div><span class=\"ds-n\">1.2</span> Building an online store</div><div><span class=\"ds-n\">1.3</span> Writes in Spanish and English</div></div></div>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-card{background:var(--card);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow);width:260px;color:var(--ink);} .ds-card-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 14px 7px;border-bottom:1px solid var(--ink);font:700 11.5px/1.2 var(--type);letter-spacing:.06em;text-transform:uppercase;} .ds-card-h .ds-ref{font-weight:400;letter-spacing:0;text-transform:none;font-size:13px;} .ds-card-b{padding:10px 14px 12px;font:400 14.5px/26px var(--type);background-image:linear-gradient(to bottom,transparent 25px,var(--rule-soft) 25px,var(--rule-soft) 26px,transparent 26px);background-size:100% 26px;background-position:0 10px;} .ds-n{color:var(--muted);display:inline-block;min-width:2.3em;}"
+    },
+    {
+      "name": "Agent Card",
+      "kind": "card",
+      "refersTo": "index-card",
+      "description": "Small pointer card; active state inverts header and lifts.",
+      "html": "<button class=\"ds-card ds-agent\" type=\"button\"><div class=\"ds-card-h\"><span>Claude</span><span class=\"ds-ref\">1a</span></div><div class=\"ds-card-b\"><span class=\"ds-reads\">reads</span> 1.1 1.2 1.5</div></button>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-card{background:var(--card);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow);width:260px;color:var(--ink);} .ds-card-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 14px 7px;border-bottom:1px solid var(--ink);font:700 11.5px/1.2 var(--type);letter-spacing:.06em;text-transform:uppercase;} .ds-card-h .ds-ref{font-weight:400;letter-spacing:0;text-transform:none;font-size:13px;} .ds-card-b{padding:10px 14px 12px;font:400 14.5px/26px var(--type);background-image:linear-gradient(to bottom,transparent 25px,var(--rule-soft) 25px,var(--rule-soft) 26px,transparent 26px);background-size:100% 26px;background-position:0 10px;} .ds-agent{width:196px;padding:0;text-align:left;font:inherit;cursor:pointer;transition:transform .25s var(--ease),box-shadow .25s var(--ease);} .ds-agent .ds-card-h{padding:8px 12px 6px;} .ds-agent .ds-card-b{padding:6px 12px 8px;font-size:13px;line-height:22px;background-size:100% 22px;background-image:linear-gradient(to bottom,transparent 21px,var(--rule-soft) 21px,var(--rule-soft) 22px,transparent 22px);background-position:0 6px;white-space:nowrap;} .ds-reads{color:var(--muted);} .ds-agent:hover,.ds-agent:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);outline:none;} .ds-agent:hover .ds-card-h,.ds-agent:focus-visible .ds-card-h{background:var(--ink);color:var(--card);}"
+    },
+    {
+      "name": "Stamps",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Rubber-stamp status: outline for pending, solid for positive.",
+      "html": "<span class=\"ds-stamp\">Connect</span> <span class=\"ds-stamp ds-solid\">Connected</span> <span class=\"ds-stamp\">Local</span>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-stamp{display:inline-flex;align-items:center;gap:6px;padding:2px 8px 1px;border:1.5px solid currentColor;border-radius:3px;font:700 11px/1.5 var(--type);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);} .ds-solid{background:var(--ink);color:var(--card);border-color:var(--ink);}"
+    },
+    {
+      "name": "Nav Tabs",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Numbered drawer tabs sitting on the top bar's rule.",
+      "html": "<nav class=\"ds-tabs\"><a href=\"#\"><span class=\"ds-no\">2</span>Why</a><a href=\"#\" aria-current=\"true\"><span class=\"ds-no\">3</span>What it keeps</a><a href=\"#\"><span class=\"ds-no\">4</span>How it works</a></nav>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-tabs{display:flex;align-items:flex-end;gap:4px;border-bottom:1px solid var(--rule);padding:0 8px;background:var(--desk);} .ds-tabs a{display:flex;align-items:baseline;gap:7px;padding:9px 13px 10px;font:600 14px/1 var(--sans);text-decoration:none;color:var(--ink-2);background:#f6f6f4;border:1px solid var(--rule);border-bottom:0;border-radius:6px 6px 0 0;margin-bottom:-1px;transform:translateY(3px);transition:transform .2s var(--ease),background .2s;} .ds-no{font:400 12px/1 var(--type);color:var(--muted);} .ds-tabs a:hover,.ds-tabs a:focus-visible{color:var(--ink);background:var(--card);transform:translateY(0);outline:none;} .ds-tabs a[aria-current=true]{background:var(--card);color:var(--ink);transform:translateY(0);border-color:var(--ink);box-shadow:0 1px 0 var(--card);}"
+    },
+    {
+      "name": "Language Switch",
+      "kind": "custom",
+      "description": "Two-segment typed EN/ES toggle.",
+      "html": "<div class=\"ds-lang\"><button type=\"button\" aria-pressed=\"true\">EN</button><button type=\"button\" aria-pressed=\"false\">ES</button></div>",
+      "css": ":host{--desk:#ececea;--card:#ffffff;--ink:#0a0a0a;--ink-2:#3d3d3d;--muted:#5e5e5e;--rule:#cfcfcc;--rule-soft:#e3e3e0;--line:#b4b4b0;--shadow:0 1px 0 rgba(10,10,10,.07),0 3px 5px -2px rgba(10,10,10,.16);--shadow-lift:0 1px 0 rgba(10,10,10,.09),0 9px 10px -6px rgba(10,10,10,.3);--type:'Courier Prime','Courier New',monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.16,1,.3,1);} .ds-lang{display:inline-flex;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden;} .ds-lang button{border:0;background:var(--card);color:var(--ink);font:700 12px/1 var(--type);letter-spacing:.08em;padding:8px 10px;cursor:pointer;} .ds-lang button[aria-pressed=true]{background:var(--ink);color:var(--card);} .ds-lang button:focus-visible{outline:2px solid var(--ink);outline-offset:-4px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Working Slip-Box",
+    "overview": "**Creative North Star: \"The Working Slip-Box\"**\n\nThe page is a Zettelkasten drawer on a grey desk. Every piece of content is a white index card with a black ruled header, a reference number in the top-right corner, and a typed body on faint ruled lines. Cards cross-reference each other with Luhmann-style numbers (0, 1, 1a, 1.2, 3.1), and those numbers are the system's navigation, numbering and wayfinding all at once: section dividers, drawer tabs and nav tabs all carry them.\n\nThe world is strictly monochrome: white card stock, black typewriter ink, and a small ladder of pencil greys for rules, reference lines and secondary text. Emphasis is made with ink weight and inversion (black header, white type), never with colour. Density is moderate and paper-like; sections breathe with large vertical padding while the cards themselves are compact and tightly typed.\n\nArchivo carries the voice (condensed, heavy display; plain body). Courier Prime appears only where something is literally typed onto a card or entered in a terminal: card bodies, card headers, reference numbers, stamps, the install command.\n\nThis system governs the landing page (`docs/index.html`). The product dashboard (`brain_mcp/dashboard.html`) predates it, has its own look, and is out of this system's scope; the landing's dashboard mock is a recreation of that product UI, not a rule for it.",
+    "keyCharacteristics": [
+      "Index card as the atom: white, 1px grey border, 3px corners, black-ruled header, reference number top-right.",
+      "Monochrome only: ink, greys, card white, desk grey.",
+      "Reference numbers everywhere a real slip-box would have them.",
+      "Drawer tabs (top-rounded, staggered, lifted) as navigation and section markers.",
+      "Rubber-stamp outlined caps for status.",
+      "Pencil-thin dashed reference lines between cards; they ink solid on interaction."
+    ],
+    "rules": [
+      {
+        "name": "The Ink-Only Rule",
+        "body": "No hue enters the page. Emphasis is ink weight, inversion (ink fill, card-white text) or the solid reference line; never a colour accent. This is a pinned brand commitment for the landing.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pencil Floor Rule",
+        "body": "Text never goes lighter than Pencil Grey on card or desk. The two lightest greys (`line`, `rule-soft`) draw lines, never words.",
+        "section": "colors"
+      },
+      {
+        "name": "The Typed-Only-When-Typed Rule",
+        "body": "Courier Prime appears only for what is literally typed on a card, entered in a terminal, or stamped: card bodies and headers, reference numbers, commands, file paths, stamps. Headlines, prose and buttons stay in Archivo.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ruled Card Rule",
+        "body": "Card body line-height equals the ruled-line pitch (26px default, 22px on small cards) so typed text sits on the lines.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper Shadow Rule",
+        "body": "Shadows are short, soft and downward, like card stock on a desk. Cards embedded inside another card (demo cards in the drawer) drop their shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do build every new content block as an index card: white, 1px Card Edge border, 3px corners, ink-ruled header, reference number top-right.",
+      "Do number things the Luhmann way (1, 1a, 1.2, 3.1) and let the numbers carry navigation and cross-reference.",
+      "Do set typed matter (card bodies, commands, paths, reference numbers, stamps) in Courier Prime and everything else in Archivo.",
+      "Do show state by inversion: ink fill with card-white text for active headers, selected toggles, solid stamps and hovered buttons.",
+      "Do keep product visuals as HTML/SVG recreations of the real UI, marked as sample data.",
+      "Do keep shadows to the two paper shadows (resting, lifted)."
+    ],
+    "donts": [
+      "Don't introduce any hue; the landing is black and white by brand commitment.",
+      "Don't set text in `line` or `rule-soft` greys; Pencil Grey (`muted`) is the lightest text.",
+      "Don't use Courier Prime for headlines, prose or button labels.",
+      "Don't use hard offset shadows or glows; depth is soft paper shadow and surface contrast.",
+      "Don't round cards, buttons or stamps beyond 4px; only tab edges get 6-7px.",
+      "Don't apply this system to the product dashboard (`brain_mcp/dashboard.html`); it is out of scope."
+    ]
+  }
+}

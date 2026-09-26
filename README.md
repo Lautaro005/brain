@@ -1,65 +1,68 @@
 # brain
 
-**Tu segundo cerebro local para Claude, ChatGPT y cualquier agente de IA.**
+**Your local second brain for Claude, ChatGPT and any AI agent.**
 
-brain es un servidor [MCP](https://modelcontextprotocol.io) que corre en tu Mac y le da a tus agentes de IA una memoria compartida: tus notas, tus proyectos, lo que saben de vos y las páginas web que guardaste, con búsqueda semántica. Lo conectás una vez a Claude, ChatGPT, Cursor o el agente que uses, y todos leen y escriben la misma base de conocimiento. Todo queda en tu computadora.
+brain is an [MCP](https://modelcontextprotocol.io) server that runs on your Mac and gives your AI agents a shared memory: your notes, your projects, what they know about you and the web pages you saved, with semantic search. Connect it once to Claude, ChatGPT, Cursor or whatever agent you use, and they all read and write the same knowledge base. Everything stays on your computer.
 
-Incluye un dashboard web para manejarlo sin tocar la terminal: prender servicios, cargar tu perfil, importar la memoria de otros chatbots, conectar agentes, ver el grafo de conexiones y buscar en lo guardado.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash
-```
-
-Después escribís `brain` y se abre el dashboard.
-
----
-
-## Contenido
-
-- [Qué podés hacer](#qué-podés-hacer)
-- [Instalación](#instalación)
-- [Primeros pasos](#primeros-pasos)
-- [El dashboard](#el-dashboard)
-- [Conectar agentes](#conectar-agentes)
-- [Cómo funciona](#cómo-funciona)
-- [Tools MCP](#tools-mcp)
-- [El comando `brain`](#el-comando-brain)
-- [Datos, privacidad y seguridad](#datos-privacidad-y-seguridad)
-- [Solución de problemas](#solución-de-problemas)
-- [Desinstalar](#desinstalar)
-- [Desarrollo](#desarrollo)
-
----
-
-## Qué podés hacer
-
-- **Que tus agentes te conozcan.** Cargás un perfil ("quién soy, a qué me dedico, cómo me gusta trabajar") e importás la memoria que ChatGPT, Claude o Gemini ya tienen de vos. Cualquier agente conectado la lee al empezar, y guarda lo nuevo que aprende con `add_memory`.
-- **Una base de conocimiento que comparten todos.** Notas en Markdown organizadas en proyectos y skills. Lo que Claude escribe hoy, ChatGPT lo puede leer mañana.
-- **Guardar la web.** Pasás una URL y brain la descarga, extrae el texto (también de sitios que dependen de JavaScript), la indexa y la deja disponible para búsqueda semántica: buscás por significado, no por palabras exactas.
-- **Ver cómo se conecta todo.** Un grafo interactivo muestra tu perfil, tus memorias, proyectos, skills, fuentes y tags, y cómo se relacionan entre sí.
-- **Deshacer cualquier cambio.** Cada escritura queda en un historial de versiones. Si un agente borra o pisa algo, lo recuperás.
-- **Privado por diseño.** Los embeddings se calculan con [Ollama](https://ollama.com) en tu máquina y nada sale de tu computadora.
-
-## Instalación
-
-**Requisitos:** macOS (Apple Silicon o Intel) y git (`xcode-select --install` si no lo tenés). Lo demás lo resuelve el instalador.
+It ships with a web dashboard so you never have to touch the terminal: turn services on and off, fill in your profile, import the memory other chatbots have about you, connect agents, explore the connection graph and search what you saved.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash
 ```
 
-El instalador:
+Then type `brain` and the dashboard opens.
 
-1. Instala [uv](https://docs.astral.sh/uv/) si no lo tenés (maneja Python y las dependencias, sin tocar el Python del sistema).
-2. Descarga brain en `~/.brain`.
-3. Instala las dependencias y el Chromium headless que se usa para scrapear sitios con JavaScript.
-4. Instala [Ollama](https://ollama.com) con Homebrew si hace falta, y baja el modelo de embeddings `nomic-embed-text` (~270 MB). Si no tenés Homebrew, te indica dónde descargar Ollama.
-5. Crea el comando `brain` en `~/.local/bin` y lo agrega a tu `PATH` si no estaba.
+**Website:** https://lautaro005.github.io/brain/
 
-Correrlo de nuevo actualiza la instalación. Para instalar en otra carpeta: `BRAIN_HOME=~/otra/carpeta` antes del `bash`.
+---
+
+## Contents
+
+- [What you can do](#what-you-can-do)
+- [Installation](#installation)
+- [Getting started](#getting-started)
+- [The dashboard](#the-dashboard)
+- [Connecting agents](#connecting-agents)
+- [How it works](#how-it-works)
+- [MCP tools](#mcp-tools)
+- [The `brain` command](#the-brain-command)
+- [Data, privacy and security](#data-privacy-and-security)
+- [Troubleshooting](#troubleshooting)
+- [Uninstalling](#uninstalling)
+- [Development](#development)
+- [License](#license)
+
+---
+
+## What you can do
+
+- **Let your agents know you.** Write a profile (who you are, what you do, how you like to work) and import the memory ChatGPT, Claude or Gemini already have about you. Every connected agent reads it when it starts and saves anything new it learns with `add_memory`.
+- **One knowledge base, shared by every agent.** Markdown notes organized into projects and skills. What Claude writes today, ChatGPT can read tomorrow.
+- **Save the web.** Give brain a URL and it downloads the page, extracts the text (including sites built with JavaScript), indexes it and makes it available to semantic search: you search by meaning, not exact words.
+- **See how everything connects.** An interactive graph shows your profile, memories, projects, skills, sources and tags, and how they relate.
+- **Undo anything.** Every write goes into a version history. If an agent deletes or overwrites something, you get it back.
+- **Private by design.** Embeddings are computed on your machine with [Ollama](https://ollama.com), and nothing leaves your computer.
+
+## Installation
+
+**Requirements:** macOS (Apple Silicon or Intel) and git (`xcode-select --install` if you don't have it). The installer takes care of the rest.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash
+```
+
+The installer:
+
+1. Installs [uv](https://docs.astral.sh/uv/) if you don't have it (it manages Python and the dependencies without touching the system Python).
+2. Downloads brain into `~/.brain`.
+3. Installs the dependencies and the headless Chromium used to scrape JavaScript sites.
+4. Installs [Ollama](https://ollama.com) with Homebrew if needed, and pulls the `nomic-embed-text` embedding model (~270 MB). Without Homebrew, it tells you where to download Ollama.
+5. Creates the `brain` command in `~/.local/bin` and adds it to your `PATH` if it wasn't there.
+
+Running it again updates the install. To install somewhere else, set `BRAIN_HOME=~/some/folder` before `bash`.
 
 <details>
-<summary>Instalación manual</summary>
+<summary>Manual installation</summary>
 
 ```bash
 git clone https://github.com/Lautaro005/brain ~/.brain && cd ~/.brain
@@ -70,163 +73,184 @@ ollama pull nomic-embed-text
 ```
 </details>
 
-## Primeros pasos
+## Getting started
 
-1. **Abrí el dashboard:** `brain`. Se abre en `http://127.0.0.1:8765` y prende Ollama y el server de Chroma si no estaban corriendo. Dejalo abierto mientras usás tus agentes; Ctrl+C lo cierra.
-2. **Conectá tus agentes:** pestaña **Conectar agente** → *Conectar* en Claude Desktop, ChatGPT o el que uses.
-3. **Contale quién sos:** pestaña **Perfil** → completá "Sobre vos" e importá tu memoria desde otro chatbot.
-4. **Probalo:** en Claude, preguntá *"¿qué sabés de mí según brain?"* o *"guardá esta URL en brain: …"*.
+1. **Open the dashboard:** `brain`. It opens at `http://127.0.0.1:8765` and starts Ollama and the Chroma server if they aren't running. Keep it open while you use your agents; Ctrl+C closes it.
+2. **Connect your agents:** **Connect agent** tab → *Connect* on Claude Desktop, ChatGPT or whichever you use.
+3. **Tell it who you are:** **Profile** tab → fill in "About you" and import your memory from another chatbot.
+4. **Try it:** in Claude, ask *"what do you know about me according to brain?"* or *"save this URL to brain: …"*.
 
-## El dashboard
+## The dashboard
 
-| Pestaña | Para qué sirve |
+| Tab | What it's for |
 |---|---|
-| **Panel** | Switches para prender y apagar **Chroma**, **Ollama** y el **Inspector MCP** (una UI para probar las tools a mano). Métricas del vault, gráficos de actividad de los últimos 30 días, fuentes por dominio, operaciones, salud del sistema y últimos cambios. |
-| **Perfil** | Tus datos (nombre, una línea, sobre mí) y tu memoria. El importador tiene 3 pasos: elegís el chatbot, copiás un prompt que le pide toda tu memoria en un formato fijo, y pegás la respuesta (o subís un `.txt`, `.md` o `.json`). Antes de importar ves una vista previa y podés sacar lo que no quieras. |
-| **Conectar agente** | Conectar y desconectar brain de Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf y Gemini CLI con un click, más la configuración manual para cualquier otro. En **Mis conexiones** ves qué agentes están conectados y si apuntan a esta instalación. |
-| **Grafo** | Mapa interactivo del vault: perfil, memoria, proyectos, skills, fuentes, carpetas y tags. Click en un nodo para ver su contenido y conexiones. Controles para acercar, alejar y **volver al centro** (también con la tecla `0` o doble click en el fondo). |
-| **Conocimiento** | Guardar una URL (con la opción de forzar el render con JavaScript), búsqueda semántica con porcentaje de relevancia, y la lista de fuentes guardadas. |
-| **Logs** | La salida en vivo de cada servicio que maneja el dashboard. |
+| **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
+| **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. |
+| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** shows which agents are connected and whether they point to this install. |
+| **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders and tags. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
+| **Knowledge** | Save a URL (optionally forcing JavaScript rendering), semantic search with a relevance score, and the list of saved sources. |
+| **Logs** | Live output of every service the dashboard manages. |
 
-En la parte de abajo del menú lateral están el tema (sistema, claro u oscuro) y el idioma (**español / English**).
+The bottom of the sidebar has the theme (system, light or dark) and the language (**English / Español**).
 
-Cuando cerrás el dashboard, apaga solo lo que prendió él. Si Ollama ya estaba abierto (por ejemplo, la app de la barra de menú), aparece como **Externo** y no se toca.
+When you close the dashboard, it only stops what it started. If Ollama was already running (for example the menu-bar app), it shows up as **External** and is left alone.
 
-## Conectar agentes
+## Connecting agents
 
-Cada agente guarda su lista de servers MCP en su propio archivo. Al tocar *Conectar*, brain agrega su entrada sin tocar el resto del archivo y guarda antes un backup (`<archivo>.bak-brain`).
+Each agent keeps its list of MCP servers in its own file. When you click *Connect*, brain adds its entry without touching the rest of the file, and saves a backup first (`<file>.bak-brain`).
 
-| Agente | Dónde se configura | Notas |
+| Agent | Where it's configured | Notes |
 |---|---|---|
-| **Claude Desktop** (chat y Cowork) | `~/Library/Application Support/Claude/claude_desktop_config.json` | Claude reescribe este archivo al cerrarse, así que se edita con la app cerrada. Si está abierta, el dashboard ofrece cerrarla, conectar y volver a abrirla. |
-| **ChatGPT** (app de escritorio) | `~/.codex/config.toml` | Funciona en los modos **Codex** y **ChatGPT Work**; el chat común de ChatGPT no usa servers locales. Después: *Settings → MCP servers → Restart*. Comparte la config con Codex CLI. |
-| **Claude Code** | `~/.claude.json` (vía `claude mcp add -s user`) | Queda disponible en todos tus proyectos. |
-| **Codex CLI** | `~/.codex/config.toml` | La misma config que ChatGPT. |
+| **Claude Desktop** (chat and Cowork) | `~/Library/Application Support/Claude/claude_desktop_config.json` | Claude rewrites this file when it quits, so it's edited with the app closed. If it's open, the dashboard offers to quit it, connect and reopen it. |
+| **ChatGPT** (desktop app) | `~/.codex/config.toml` | Works in **Codex** and **ChatGPT Work** modes; regular ChatGPT chat doesn't use local servers. Afterwards: *Settings → MCP servers → Restart*. Shares its config with Codex CLI. |
+| **Claude Code** | `~/.claude.json` (via `claude mcp add -s user`) | Available in all your projects. |
+| **Codex CLI** | `~/.codex/config.toml` | Same config as ChatGPT. |
 | **Cursor** | `~/.cursor/mcp.json` | |
-| **VS Code** (Copilot, modo agente) | `~/Library/Application Support/Code/User/mcp.json` | |
+| **VS Code** (Copilot, agent mode) | `~/Library/Application Support/Code/User/mcp.json` | |
 | **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | |
 | **Gemini CLI** | `~/.gemini/settings.json` | |
-| **Cualquier otro** | | El dashboard te da la configuración lista para copiar en JSON, TOML o como comando. |
+| **Anything else** | | The dashboard gives you ready-to-copy config as JSON, TOML, a command, or field by field. |
 
-Todos lanzan el mismo server (`uv run --directory ~/.brain python server.py`) con paths absolutos, así que funcionan desde cualquier carpeta.
+All of them launch the same server (`uv run --directory ~/.brain python server.py`) with absolute paths, so they work from any folder.
 
-## Cómo funciona
+### Apps with an "Add MCP server" form
+
+Many apps have a dialog with two options, **Run a command** and **Connect to a URL**. Choose **Run a command**: brain is a local (stdio) server and doesn't expose a URL, so "Connect to a URL" won't work. Pointing it at the dashboard's address returns `403`, because the dashboard only accepts requests from its own page.
+
+| Field | Value |
+|---|---|
+| Server name | `brain` |
+| Executable command | the absolute path to `uv`, e.g. `/Users/you/.local/bin/uv` (`which uv` prints it) |
+| Arguments (one per line) | `run`<br>`--directory`<br>`/Users/you/.brain`<br>`python`<br>`server.py` |
+| Environment | empty |
+
+The **Connect agent** tab shows these values already filled in for your machine, each with a copy button.
+
+## How it works
 
 ```mermaid
 flowchart LR
-    subgraph Agentes
+    subgraph Agents
         A1[Claude Desktop]
         A2[ChatGPT]
         A3[Claude Code / Cursor / …]
     end
-    subgraph brain["brain (tu Mac)"]
-        S1[server.py<br/>un proceso por agente]
+    subgraph brain["brain (your Mac)"]
+        S1[server.py<br/>one process per agent]
         V[(vault/<br/>Markdown)]
-        H[(data/history.sqlite3<br/>versiones)]
-        C[(Chroma<br/>server HTTP compartido)]
+        H[(data/history.sqlite3<br/>versions)]
+        C[(Chroma<br/>shared HTTP server)]
         O[Ollama<br/>nomic-embed-text]
-        P[Playwright<br/>Chromium headless]
+        P[Playwright<br/>headless Chromium]
         D[Dashboard<br/>127.0.0.1:8765]
     end
-    A1 & A2 & A3 -- MCP por stdio --> S1
+    A1 & A2 & A3 -- MCP over stdio --> S1
     S1 --> V
     S1 --> H
     S1 -- embeddings --> O
     S1 -- chunks --> C
-    S1 -- sitios con JS --> P
+    S1 -- JS sites --> P
     D --> V & H & C
-    D -. prende/apaga .-> C & O
+    D -. starts/stops .-> C & O
 ```
 
-**Piezas:**
+**Pieces:**
 
-- **Server MCP (`server.py`).** Cada agente lanza su propio proceso y se comunica con él por stdio (el estándar de MCP para servers locales). Expone las [tools](#tools-mcp) y le indica al modelo que lea primero `BRAIN.md`, tu perfil y tu memoria.
-- **Vault (`~/.brain/vault/`).** Archivos Markdown con frontmatter YAML:
-  - `BRAIN.md`: índice corto que el agente lee primero.
-  - `profile.md`: tu perfil.
-  - `memory/`: un archivo por categoría ("Trabajo", "Preferencias"…) con un hecho por viñeta.
-  - `projects/` y `skills/`: tus notas e instrucciones reutilizables.
-  - `knowledge/sources/`: el texto completo de cada URL guardada.
-- **Historial (`data/history.sqlite3`).** Cada escritura guarda el contenido anterior y el nuevo del archivo. Un lock de archivo entre procesos hace atómicas las escrituras, así que Claude, ChatGPT y el dashboard pueden escribir a la vez sin pisarse.
-- **Chroma.** La base vectorial de la búsqueda semántica. Corre como server HTTP único en `127.0.0.1:8055` para que todos los procesos lo compartan sin conflictos de acceso a disco.
-- **Ollama.** Genera los embeddings en tu máquina con `nomic-embed-text`, usando los prefijos que el modelo espera (`search_document:` al indexar, `search_query:` al buscar).
+- **MCP server (`server.py`).** Each agent launches its own process and talks to it over stdio (MCP's standard for local servers). It exposes the [tools](#mcp-tools) and tells the model to read `BRAIN.md`, your profile and your memory first.
+- **Vault (`~/.brain/vault/`).** Markdown files with YAML frontmatter:
+  - `BRAIN.md`: a short index the agent reads first.
+  - `profile.md`: your profile.
+  - `memory/`: one file per category ("Work", "Preferences"…) with one fact per bullet.
+  - `projects/` and `skills/`: your notes and reusable instructions.
+  - `knowledge/sources/`: the full text of every saved URL.
+- **History (`data/history.sqlite3`).** Every write stores the file's previous and new content. A cross-process file lock makes writes atomic, so Claude, ChatGPT and the dashboard can write at the same time without clobbering each other.
+- **Chroma.** The vector database behind semantic search. It runs as a single HTTP server on `127.0.0.1:8055`, so every process shares it without fighting over the disk.
+- **Ollama.** Computes embeddings on your machine with `nomic-embed-text`, using the prefixes the model expects (`search_document:` when indexing, `search_query:` when searching).
 
-**Qué pasa cuando guardás una URL (`save_url`):**
+**What happens when you save a URL (`save_url`):**
 
-1. [trafilatura](https://trafilatura.readthedocs.io) descarga la página y extrae el texto limpio.
-2. Si saca menos de 30 palabras (típico de sitios que se arman con JavaScript) o la descarga falla, renderiza la página en Chromium headless con Playwright y extrae de nuevo.
-3. Parte el texto en chunks de ~500 palabras con 50 de solapamiento.
-4. Calcula el embedding de cada chunk con Ollama y lo guarda en Chroma, con metadata que apunta al `.md` de origen.
-5. Escribe `knowledge/sources/<slug>.md` con el texto completo y los ids de sus chunks. Si la URL ya estaba guardada, la actualiza en vez de duplicarla.
+1. [trafilatura](https://trafilatura.readthedocs.io) downloads the page and extracts clean text.
+2. If it gets fewer than 30 words (typical of JavaScript-built sites) or the download fails, it renders the page in headless Chromium with Playwright and extracts again.
+3. It splits the text into ~500-word chunks with a 50-word overlap.
+4. It embeds each chunk with Ollama and stores it in Chroma, with metadata pointing back to the source `.md`.
+5. It writes `knowledge/sources/<slug>.md` with the full text and its chunk ids. Saving the same URL again updates it instead of duplicating it.
 
-**Cómo se importa la memoria:** el prompt del dashboard le pide al chatbot su memoria agrupada en `## Categoría` / `- dato`. El parser también acepta listas planas, etiquetas en negrita, listas numeradas y JSON. Deduplica, limpia prefijos de fecha, y si una memoria menciona por nombre uno de tus proyectos, la relaciona con él en el grafo.
+**How memory import works:** the dashboard's prompt asks the chatbot for its memory grouped as `## Category` / `- fact`. The parser also accepts plain lists, bold labels, numbered lists and JSON. It deduplicates, strips date prefixes, and when a memory mentions one of your projects by name, links them in the graph.
 
-## Tools MCP
+## MCP tools
 
-| Tool | Qué hace |
+| Tool | What it does |
 |---|---|
-| `list_vault(prefix?)` | Lista los archivos del vault con su descripción |
-| `read_file(path)` | Lee un archivo |
-| `write_file(path, content)` | Crea o reemplaza un archivo |
-| `append_file(path, content)` | Agrega al final de un archivo |
-| `str_replace_file(path, old, new)` | Reemplazo puntual (`old` tiene que aparecer exactamente una vez) |
-| `delete_file(path)` | Borra un archivo (recuperable) |
-| `file_history(path)` | Versiones de un archivo |
-| `restore_file(path, version_id)` | Vuelve un archivo a una versión anterior (también recupera borrados) |
-| `add_memory(fact, category?)` | Guarda un hecho sobre vos en tu memoria, sin duplicar |
-| `list_skills()` / `get_skill(name)` | Skills: instrucciones reutilizables en `skills/` |
-| `save_url(url, render_js?)` | Scrapea, indexa y guarda una URL |
-| `search_knowledge(query, top_k?)` | Búsqueda semántica en lo guardado |
-| `list_sources()` | Todas las URLs guardadas |
+| `list_vault(prefix?)` | Lists vault files with their description |
+| `read_file(path)` | Reads a file |
+| `write_file(path, content)` | Creates or replaces a file |
+| `append_file(path, content)` | Appends to a file |
+| `str_replace_file(path, old, new)` | Targeted replace (`old` must appear exactly once) |
+| `delete_file(path)` | Deletes a file (recoverable) |
+| `file_history(path)` | A file's versions |
+| `restore_file(path, version_id)` | Restores a file to an earlier version (also brings back deleted files) |
+| `add_memory(fact, category?)` | Saves a fact about you to your memory, without duplicates |
+| `list_skills()` / `get_skill(name)` | Skills: reusable instructions in `skills/` |
+| `save_url(url, render_js?)` | Scrapes, indexes and saves a URL |
+| `search_knowledge(query, top_k?)` | Semantic search over what you saved |
+| `list_sources()` | Every saved URL |
 
-## El comando `brain`
+## The `brain` command
 
 ```text
-brain                 abre el dashboard y prende Ollama y Chroma
-brain --port 8766     dashboard en otro puerto
-brain --no-autostart  no prender Ollama/Chroma solos
-brain --no-browser    no abrir el navegador
-brain update          actualiza a la última versión
-brain path            muestra dónde está instalado
-brain uninstall       saca el comando (no borra tus datos)
-brain help            ayuda
+brain                 opens the dashboard and starts Ollama and Chroma
+brain --port 8766     dashboard on another port
+brain --no-autostart  don't start Ollama/Chroma automatically
+brain --no-browser    don't open the browser
+brain update          updates to the latest version
+brain path            shows where it's installed
+brain uninstall       removes the command (keeps your data)
+brain help            help
 ```
 
-## Datos, privacidad y seguridad
+## Data, privacy and security
 
-- **Todo es local.** Tus datos viven en `~/.brain/vault/` y `~/.brain/data/`. Esas carpetas están en el `.gitignore`, así que nunca se suben a ningún lado, ni siquiera si hacés un fork.
-- **Sin servicios externos.** Los embeddings se calculan con Ollama en tu máquina. Solo se sale a internet cuando pedís guardar una URL.
-- **El dashboard solo acepta pedidos de tu propia máquina.** Escucha en `127.0.0.1`, rechaza pedidos con otro `Host` (protección contra DNS rebinding) y sus acciones exigen un header propio que el navegador no deja enviar desde otras páginas. Ningún sitio web que tengas abierto puede prender procesos ni escribir en tu vault.
-- **Los agentes no pueden salir del vault.** Las tools rechazan paths con `..`, paths absolutos, archivos ocultos y symlinks que apunten afuera.
-- **Todo se puede deshacer.** Cualquier escritura se puede revertir con `file_history` + `restore_file`.
+- **Everything is local.** Your data lives in `~/.brain/vault/` and `~/.brain/data/`. Both folders are in `.gitignore`, so they're never uploaded anywhere, not even if you fork the repo.
+- **No external services.** Embeddings are computed with Ollama on your machine. brain only goes online when you ask it to save a URL.
+- **The dashboard only accepts requests from your own machine.** It listens on `127.0.0.1`, rejects requests with any other `Host` (DNS-rebinding protection), and its actions require a custom header browsers won't send from other pages. No website you have open can start processes or write to your vault.
+- **Agents can't leave the vault.** The tools reject paths with `..`, absolute paths, hidden files and symlinks that point outside.
+- **Everything can be undone.** Any write can be reverted with `file_history` + `restore_file`.
 
-Para empezar de cero: cerrá el dashboard y los agentes, y borrá `~/.brain/vault` y `~/.brain/data`. Se recrean vacíos al volver a abrir.
+To start from scratch: close the dashboard and your agents, and delete `~/.brain/vault` and `~/.brain/data`. They're recreated empty on the next start.
 
-## Solución de problemas
+## Troubleshooting
 
-| Problema | Solución |
+| Problem | Fix |
 |---|---|
-| "Ollama no está corriendo" | Prendé el switch de Ollama en el Panel, o abrí la app Ollama. |
-| "El server de Chroma no está corriendo" | Abrí el dashboard (`brain`): prende Chroma solo. Los agentes lo necesitan para `save_url` y `search_knowledge`. |
-| brain no aparece en Claude Desktop | Conectalo desde **Conectar agente** y reiniciá Claude. Revisá **Mis conexiones**. |
-| brain no aparece en ChatGPT | Usá el modo **Codex** o **ChatGPT Work** y hacé *Settings → MCP servers → Restart*. El chat común no usa servers locales. |
-| "No se pudo extraer texto de esa URL" | El sitio puede tener paywall o pedir login. Probá con *Forzar render con JS*. |
-| `brain: command not found` | Abrí una terminal nueva. Si sigue, agregá `export PATH="$HOME/.local/bin:$PATH"` a tu `~/.zshrc`. |
-| El puerto 8765 está ocupado | `brain --port 8766` |
+| "Ollama isn't running" | Turn on the Ollama switch in the Dashboard, or open the Ollama app. |
+| "The Chroma server isn't running" | Open the dashboard (`brain`); it starts Chroma. Agents need it for `save_url` and `search_knowledge`. |
+| An app returns `403` when connecting | You used "Connect to a URL". Use **Run a command** with the values from [Apps with an "Add MCP server" form](#apps-with-an-add-mcp-server-form). |
+| brain doesn't show up in Claude Desktop | Connect it from **Connect agent** and restart Claude. Check **My connections**. |
+| brain doesn't show up in ChatGPT | Use **Codex** or **ChatGPT Work** mode and go to *Settings → MCP servers → Restart*. Regular chat doesn't use local servers. |
+| "Couldn't extract text from that URL" | The site may be paywalled or require a login. Try *Force JS rendering*. |
+| `brain: command not found` | Open a new terminal. If it persists, add `export PATH="$HOME/.local/bin:$PATH"` to your `~/.zshrc`. |
+| Port 8765 is taken | `brain --port 8766` |
 
-## Desinstalar
+## Uninstalling
 
-1. En el dashboard, **Conectar agente** → desconectá los agentes (o sacá la entrada `brain` de sus configs).
-2. `brain uninstall` saca el comando.
-3. `rm -rf ~/.brain` borra la app **y tus datos**.
+1. In the dashboard, **Connect agent** → disconnect your agents (or remove the `brain` entry from their config).
+2. `brain uninstall` removes the command.
+3. `rm -rf ~/.brain` deletes the app **and your data**.
 
-## Desarrollo
+## Development
 
-- [`CLAUDE.md`](CLAUDE.md): guía técnica para agentes que trabajen en el repo (arquitectura, convenciones y detalles a tener en cuenta).
-- [`CHANGES.md`](CHANGES.md): el registro de cada cambio y decisión. Cada cambio nuevo se agrega al final.
-- [`BUILD.md`](BUILD.md): la especificación original.
+- [`CLAUDE.md`](CLAUDE.md): technical guide for agents working on the repo (architecture, conventions and gotchas).
+- [`CHANGES.md`](CHANGES.md): the log of every change and decision. New changes are appended at the end.
+- [`BUILD.md`](BUILD.md): the original spec.
+- [`docs/`](docs/): the website, published with GitHub Pages.
 
 ```bash
 git clone https://github.com/Lautaro005/brain && cd brain
 uv sync && ./brain.sh
 ```
+
+The dashboard UI is available in English and Spanish; the internal docs (`CLAUDE.md`, `CHANGES.md`, `BUILD.md`) are in Spanish.
+
+## License
+
+[MIT](LICENSE) © 2026 Lautaro Silva
