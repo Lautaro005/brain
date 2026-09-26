@@ -203,3 +203,36 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 - **Instalador** con un remoto local (`BRAIN_REPO=file://…`), en una carpeta y un bin temporales: instala, `brain help` y `brain path` funcionan, el dashboard instalado responde, detecta 8 agentes, la config manual apunta a la carpeta de la instalación y el vault se crea desde la plantilla. `brain update` trae un commit nuevo, reinstalar encima actualiza sin error, y `brain uninstall` saca solo el comando.
 - **UI "Conectar agente"** contra las configs reales, en modo solo lectura: Claude Desktop y Claude Code aparecen conectados ("apuntan a esta instalación"), ChatGPT instalado sin conectar, Cursor/Windsurf/Gemini no instalados. "Mis conexiones" lista los 2. La config manual se ve correcta.
 - **No probado en vivo**: conectar Claude Desktop con la app abierta (cierre y reapertura), porque cerraría la app donde se estaba trabajando. La lógica usa `osascript quit` + `pgrep`, igual que la detección que sí se probó.
+
+## 2026-09-26 — README en inglés, licencia MIT, apps con formulario "Add MCP server" y landing page
+
+**Qué se hizo**
+- **`README.md` traducido al inglés** (es la cara del repo en GitHub). Suma: link a la web, la sección "Apps with an 'Add MCP server' form", una fila de troubleshooting para el `403`, la sección License, y la aclaración de que las docs internas siguen en español.
+- **`LICENSE`: MIT**, a nombre de Lautaro Silva, 2026. Es la licencia más usada en open source y permite usar, modificar y redistribuir manteniendo el aviso de copyright.
+- **Apps con formulario "Add MCP server"** ("Run a command" / "Connect to a URL"): el usuario probó "Connect to a URL" con la dirección del dashboard y recibió `403`. brain es un server stdio y no expone una URL MCP; el dashboard rechaza cualquier POST sin su header propio, que es lo esperado. `agents.manual_snippets()` suma `form` (nombre, comando y argumentos uno por línea), y la vista "Conectar agente" muestra esos valores campo por campo, con botón de copiar y la indicación de usar "Run a command". Traducido ES/EN.
+- **Landing page `docs/index.html`**: un solo HTML sin build, blanco y negro, EN/ES (se detecta del navegador y queda guardado), servido por GitHub Pages desde `main /docs` (Pages activado con `gh api`: https://lautaro005.github.io/brain/). `docs/.nojekyll` hace que se sirva sin Jekyll.
+  - Dirección: fichero Zettelkasten. Fichas tipeadas con numeración de referencia (1, 1a, 3.1…); cada agente es una ficha que apunta a la ficha 1, la memoria.
+  - Hero: comando de instalación copiable y una disposición de fichas donde se entinta, por turnos o al pasar el mouse, la referencia de cada agente y las memorias que lee.
+  - Secciones: por qué (memorias aisladas vs compartida), qué hay en el fichero (pestañas con perfil, memoria, notas, páginas guardadas e historial), tres pasos, catálogo de agentes, mockup del dashboard, privacidad ("Reglas del fichero") y cierre con la instalación.
+  - Todo el producto está recreado en HTML/SVG, sin imágenes. Las demos (Ana Ruiz, tienda online) están marcadas como ejemplo.
+- **`PRODUCT.md`** (contexto de producto para el skill de diseño) y el brief de la superficie en `.impeccable/surfaces/`. `.gitignore` excluye las capturas y el trabajo temporal de `.impeccable/`.
+
+**Cómo se diseñó**
+- **Skill impeccable, en modo code-led** (no hay generación de imágenes). Público y tipo de visual se decidieron con el usuario. La dirección se sorteó con `concept-seed` (seed f9010b46) y el usuario eligió el "Fichero de notas" (la elección propia del skill) por sobre la asignada ("láminas de tinta" de Cajal).
+- **Detector**: se corrigieron sombras de borde fino con blur ancho y textos de menos de 11 px. El resto fueron falsos positivos del análisis estático.
+- **Revisión final** con el revisor independiente (disposición `fix`, 8 correcciones), aplicadas en una sola tanda:
+  - líneas de referencia también en celular;
+  - pestañas de ficha en el menú, la activa según la sección;
+  - fichas divisorias con número en cada sección;
+  - grafo propio para pantallas angostas;
+  - pestañas del fichero como divisorias escalonadas;
+  - marca de lápiz con tilde en lugar de bloques negros;
+  - Courier solo para texto tipeado;
+  - privacidad como ficha tipeada y demos marcadas como ejemplo.
+
+- **Segunda ronda del revisor**: las 8 correcciones quedaron resueltas y aparecieron 2 regresiones, que se corrigieron: en celular la leyenda "sample memory" quedaba tachada por una línea de referencia (ahora va arriba de la ficha), y al menú le faltaba la pestaña 6 (Dashboard). Con eso se cerraron las dos rondas del presupuesto de revisión.
+- **`DESIGN.md` y `.impeccable/design.json`**, escritos por el documentador del skill a partir de la página construida: paleta monocromo, rampa tipográfica, fichas, sellos, pestañas y reglas (Ink-Only, Pencil Floor, Typed-Only-When-Typed…). El dashboard de la app queda fuera de ese sistema.
+
+**Verificado**
+- **Capturas de página completa** a 1440 y 390 px (Playwright): sin desborde horizontal; el cambio EN/ES funciona en todas las secciones; el hero entinta referencias y memorias.
+- **Pages** responde el alta con `html_url` https://lautaro005.github.io/brain/, fuente `main /docs`. Publica después del push.
