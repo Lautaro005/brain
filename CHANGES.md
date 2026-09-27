@@ -340,3 +340,11 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 - **UI con Playwright**, sin errores de consola: sidebar desplegado y plegado; modal de ajustes; "Usar colores distintos" cambia el relleno del nodo Brain del grafo en vivo (`#e11d48`); "Mis conexiones" con detectados y manuales; chat con streaming y chip de tool; cambio a EN y a tema oscuro propagado al iframe del chat; modo `pop` a 440 px; dashboard a 390 px sin desborde horizontal.
 - **Landing** a 1440 y 390 px: sin desborde y con el script de DokBot presente.
 - **No probado**: un modelo real de Ollama (no hay Ollama en esta máquina) y la ventana Picture-in-Picture en un Chrome con interfaz, porque Playwright headless no la abre. El código cae a `window.open` si la API falla.
+
+## 2026-09-27 — Release v0.02.0 (borrador de notas)
+
+**Qué se hizo**
+- Se escribieron las notas del release **`v0.02.0`**, con el mismo formato que `v0.01.0`: instalación, novedades (Chat, Ajustes con colores del grafo, sidebar plegable, apps por formulario en "Mis conexiones", widget en la web) y el cambio de licencia a MIT + Commons Clause, aclarando que `v0.01.0` y anteriores siguen bajo MIT. El release apunta a `main`, así que el tag se crea al publicarlo, después de mergear el PR.
+
+**En qué se apartó del pedido y por qué**
+- El pedido era dejar el release como borrador en GitHub, pero la API respondió "Creating, editing, or deleting releases is not permitted for this session type". Por eso las notas quedaron listas para pegar y el borrador lo crea el usuario en GitHub (Releases → Draft a new release, tag `v0.02.0` sobre `main`).
