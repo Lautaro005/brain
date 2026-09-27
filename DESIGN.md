@@ -257,3 +257,13 @@ One ease for everything (cubic-bezier(.16, 1, .3, 1)). On load, the memory and a
 - **Don't** use hard offset shadows or glows; depth is soft paper shadow and surface contrast.
 - **Don't** round cards, buttons or stamps beyond 4px; only tab edges get 6-7px.
 - **Don't** apply this system to the product dashboard (`brain_mcp/dashboard.html`); it is out of scope.
+
+## Superficie del chat (dashboard)
+
+El chat (`brain_mcp/chat.html`) usa la misma paleta y tipografías, pero en versión conversación, porque la grilla de fichas cuadradas se sentía rígida para hablar:
+
+- **Una sola superficie**: el chat ocupa toda el área de trabajo, sin encabezado, tarjeta ni fondo gris. El historial se separa con una línea fina, no con otro color.
+- **Forma**: controles en píldora (radio completo) y contenedores con radio blando (burbuja del usuario 20 px con la esquina de envío en 6 px, compositor 24 px, trazas y bloques de código 12-14 px). Es la única excepción documentada al radio de 3-4 px del resto del dashboard.
+- **Mensajes**: el usuario en burbuja gris suave a la derecha; brain sin burbuja, con su marca y etiqueta en Courier.
+- **Acciones**: cada tool call es una fila desplegable (estado, nombre, argumentos resumidos en Courier) dentro de una traza con filete a la izquierda. Tinta para OK, rojo solo para errores.
+

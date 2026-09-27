@@ -16,6 +16,7 @@ sin ellas y el chat queda en modo solo lectura del contexto.
 import asyncio
 import json
 import logging
+import re
 import secrets
 import time
 from datetime import datetime, timezone
@@ -176,9 +177,13 @@ def _context(text: str, chat_id: str, lang: str) -> str:
         "Sos el asistente personal del usuario dentro de brain, su base de conocimiento local. "
         "Conocés al usuario por su perfil y su memoria, que están abajo: usalos para personalizar cada respuesta. "
         "Tenés tools para leer, buscar, crear y editar notas del vault, guardar memorias nuevas (add_memory) y "
-        "buscar en lo guardado (search_knowledge). Usalas cuando el usuario pida consultar, agregar o cambiar algo, "
-        "y contá en una línea qué hiciste. Cada cambio queda en el historial y se puede deshacer con file_history + "
-        "restore_file. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. "
+        "buscar en lo guardado (search_knowledge). Usalas cuando el usuario pida consultar, agregar o cambiar algo. "
+        "Reglas para cambiar cosas: 1) antes de decir que algo 'ya está', leelo con read_file o list_vault; "
+        "2) para cambiar un metadato (description, tags, related, name) usá set_frontmatter, no reescribas el archivo; "
+        "3) para cambiar texto usá str_replace_file o write_file; 4) nunca digas que hiciste un cambio si la tool no "
+        "respondió 'OK'; si respondió 'Error', contá el error y probá de otra forma. "
+        "Después de actuar, contá en una línea qué hiciste. Cada cambio queda en el historial y se puede deshacer con "
+        "file_history + restore_file. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. "
         "No inventes datos: si algo no está en el contexto ni en el vault, decilo. "
         f"{reply_lang}, salvo que el usuario escriba en otro idioma.",
         "# Perfil (profile.md)\n" + (f"Nombre: {p['name']}\nEn una línea: {p['headline']}\n\n{p['about']}"
@@ -194,18 +199,96 @@ def _context(text: str, chat_id: str, lang: str) -> str:
 
 
 # ---------- tools ----------
+# Dos modos:
+# - "native": las tools van en el campo `tools` de /api/chat y el modelo devuelve `tool_calls`.
+# - "text": para modelos cuyo template no soporta tools (o que Ollama no puede convertir, como muchos GGUF
+#   bajados de Hugging Face): las tools se describen en el system prompt y el modelo las pide con bloques
+#   <tool_call>{"name": …, "arguments": {…}}</tool_call>. Así cualquier modelo puede actuar sobre el vault.
+# En los dos modos también se aceptan <tool_call> escritos en el texto, que algunos modelos mandan igual.
 
-def _tools() -> list[dict]:
+_MODE: dict[str, str] = {}  # modelo → "text" si ya sabemos que el modo nativo falla con él
+TOOL_TAG = re.compile(r"<tool_call>\s*(.*?)\s*(?:</tool_call>|$)", re.S)
+FENCED = re.compile(r"```(?:json|tool_call|tool)?\s*(\{.*?\})\s*```", re.S)
+
+
+def _clean_schema(node):
+    """Esquema JSON simple que entienden Ollama y llama.cpp: sin title/default null, anyOf [X, null] → X,
+    y todo objeto con `properties` (Ollama manda `properties: null` si falta, y eso rompe algunos templates)."""
+    if isinstance(node, list):
+        return [_clean_schema(x) for x in node]
+    if not isinstance(node, dict):
+        return node
+    node = {k: v for k, v in node.items() if k not in ("title", "$schema") and not (k == "default" and v is None)}
+    for key in ("anyOf", "oneOf"):
+        opts = [o for o in node.pop(key, []) or [] if not (isinstance(o, dict) and o.get("type") == "null")]
+        if opts:
+            node = {**_clean_schema(opts[0]), **{k: v for k, v in node.items()}}
+    if "properties" in node or node.get("type") == "object":
+        node["type"] = "object"
+        node["properties"] = {k: _clean_schema(v) for k, v in (node.get("properties") or {}).items()}
+    if "items" in node:
+        node["items"] = _clean_schema(node["items"])
+    if "type" not in node and "enum" not in node:
+        node["type"] = "string"
+    return node
+
+
+def _mcp_tools() -> list:
     import server  # las mismas tools que ven los agentes, incluidas las de conexiones
 
-    return [{"type": "function", "function": {"name": t.name, "description": t.description or "",
-                                              "parameters": t.input_schema}}
-            for t in asyncio.run(server.mcp.list_tools())]
+    return asyncio.run(server.mcp.list_tools())
 
 
-def _run_tool(name: str, args: dict) -> tuple[str, bool]:
+def _native_tools(mcp_tools: list) -> list[dict]:
+    return [{"type": "function", "function": {"name": t.name, "description": (t.description or "").strip(),
+                                              "parameters": _clean_schema(t.input_schema or {})}}
+            for t in mcp_tools]
+
+
+def _text_tools_prompt(mcp_tools: list) -> str:
+    lines = []
+    for t in mcp_tools:
+        sch = _clean_schema(t.input_schema or {})
+        req = set(sch.get("required") or [])
+        args = ", ".join(f"{k}{'' if k in req else '?'}: {v.get('type', 'string')}" for k, v in sch["properties"].items())
+        desc = (t.description or "").strip().splitlines()[0] if t.description else ""
+        lines.append(f"- {t.name}({args}): {desc}")
+    return (
+        "# Tools\nPodés usar estas tools. Para llamar una, escribí SOLO un bloque así (podés poner varios seguidos):\n"
+        '<tool_call>{"name": "read_file", "arguments": {"path": "BRAIN.md"}}</tool_call>\n'
+        "Después vas a recibir los resultados en un mensaje que empieza con 'Resultados de las tools'. "
+        "No inventes resultados: esperá a recibirlos. Cuando no necesites más tools, respondé normalmente.\n"
+        + "\n".join(lines)
+    )
+
+
+def _parse_text_calls(content: str) -> tuple[list[dict], str]:
+    """Busca pedidos de tools escritos en el texto. Devuelve (calls, texto sin esos bloques)."""
+    calls, spans = [], []
+    for rx in (TOOL_TAG, FENCED):
+        for m in rx.finditer(content):
+            try:
+                obj = json.loads(m.group(1))
+            except json.JSONDecodeError:
+                continue
+            for o in obj if isinstance(obj, list) else [obj]:
+                if isinstance(o, dict) and isinstance(o.get("name"), str):
+                    args = o.get("arguments", o.get("parameters", {}))
+                    calls.append({"function": {"name": o["name"], "arguments": args}})
+                    spans.append(m.span())
+        if calls:
+            break
+    clean = content
+    for a, b in sorted(set(spans), reverse=True):
+        clean = clean[:a] + clean[b:]
+    return calls, clean.strip()
+
+
+def _run_tool(name: str, args: dict, valid: set[str]) -> tuple[str, bool]:
     import server
 
+    if name not in valid:
+        return (f"Error: la tool '{name}' no existe. Tools disponibles: {', '.join(sorted(valid))}.", False)
     try:
         r = asyncio.run(server.mcp.call_tool(name, args or {}))
     except Exception as e:
@@ -214,7 +297,7 @@ def _run_tool(name: str, args: dict) -> tuple[str, bool]:
     out = "\n".join(texts)
     if not out and getattr(r, "structured_content", None) is not None:
         out = json.dumps(r.structured_content, ensure_ascii=False, default=str)
-    ok = not getattr(r, "is_error", False) and not out.startswith("Error")
+    ok = not getattr(r, "is_error", False) and not out.lstrip().startswith("Error")
     return (out or "OK")[:MAX_TOOL_RESULT], ok
 
 
@@ -230,10 +313,11 @@ def _stream(model: str, messages: list[dict], tools: list[dict] | None):
     except requests.ConnectionError as e:
         raise ChatError("ollama") from e
     if r.status_code != 200:
-        text = r.text[:400]
-        if "support" in text.lower() and "tool" in text.lower():
+        text = r.text[:600]
+        low = text.lower()
+        if tools and any(w in low for w in ("tool", "template", "schema", "parser", "properties")):
             raise ChatError("no_tools", text)
-        if r.status_code == 404 or "not found" in text.lower():
+        if r.status_code == 404 or "not found" in low:
             raise ChatError("no_model", model)
         raise ChatError("ollama_http", f"HTTP {r.status_code}: {text}")
     for line in r.iter_lines():
@@ -248,9 +332,46 @@ def _new_id() -> str:
     return time.strftime("c%Y%m%d%H%M%S") + secrets.token_hex(2)
 
 
+class _TagFilter:
+    """Deja pasar el texto del stream pero se guarda los bloques <tool_call>…</tool_call>
+    (no tienen que aparecer en la respuesta que ve el usuario)."""
+    OPEN, CLOSE = "<tool_call>", "</tool_call>"
+
+    def __init__(self):
+        self.buf, self.inside = "", False
+
+    def feed(self, text: str) -> str:
+        self.buf += text
+        out = ""
+        while self.buf:
+            if self.inside:
+                j = self.buf.find(self.CLOSE)
+                if j < 0:
+                    return out
+                self.buf, self.inside = self.buf[j + len(self.CLOSE):], False
+                continue
+            j = self.buf.find(self.OPEN)
+            if j >= 0:
+                out += self.buf[:j]
+                self.buf, self.inside = self.buf[j + len(self.OPEN):], True
+                continue
+            # retener un posible comienzo de "<tool_call>" partido entre chunks
+            k = self.buf.rfind("<")
+            if k >= 0 and self.OPEN.startswith(self.buf[k:]):
+                out, self.buf = out + self.buf[:k], self.buf[k:]
+                return out
+            out, self.buf = out + self.buf, ""
+        return out
+
+    def flush(self) -> str:
+        rest = "" if self.inside else self.buf
+        self.buf, self.inside = "", False
+        return rest
+
+
 def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
     """Genera los eventos de una respuesta (para mandar como NDJSON):
-    start · token · tool · tool_result · notice · done · error."""
+    start · token · rewrite · tool · tool_result · notice · done · error."""
     text = (text or "").strip()
     if not text:
         yield {"type": "error", "code": "empty"}
@@ -279,50 +400,90 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
     except Exception as e:
         log.exception("contexto del chat")
         system = f"(no se pudo cargar la memoria del usuario: {e})"
-    msgs = [{"role": "system", "content": system}]
-    msgs += [{"role": m["role"], "content": m["content"]} for m in history[-MAX_HISTORY:]]
-    msgs.append({"role": "user", "content": user_msg["content"]})
 
     try:
-        tools = _tools()
+        mcp_tools = _mcp_tools()
     except Exception as e:
         log.warning("sin tools para el chat: %s", e)
-        tools = None
+        mcp_tools = []
+    valid = {t.name for t in mcp_tools}
+    mode = _MODE.get(model, "native") if mcp_tools else "none"
 
+    def build(mode: str) -> list[dict]:
+        sys_ = system + ("\n\n" + _text_tools_prompt(mcp_tools) if mode == "text" else "")
+        ms = [{"role": "system", "content": sys_}]
+        ms += [{"role": m["role"], "content": m["content"]} for m in history[-MAX_HISTORY:]]
+        ms.append({"role": "user", "content": user_msg["content"]})
+        return ms
+
+    msgs = build(mode)
     answer, used, failed = "", [], False
     try:
-        for _ in range(MAX_ROUNDS):
-            content, calls = "", []
+        rounds = 0
+        while rounds < MAX_ROUNDS:
+            rounds += 1
+            content, calls, flt, round_start = "", [], _TagFilter(), len(answer)
+            native = _native_tools(mcp_tools) if mode == "native" else None
             try:
-                for chunk in _stream(model, msgs, tools):
+                for chunk in _stream(model, msgs, native):
                     m = chunk.get("message") or {}
                     if m.get("content"):
                         content += m["content"]
-                        yield {"type": "token", "text": m["content"]}
+                        shown = flt.feed(m["content"])
+                        if shown:
+                            answer += shown
+                            yield {"type": "token", "text": shown}
                     calls += m.get("tool_calls") or []
+                tail = flt.flush()
+                if tail:
+                    answer += tail
+                    yield {"type": "token", "text": tail}
             except ChatError as e:
-                if e.code == "no_tools" and tools:
-                    tools = None
-                    yield {"type": "notice", "code": "no_tools"}
+                if e.code == "no_tools" and mode == "native":
+                    # el modelo o su template no acepta tools nativas: se pasa al modo texto
+                    log.info("modo texto para %s: %s", model, e.detail[:200])
+                    _MODE[model] = mode = "text"
+                    msgs = build(mode)
+                    rounds -= 1
+                    yield {"type": "notice", "code": "text_tools"}
                     continue
                 raise
-            answer += content
+            if not calls and mcp_tools:
+                calls, _ = _parse_text_calls(content)
+                shown = answer[round_start:]
+                _, visible = _parse_text_calls(shown)
+                if calls and visible != shown.strip():
+                    # el pedido vino como bloque ```json``` que el usuario ya vio: se saca de la respuesta
+                    answer = answer[:round_start] + visible
+                    yield {"type": "rewrite", "text": answer}
             if not calls:
                 break
-            msgs.append({"role": "assistant", "content": content, "tool_calls": calls})
+            if mode == "native":
+                msgs.append({"role": "assistant", "content": content, "tool_calls": calls})
+            else:
+                msgs.append({"role": "assistant", "content": content})
+            results = []
             for call in calls:
                 fn = call.get("function") or {}
-                name, args = fn.get("name", ""), fn.get("arguments") or {}
+                name, args = str(fn.get("name", "")), fn.get("arguments") or {}
                 if isinstance(args, str):
                     try:
                         args = json.loads(args)
                     except json.JSONDecodeError:
                         args = {}
-                yield {"type": "tool", "name": name, "args": args}
-                result, ok = _run_tool(name, args)
-                used.append({"name": name, "args": args, "ok": ok})
-                yield {"type": "tool_result", "name": name, "ok": ok, "preview": result[:300]}
-                msgs.append({"role": "tool", "content": result, "tool_name": name})
+                if not isinstance(args, dict):
+                    args = {}
+                idx = len(used)
+                yield {"type": "tool", "i": idx, "name": name, "args": args}
+                result, ok = _run_tool(name, args, valid)
+                used.append({"name": name, "args": args, "ok": ok, "result": result[:1500]})
+                yield {"type": "tool_result", "i": idx, "name": name, "ok": ok, "result": result[:1500]}
+                if mode == "native":
+                    msgs.append({"role": "tool", "content": result, "tool_name": name})
+                else:
+                    results.append(f'<tool_result name="{name}">\n{result}\n</tool_result>')
+            if results:
+                msgs.append({"role": "user", "content": "Resultados de las tools:\n" + "\n".join(results)})
             if answer and not answer.endswith("\n"):
                 answer += "\n\n"
                 yield {"type": "token", "text": "\n\n"}

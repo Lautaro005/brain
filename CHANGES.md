@@ -348,3 +348,41 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 
 **En qué se apartó del pedido y por qué**
 - El pedido era dejar el release como borrador en GitHub, pero la API respondió "Creating, editing, or deleting releases is not permitted for this session type". Por eso las notas quedaron listas para pegar y el borrador lo crea el usuario en GitHub (Releases → Draft a new release, tag `v0.02.0` sobre `main`).
+
+## 2026-09-27 — v0.02.1: perfil que no cargaba, frontmatter validado, tools del chat para cualquier modelo y chat rediseñado
+
+**Qué se hizo**
+- **Perfil que no cargaba ("list index out of range")** (`memory.py`): `get_profile()` suponía que el cuerpo de `profile.md` era siempre "# Nombre", una línea en blanco y el "Sobre mí". Si un agente reescribía el archivo sin esa línea (o solo con el título), `split("\n", 2)[2]` rompía. Eso tiraba abajo `/api/profile` (el Perfil y las memorias no cargaban) y el contexto del chat. Ahora saca el título sin asumir cuántas líneas hay.
+- **Frontmatter inválido** (`vault.py`, más los lectores en `graph.py`, `stats.py`, `memory.py`, `server.py` y `dashboard.py`):
+  - En los logs aparecía `yaml.scanner.ScannerError: mapping values are not allowed` en `/api/file`: un agente había escrito una description sin comillas con ": " adentro.
+  - El grafo tragaba ese error en silencio y mostraba el nodo sin description. Por eso el chat "ya lo había cambiado" pero el grafo no lo mostraba.
+  - Ahora toda escritura de un `.md` pasa por `vault.check_frontmatter()`: repara el YAML (pone entre comillas los valores problemáticos) o rechaza la escritura con un error claro que el agente ve.
+  - Todas las lecturas usan `vault.parse()`, que nunca se rompe y también repara al leer, así los archivos ya rotos vuelven a mostrar su description.
+- **Tool nueva `set_frontmatter(path, fields)`** (`vault.py`, `server.py`): cambia metadatos sin reescribir el archivo (`null` borra un campo). El chat tiene la instrucción de usarla para metadatos.
+- **Tools del chat con cualquier modelo** (`chat.py`):
+  - El error del modelo bajado de Hugging Face (`HTTP 400 … Unable to generate parser for this template … properties must be an object`) viene de Ollama/llama.cpp cuando el template del GGUF no puede convertir las tools nativas.
+  - Ahora los esquemas se limpian (`_clean_schema`: sin `anyOf`/`title`/`default: null`, todo objeto con `properties`).
+  - Si Ollama igual rechaza las tools, el chat pasa al **modo texto**: las tools van descritas en el system prompt y el modelo las pide con `<tool_call>{…}</tool_call>`. Esos bloques no se muestran en la respuesta, y los resultados vuelven como un mensaje. El modo se recuerda por modelo.
+  - En cualquier modo también se aceptan `<tool_call>` o bloques ```json``` escritos en el texto.
+  - Si el modelo inventa una tool que no existe, recibe la lista de tools válidas.
+  - El system prompt pide verificar con `read_file` antes de decir que algo "ya está" y no dar por hecho un cambio si la tool no respondió OK.
+- **Todas las tool calls a la vista** (`chat.html`): cada llamada es una fila con estado, nombre y argumentos resumidos, y se despliega para ver los argumentos completos y el resultado. El resultado (hasta 1500 caracteres) también se guarda en el historial, así se ve al reabrir el chat.
+- **Chat rediseñado** (`chat.html`, `dashboard.html`, DESIGN.md), con el sistema de diseño del proyecto (ver abajo):
+  - El chat ocupa toda el área de trabajo, sin encabezado ni tarjeta gris, en una sola superficie con el sidebar.
+  - Controles en píldora y contenedores con radio blando: burbuja del usuario a la derecha, compositor flotante con botón redondo de enviar/parar, historial sin panel gris.
+  - Nombres de modelos de Hugging Face abreviados en el selector, y placeholder corto en la ventana flotante y en pantallas angostas.
+  - La excepción de forma quedó documentada en DESIGN.md.
+- **Botón de plegar el sidebar** (`dashboard.html`): ahora va después del logo y el nombre, alineado a la derecha, como pidió el usuario. Plegado queda debajo del logo.
+- README (tabla de tools, Chat, troubleshooting, validación de frontmatter) y CLAUDE.md actualizados.
+
+**En qué se apartó del pedido y por qué**
+- **Skill de diseño**: el usuario pidió usar la skill `impeccable`, pero no está instalada en esta sesión. Se usó `design-taste-frontend` sobre el sistema que impeccable había dejado en el repo (DESIGN.md, `.impeccable/`).
+- **Registro en el conector `brain` y release `v0.02.1`**: esta sesión en la nube no tiene acceso al vault local ni al conector, y la API de GitHub no permite crear releases desde este tipo de sesión. Quedaron las notas del release para pegar.
+
+**Verificado**
+- Contra un Ollama falso que reproduce el error exacto del modelo de Hugging Face, con un Chroma real:
+  - el modelo `hf.co/…` pasa solo al modo texto y cambia la description con `set_frontmatter`;
+  - `llama3.2` con tools nativas hace 3 llamadas (una a una tool inexistente, que falla con la lista de tools válidas) y las tres aparecen;
+  - un modelo que pide la tool con un bloque ```json``` la ejecuta y el bloque se saca de la respuesta.
+- Un `profile.md` como el del usuario (solo "# Lautaro", sin línea en blanco) y un proyecto con `description: Proyecto: brain` sin comillas: `/api/profile` y `/api/file` responden bien, y el grafo muestra la description.
+- UI con Playwright, sin errores de consola: Perfil carga; Chat en claro y oscuro con la traza desplegada; sidebar plegado; ventana flotante a 440 px; celular a 390 px sin desborde.

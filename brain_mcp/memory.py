@@ -116,11 +116,11 @@ def _memory_path(category: str) -> str:
 
 def _load(path: str) -> tuple[dict, list[str]]:
     try:
-        post = frontmatter.loads(vault.read_file(path))
+        meta, body = vault.parse(vault.read_file(path))
     except vault.VaultError:
         return {}, []
-    items = [_clean_item(l) for l in post.content.splitlines() if BULLET.match(l)]
-    return dict(post.metadata), items
+    items = [_clean_item(l) for l in body.splitlines() if BULLET.match(l)]
+    return meta, items
 
 
 def _related_names(items: list[str]) -> list[str]:
@@ -132,7 +132,7 @@ def _related_names(items: list[str]) -> list[str]:
         if p.startswith(MEMORY_DIR + "/") or p in ("BRAIN.md", PROFILE_PATH):
             continue
         try:
-            name = str(frontmatter.loads(vault.read_file(p)).metadata.get("name") or p.rsplit("/", 1)[-1][:-3])
+            name = str(vault.parse(vault.read_file(p))[0].get("name") or p.rsplit("/", 1)[-1][:-3])
         except Exception:
             continue
         if len(_norm(name)) >= 4 and f" {_norm(name)} " in text:
@@ -213,12 +213,16 @@ def list_all() -> list[dict]:
 
 def get_profile() -> dict:
     try:
-        post = frontmatter.loads(vault.read_file(PROFILE_PATH))
+        m, body = vault.parse(vault.read_file(PROFILE_PATH))
     except vault.VaultError:
         return {"exists": False, "name": "", "headline": "", "about": ""}
-    m = post.metadata
-    return {"exists": True, "name": str(m.get("display_name") or ""), "headline": str(m.get("headline") or ""),
-            "about": post.content.split("\n", 2)[2].strip() if post.content.startswith("# ") else post.content.strip()}
+    # el cuerpo es "# Nombre" + "Sobre mí"; un agente puede haberlo reescrito sin la línea en blanco
+    # (o solo con el título), así que se saca el título sin asumir cuántas líneas hay
+    body = body.strip()
+    if body.startswith("# "):
+        body = body.split("\n", 1)[1] if "\n" in body else ""
+    return {"exists": True, "name": str(m.get("display_name") or ""),
+            "headline": str(m.get("headline") or ""), "about": body.strip()}
 
 
 def save_profile(name: str, headline: str, about: str) -> str:
