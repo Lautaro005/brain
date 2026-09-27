@@ -44,12 +44,11 @@ class OllamaEmbeddingFunction(EmbeddingFunction[Documents]):
         return OllamaEmbeddingFunction()
 
 
-_collection = None
+_collections: dict = {}
 
 
 def _unavailable(e: Exception) -> ChromaUnavailable:
-    global _collection
-    _collection = None  # reconectar en la próxima llamada, por si el server vuelve
+    _collections.clear()  # reconectar en la próxima llamada, por si el server vuelve
     return ChromaUnavailable(
         f"El server de Chroma no está corriendo (./chroma_server.sh) en {CHROMA_HOST}:{CHROMA_PORT}."
     )
@@ -61,13 +60,13 @@ def _is_connection_error(e: Exception) -> bool:
     )
 
 
-def get_collection():
-    global _collection
-    if _collection is None:
+def get_collection(name: str = COLLECTION):
+    """"sources" guarda lo scrapeado y lo capturado de conexiones; "chats" el historial del chat."""
+    if name not in _collections:
         try:
             client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
-            _collection = client.get_or_create_collection(
-                COLLECTION,
+            _collections[name] = client.get_or_create_collection(
+                name,
                 embedding_function=OllamaEmbeddingFunction(),
                 metadata={"hnsw:space": "cosine"},
             )
@@ -75,13 +74,13 @@ def get_collection():
             if _is_connection_error(e):
                 raise _unavailable(e) from e
             raise
-    return _collection
+    return _collections[name]
 
 
-def _call(fn):
+def call(fn, name: str = COLLECTION):
     """Corre una operación contra Chroma traduciendo errores de conexión a ChromaUnavailable."""
     try:
-        return fn(get_collection())
+        return fn(get_collection(name))
     except ChromaUnavailable:
         raise
     except Exception as e:
@@ -94,20 +93,20 @@ def upsert(ids: list[str], documents: list[str], metadatas: list[dict]) -> None:
     # embeddings calculados acá (no dentro de la llamada HTTP) para que un Ollama caído
     # siga saliendo como OllamaUnavailable y no se confunda con Chroma
     embeddings = embed(documents, task="document")
-    _call(lambda c: c.upsert(ids=ids, documents=documents, embeddings=embeddings, metadatas=metadatas))
+    call(lambda c: c.upsert(ids=ids, documents=documents, embeddings=embeddings, metadatas=metadatas))
 
 
 def delete(ids: list[str]) -> None:
     if ids:
-        _call(lambda c: c.delete(ids=ids))
+        call(lambda c: c.delete(ids=ids))
 
 
 def query(text: str, top_k: int = 5) -> list[dict]:
-    count = _call(lambda c: c.count())
+    count = call(lambda c: c.count())
     if count == 0:
         return []
     q_emb = embed([text], task="query")
-    res = _call(lambda c: c.query(query_embeddings=q_emb, n_results=min(top_k, count)))
+    res = call(lambda c: c.query(query_embeddings=q_emb, n_results=min(top_k, count)))
     out = []
     for i, doc_id in enumerate(res["ids"][0]):
         out.append(

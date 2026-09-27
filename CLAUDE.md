@@ -17,6 +17,7 @@ brain es un servidor MCP local: un vault en Markdown, el perfil y la memoria del
 - **Historial de versiones**: cada escritura o borrado queda guardado (contenido anterior y nuevo) en `data/history.sqlite3`. Cualquier archivo se puede volver a una versión anterior con `file_history` + `restore_file`. No usa git, así que el repo de la app no arrastra datos ni repos anidados.
 - **Perfil y memoria**: en el dashboard cargás datos sobre vos e importás la memoria que otro chatbot (Claude, ChatGPT, Gemini…) tiene de vos. Se guarda en `memory/<categoría>.md` y aparece en el grafo conectada a tu perfil y a los proyectos que menciona. Claude suma memorias nuevas con `add_memory`.
 - **Búsqueda semántica**: `save_url` scrapea con trafilatura (y con Playwright si el sitio depende de JS), parte el texto en chunks, genera embeddings con Ollama (`nomic-embed-text`) y los guarda en Chroma, que corre como server HTTP compartido para que varios clientes MCP puedan escribir a la vez. `search_knowledge` busca ahí.
+- **Chat** (vista del dashboard y `/chat`): un modelo de chat de Ollama con el perfil, las memorias, `BRAIN.md` y fragmentos de chats anteriores como contexto, y las mismas tools MCP que los agentes para consultar y editar el vault. El historial vive en la colección `chats` de Chroma. Se puede sacar a una ventana flotante.
 - **Dashboard** (`./brain.sh`): switches para Chroma, Ollama y el Inspector MCP, métricas y gráficos, salud del sistema, perfil y memoria, grafo de conexiones, guardar y buscar URLs, y logs. En español o inglés, con tema claro, oscuro o el del sistema.
 
 ## Tools MCP
@@ -85,6 +86,9 @@ brain_mcp/
   history.py           historial de versiones en SQLite (reemplaza a git)
   memory.py            perfil + memoria: parser de imports, categorías, relaciones
   agents.py            conectar/desconectar brain en clientes MCP (Claude, ChatGPT/Codex, Cursor, VS Code…)
+  clients.py           "Mis conexiones": clientes detectados por el handshake MCP (clientInfo) + anotados a mano
+  chat.py              chat con Ollama (/api/chat con stream + tools), contexto de memoria e historial en Chroma
+  chat.html            UI del chat (embebida en el dashboard y como ventana flotante en /chat?mode=pop)
   connectors.py        conexiones: brain como cliente MCP de otros servers (stdio/URL/Composio), proxy + auto-captura
   embeddings.py        Ollama HTTP, con prefijos search_document/search_query
   chroma_store.py      ChromaDB HttpClient, colección "sources"
@@ -98,7 +102,7 @@ brain_mcp/
 docs/index.html        landing page (GitHub Pages, main /docs): un solo HTML sin build, EN/ES, blanco y negro
 docs/.nojekyll         Pages sirve el HTML tal cual (sin Jekyll)
 PRODUCT.md / DESIGN.md contexto de producto y sistema visual de la landing (skill impeccable)
-LICENSE                MIT
+LICENSE                MIT + Commons Clause (se puede usar y modificar, no vender)
 vault/                 (ignorado) la base de conocimiento, se crea sola
 data/                  (ignorado) historial, Chroma, lock
 ```
@@ -128,4 +132,9 @@ data/                  (ignorado) historial, Chroma, lock
 - **Conexiones (`connectors.py`)**: `server.py` usa `BrainServer`, una subclase de `MCPServer` que sobrescribe `list_tools`/`call_tool`. Las tools proxeadas se leen en cada pedido desde `data/connections.json` + `data/connections_tools.json`, así prender o apagar una conexión se refleja sin reiniciar. Nombre proxeado: `<prefijo>__<tool>` (`connectors.SEP`). Cada llamada abre y cierra una sesión con el server de origen. La auto-captura corre en un thread (`anyio.to_thread`) y nunca rompe la llamada. Los secretos van a `.env` (600, gitignored) como `$env:CLAVE`, y `connectors.public()` jamás los devuelve. Composio guarda los tokens OAuth en su nube: la UI lo aclara y no hay que prometer lo contrario.
 - **Probar conexiones sin tocar datos reales**: apuntar `vault.VAULT`, `history.DATA/DB_PATH` y `connectors.DATA/CONFIG/CACHE/ENV_PATH` a una carpeta temporal y usar un server MCP de prueba (un `MCPServer` con un par de tools), por stdio o por `run_streamable_http_async(port=…)`.
 - **Estilo del dashboard**: sigue el sistema de la landing (DESIGN.md) en versión de trabajo: monocromo, Archivo + Courier Prime, rojo solo para errores y acciones destructivas. La capa final de `<style>` en `dashboard.html` ("Sistema fichero") pisa los estilos base; el grafo distingue los tipos de nodo por relleno, contorno y trazo, no por color.
+- **Chat (`chat.py`)**: usa `server.mcp.list_tools()`/`call_tool()`, así ve exactamente las tools de los agentes, incluidas las de conexiones. `/api/chat/send` responde NDJSON en streaming (start · token · tool · tool_result · notice · done · error). Si el modelo no soporta tools, reintenta sin ellas y avisa. Historial en la colección `chats` de Chroma (`<id>:meta` + `<id>:00000`…, con embeddings); sin Chroma el chat funciona pero no se guarda. `chroma_store.get_collection(name)` y `chroma_store.call(fn, name)` sirven para cualquier colección.
+- **Ventana flotante**: Document Picture-in-Picture pedido desde `window.top` (no anda dentro de un iframe) con un iframe a `/chat?mode=pop`; sin esa API, `window.open`. La PiP se cierra si se cierra la pestaña del dashboard.
+- **Mis conexiones (`clients.py`)**: `BrainServer` sobrescribe `_handle_list_tools`/`_handle_call_tool` (métodos privados del SDK) para anotar `clientInfo` en `data/clients.json` (flock en `data/.clients.lock`, como mucho una escritura por minuto por cliente). Si el SDK cambia esos nombres, la detección se apaga sola sin romper nada (está en try/except).
+- **Preferencias del navegador** (localStorage, mismo origen para dashboard, grafo y chat): `brain-theme`, `brain-lang`, `brain-side-min` (sidebar plegado), `brain-graph-colors` (colores por tipo de nodo, los lee `graph.html` y escucha el evento `storage`), `brain-chat-model`, `brain-chat-current`.
+- **Licencia**: MIT + Commons Clause. No es "open source" según la OSI: en README y landing se dice "source available" / "código a la vista".
 - **Composio tiene dos tipos de key**: `ck_…` (consumer) va directo a `https://connect.composio.dev/mcp` con el header `x-consumer-api-key` y no puede usar la API de desarrollador (`_composio()` la rechaza con `composio_consumer_key` en vez de dejar que responda 401). `ak_…` (proyecto) usa `backend.composio.dev/api/v3.1` con `x-api-key`: auth configs + `POST /mcp/servers`. `composio_configure()` detecta el tipo por el prefijo. Si falla una conexión por URL, `_http_probe()` repite el `initialize` a mano para mostrar el status HTTP real, que el cliente MCP no expone.

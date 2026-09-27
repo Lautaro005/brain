@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 
-from brain_mcp import chroma_store, connectors, memory, vault  # noqa: E402
+from brain_mcp import chroma_store, clients, connectors, memory, vault  # noqa: E402
 from brain_mcp.chunking import chunk_text  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
@@ -28,6 +28,24 @@ class BrainServer(MCPServer):
 
     list_tools y call_tool se leen en cada pedido, así prender o apagar una conexión desde el
     dashboard se refleja sin reiniciar el server (el cliente ve el cambio al volver a listar)."""
+
+    @staticmethod
+    def _note_client(ctx) -> None:
+        # anota qué app está usando brain (clientInfo del handshake) para "Mis conexiones" del
+        # dashboard: así aparecen también las apps que agregaron brain con un formulario
+        try:
+            info = ctx.session.client_params.client_info
+            clients.record(info.name, info.version)
+        except Exception:
+            pass
+
+    async def _handle_list_tools(self, ctx, params):
+        self._note_client(ctx)
+        return await super()._handle_list_tools(ctx, params)
+
+    async def _handle_call_tool(self, ctx, params):
+        self._note_client(ctx)
+        return await super()._handle_call_tool(ctx, params)
 
     async def list_tools(self):
         from mcp.types import Tool as MCPTool

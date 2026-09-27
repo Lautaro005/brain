@@ -40,6 +40,7 @@ Then type `brain` and the dashboard opens.
 - **Let your agents know you.** Write a profile (who you are, what you do, how you like to work) and import the memory ChatGPT, Claude or Gemini already have about you. Every connected agent reads it when it starts and saves anything new it learns with `add_memory`.
 - **One knowledge base, shared by every agent.** Markdown notes organized into projects and skills. What Claude writes today, ChatGPT can read tomorrow.
 - **Save the web.** Give brain a URL and it downloads the page, extracts the text (including sites built with JavaScript), indexes it and makes it available to semantic search: you search by meaning, not exact words.
+- **Chat with your memory.** A local Ollama model that already knows your profile and memory. Ask it things, or have it save, add or edit notes for you. Chats are kept in Chroma, and you can pop the chat out into a floating window that stays on top of your other apps.
 - **See how everything connects.** An interactive graph shows your profile, memories, projects, skills, sources and tags, and how they relate.
 - **Undo anything.** Every write goes into a version history. If an agent deletes or overwrites something, you get it back.
 - **Bring your apps along.** Plug other MCP servers into brain (GitHub, Notion, Gmail…, or hundreds of apps through Composio): their tools show up in every agent you connected, and whatever they fetch is saved to your memory automatically.
@@ -87,14 +88,15 @@ ollama pull nomic-embed-text
 | Tab | What it's for |
 |---|---|
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
+| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes; each action shows up as a chip, and every write lands in the version history. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click). Chats are saved in Chroma (`chats` collection) with a searchable list; **Floating window** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
 | **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. |
-| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** shows which agents are connected and whether they point to this install. |
+| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
 | **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. |
 | **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders and tags. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
 | **Knowledge** | Save a URL (optionally forcing JavaScript rendering), semantic search with a relevance score, and the list of saved sources. |
 | **Logs** | Live output of every service the dashboard manages. |
 
-The bottom of the sidebar has the theme (system, light or dark) and the language (**English / Español**).
+The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**) and **Settings**, where you can give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags) its own color, or go back to black and white. The button next to the logo collapses the sidebar into a narrow rail of icons.
 
 When you close the dashboard, it only stops what it started. If Ollama was already running (for example the menu-bar app), it shows up as **External** and is left alone.
 
@@ -127,7 +129,7 @@ Many apps have a dialog with two options, **Run a command** and **Connect to a U
 | Arguments (one per line) | `run`<br>`--directory`<br>`/Users/you/.brain`<br>`python`<br>`server.py` |
 | Environment | empty |
 
-The **Connect agent** tab shows these values already filled in for your machine, each with a copy button.
+The **Connect agent** tab shows these values already filled in for your machine, each with a copy button. Once the app uses brain for the first time, it appears under **My connections** on its own.
 
 ## Connections
 
@@ -251,6 +253,8 @@ To start from scratch: close the dashboard and your agents, and delete `~/.brain
 | An app returns `403` when connecting | You used "Connect to a URL". Use **Run a command** with the values from [Apps with an "Add MCP server" form](#apps-with-an-add-mcp-server-form). |
 | brain doesn't show up in Claude Desktop | Connect it from **Connect agent** and restart Claude. Check **My connections**. |
 | brain doesn't show up in ChatGPT | Use **Codex** or **ChatGPT Work** mode and go to *Settings → MCP servers → Restart*. Regular chat doesn't use local servers. |
+| The chat says there's no chat model | Click *Download llama3.2* in the Chat tab, or run `ollama pull llama3.2` (any chat model works; models with tool support can also edit your vault). |
+| The chat answers but can't save or edit anything | The model doesn't support tools. Pick another one (for example `llama3.2`, `qwen2.5` or `mistral`). |
 | "Couldn't extract text from that URL" | The site may be paywalled or require a login. Try *Force JS rendering*. |
 | `brain: command not found` | Open a new terminal. If it persists, add `export PATH="$HOME/.local/bin:$PATH"` to your `~/.zshrc`. |
 | Port 8765 is taken | `brain --port 8766` |
@@ -277,4 +281,6 @@ The dashboard UI is available in English and Spanish; the internal docs (`CLAUDE
 
 ## License
 
-[MIT](LICENSE) © 2026 Lautaro Silva
+[MIT with the Commons Clause](LICENSE) © 2026 Lautaro Silva.
+
+You can use, study, modify and share brain for free, including at work. The Commons Clause adds one restriction: you may not **sell** it, meaning you can't charge third parties for a product or service (hosting, support or consulting included) whose value comes entirely or substantially from brain. Versions released before this change stay under plain MIT.
