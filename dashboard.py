@@ -24,7 +24,7 @@ import frontmatter  # noqa: E402
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, chroma_store, connectors, history, memory, stats, vault  # noqa: E402
+from brain_mcp import agents, chat, chroma_store, clients, connectors, history, memory, stats, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -33,7 +33,7 @@ from brain_mcp.services import SERVICES, stop_all  # noqa: E402
 
 log = logging.getLogger("dashboard")
 HERE = Path(__file__).resolve().parent / "brain_mcp"
-PAGES = {"/": "dashboard.html", "/index.html": "dashboard.html", "/graph": "graph.html"}
+PAGES = {"/": "dashboard.html", "/index.html": "dashboard.html", "/graph": "graph.html", "/chat": "chat.html"}
 ALLOWED_HOSTS: set[str] = set()
 MAX_BODY = 5 * 1024 * 1024  # 5 MB alcanza para cualquier export de memoria en texto
 
@@ -69,6 +69,22 @@ def _status() -> dict:
         "health": stats.health(st),
         "chunks": _chunks(st.get("chroma") in ("running", "external")),
     }
+
+
+def _chat_get(path: str, q: dict) -> dict:
+    """/api/chat/models · /api/chat/list · /api/chat/get?id="""
+    try:
+        if path == "/api/chat/models":
+            return {"ok": True, "models": chat.models(), "suggested": chat.SUGGESTED_MODEL}
+        if path == "/api/chat/list":
+            return {"ok": True, "chats": chat.list_chats()}
+        if path == "/api/chat/get":
+            return {"ok": True, "chat": chat.get_chat(q.get("id", [""])[0])}
+    except chat.ChatError as e:
+        return {"ok": False, "code": e.code, "detail": e.detail}
+    except Exception as e:
+        return {"ok": False, "code": _error_code(e), "detail": str(e)}
+    return {"ok": False, "code": "unknown_action"}
 
 
 def _connections_post(rest: list[str], body: dict) -> dict:
@@ -136,8 +152,11 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": True, "items": connectors.composio_auth_configs()})
                 except connectors.ConnectorError as e:
                     self._json({"ok": False, "code": e.code, "detail": e.detail})
+            elif u.path.startswith("/api/chat/"):
+                self._json(_chat_get(u.path, q))
             elif u.path == "/api/agents":
-                self._json({"agents": agents.all_status(), "manual": agents.manual_snippets()})
+                st = agents.all_status()
+                self._json({"agents": st, "manual": agents.manual_snippets(), "mine": clients.listing(st)})
             elif u.path == "/api/history":
                 self._json({"changes": history.list_changes(path=q.get("path", [None])[0], limit=int(q.get("limit", ["50"])[0]))})
             elif u.path.startswith("/api/logs/"):
@@ -204,6 +223,28 @@ class Handler(BaseHTTPRequestHandler):
                 except agents.AgentError as e:
                     return self._json({"ok": False, "code": e.code, "detail": e.detail})
                 self._json({"ok": True, "agent": st})
+            elif u.path == "/api/chat/send":
+                self._stream_chat(body)
+            elif u.path == "/api/chat/delete":
+                try:
+                    chat.delete_chat(str(body.get("id", "")))
+                    self._json({"ok": True})
+                except Exception as e:
+                    self._json({"ok": False, "code": _error_code(e), "detail": str(e)})
+            elif u.path == "/api/chat/pull":
+                try:
+                    chat.pull(str(body.get("model") or chat.SUGGESTED_MODEL))
+                    self._json({"ok": True})
+                except chat.ChatError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
+            elif u.path == "/api/clients/add":
+                try:
+                    self._json({"ok": True, "client": clients.add_manual(str(body.get("name", "")))})
+                except ValueError as e:
+                    self._json({"ok": False, "code": str(e)})
+            elif u.path == "/api/clients/remove":
+                clients.remove(str(body.get("id", "")))
+                self._json({"ok": True})
             elif parts[:2] == ["api", "connections"]:
                 self._json(_connections_post(parts[2:], body))
             elif u.path == "/api/composio/config":
@@ -230,6 +271,25 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             log.exception("POST %s", u.path)
             self._json({"error": str(e)}, 500)
+
+    def _stream_chat(self, body: dict) -> None:
+        """Respuesta del chat como NDJSON: una línea por evento, a medida que el modelo escribe."""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        gen = chat.run(str(body.get("text", "")), str(body.get("model", "")),
+                       str(body.get("chat_id") or "") or None, "en" if body.get("lang") == "en" else "es")
+        try:
+            for ev in gen:
+                self.wfile.write((json.dumps(ev, ensure_ascii=False, default=str) + "\n").encode())
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # el usuario cortó la respuesta: run() guarda lo que haya
+        finally:
+            gen.close()
+        self.close_connection = True
 
     def log_message(self, *args) -> None:
         pass

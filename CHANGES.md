@@ -295,3 +295,48 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
   - el descubrimiento contra el endpoint real devuelve un error legible (`HTTP 401 de connect.composio.dev: {"error":"Authorization required",…}`);
   - "Desconectar" deja el `.env` vacío y sin conexiones.
 - No se probó con una key real válida, porque no hay ninguna en esta máquina.
+
+## 2026-09-27 — Ajustes con colores del grafo, sidebar plegable, "Mis conexiones" con apps por formulario, Chat con Ollama, widget en la landing y licencia sin reventa
+
+**Qué se hizo**
+- **Ajustes (colores del grafo)** (`dashboard.html`, `graph.html`): ícono de engranaje al final de la fila de tema e idioma. Abre un modal con un selector de color por tipo de nodo (Brain, Perfil, Memoria, Proyectos, Skills, Fuentes, Notas, Carpetas, Tags), un botón "Usar colores distintos" (paleta predefinida) y "Volver a blanco y negro". Se guarda en localStorage (`brain-graph-colors`). El grafo lo lee al cargar y escucha el evento `storage`, así el cambio se ve al instante sin recargar. Los tipos huecos (perfil, memoria, tags) llevan un relleno suave del color para no perder la diferencia de forma.
+- **Sidebar plegable** (`dashboard.html`): botón en la fila del logo, entre el ícono y el nombre, como pidió el usuario. Plegado, el sidebar queda en un riel de 64 px con los íconos de cada vista (con tooltip), y los botones de tema, idioma y ajustes. El estado se recuerda (`brain-side-min`). En celular no aplica: ahí el menú ya va arriba.
+- **"Mis conexiones" muestra las apps agregadas por formulario** (`brain_mcp/clients.py` nuevo, `server.py`, `dashboard.py`, `stats.py`):
+  - Antes solo listaba los agentes cuya config lee `agents.py`. Las apps con formulario "Add MCP server" guardan la config donde quieren y nunca aparecían.
+  - Ahora `BrainServer` anota el `clientInfo` (nombre y versión) que manda cada cliente en el handshake MCP, en `data/clients.json`, con la fecha del último uso. Cualquier app que use brain aparece sola.
+  - Si el nombre corresponde a un agente conocido (claude-code, claude-ai, cursor…), se muestra con su nombre y se suma a su fila.
+  - Card nueva "¿Lo agregaste en otra app?" para anotar una app a mano antes de usarla. Botón "Quitar de la lista" (no toca la app; si vuelve a usar brain, reaparece).
+  - El chequeo de salud "Al menos un agente conectado" cuenta también los detectados y los anotados.
+  - Endpoints: `GET /api/agents` suma `mine`; `POST /api/clients/add` y `/api/clients/remove`.
+- **Chat** (`brain_mcp/chat.py` y `brain_mcp/chat.html` nuevos, vista "Chat" en el sidebar, página `/chat`):
+  - Habla con un modelo de chat de Ollama por `/api/chat` con streaming. El system prompt incluye `profile.md`, todas las memorias (hasta ~12k caracteres), `BRAIN.md` y los fragmentos de chats anteriores más parecidos a la pregunta.
+  - Recibe las mismas tools MCP que los agentes (`server.mcp.list_tools()`/`call_tool()`, incluidas las de conexiones), así puede consultar, agregar, modificar y borrar notas, guardar memorias, buscar y guardar URLs. Cada acción aparece como un chip con su estado. Todo queda en el historial de versiones. Hasta 6 vueltas de tools por respuesta.
+  - Si el modelo no soporta tools, reintenta sin ellas y avisa.
+  - Selector con los modelos instalados (sin los de embeddings). Si no hay ninguno, botón "Descargar llama3.2" (`/api/pull`) y el comando para la terminal.
+  - **Historial en ChromaDB**, colección `chats`: un registro `<id>:meta` con título y fechas, y uno por mensaje (`<id>:00000`…) con su embedding. Lista con búsqueda por título, abrir y borrar. Sin Chroma el chat funciona igual y avisa que no se guarda. Si la respuesta falla sin generar nada, no se guarda el mensaje suelto; si el usuario corta la respuesta, se guarda lo parcial.
+  - **Ventana flotante**: botón "Ventana flotante". En Chrome, Edge y Arc usa Document Picture-in-Picture (queda arriba de todas las apps). En Safari y Firefox abre una ventana emergente común (`/chat?mode=pop`, con el historial como panel lateral).
+  - Endpoints: `GET /api/chat/models|list|get`, `POST /api/chat/send` (NDJSON), `/api/chat/delete` y `/api/chat/pull`. Todos pasan por la misma validación de Host y de `X-Brain` que el resto.
+  - `chroma_store.py`: `get_collection(name)` y `call(fn, name)` ahora sirven para cualquier colección (antes solo "sources").
+- **Landing** (`docs/index.html`): el script del widget de DokBot antes de `</body>`, con el `data-bot-id` que pasó el usuario. El Dashboard de la landing menciona el chat (texto, mock del sidebar y sello "Chat local"), en EN y ES.
+- **Licencia** (`LICENSE`): de MIT a **MIT + Commons Clause**. Se puede usar, modificar y compartir gratis, también en el trabajo, pero no vender: no se puede cobrar por un producto o servicio (incluidos hosting, soporte o consultoría) cuyo valor venga entera o sustancialmente de brain. README, PRODUCT.md, CLAUDE.md y la landing (EN/ES) pasaron de "open source · MIT" a "source available" / "código a la vista".
+- README: sección de la pestaña Chat, "Mis conexiones", Ajustes, sidebar plegable y dos filas nuevas de troubleshooting del chat.
+
+**En qué se apartó del pedido y por qué**
+- **Licencia**: se eligió Commons Clause sobre MIT y no una licencia "no comercial" como PolyForm Noncommercial. El pedido era que no se pueda vender la herramienta, y PolyForm también prohíbe usarla en un trabajo pago, cosa que el pedido no incluía. Las versiones publicadas antes (por ejemplo `v0.01.0`) siguen bajo MIT para quien ya las tenga: una licencia no se puede revocar hacia atrás.
+- **Detección de apps por formulario**: no hay forma de leer la config de cualquier app. Por eso se detectan por uso (handshake MCP) y aparecen la primera vez que usan brain, no apenas se guarda el formulario. Para ese hueco existe la opción de anotarlas a mano.
+- **Modelo del chat**: no se fija ninguno, porque depende de lo que el usuario tenga instalado. Se sugiere `llama3.2` (liviano y con soporte de tools).
+- **Registro en el vault del usuario**: el pedido incluía anotar los cambios en el conector `brain` (proyecto brain). Esta sesión corre en la nube sin acceso al vault local ni a ese conector, así que queda para hacerlo desde un agente conectado.
+
+**Verificado**
+- **Detección de clientes**: con clientes MCP reales por stdio (`ClientSession` con `client_info` "LM Studio" y "claude-code"), `data/clients.json` registró ambos. `/api/agents` los devuelve en `mine` ("Claude Code" con su nombre conocido), junto con uno anotado a mano.
+- **Chat** contra un Ollama falso (mismo protocolo NDJSON de `/api/chat`, `/api/tags` y `/api/embeddings`) y un Chroma real:
+  - el system prompt trae el perfil, la memoria y, en un chat nuevo, fragmentos de chats anteriores;
+  - un tool call `add_memory` se ejecutó y escribió `memory/preferencias.md`;
+  - continuar un chat manda el historial;
+  - un modelo sin tools cae al modo sin tools con aviso;
+  - un modelo inexistente da `no_model` y no deja un chat vacío;
+  - listar, abrir y borrar funcionan;
+  - con Chroma apagado responde igual con `saved: false`.
+- **UI con Playwright**, sin errores de consola: sidebar desplegado y plegado; modal de ajustes; "Usar colores distintos" cambia el relleno del nodo Brain del grafo en vivo (`#e11d48`); "Mis conexiones" con detectados y manuales; chat con streaming y chip de tool; cambio a EN y a tema oscuro propagado al iframe del chat; modo `pop` a 440 px; dashboard a 390 px sin desborde horizontal.
+- **Landing** a 1440 y 390 px: sin desborde y con el script de DokBot presente.
+- **No probado**: un modelo real de Ollama (no hay Ollama en esta máquina) y la ventana Picture-in-Picture en un Chrome con interfaz, porque Playwright headless no la abre. El código cae a `window.open` si la API falla.

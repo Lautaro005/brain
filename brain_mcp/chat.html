@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>brain · chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<style>
+  /* mismo sistema "fichero" que el dashboard (DESIGN.md): monocromo, rojo solo para errores */
+  :root {
+    color-scheme: light;
+    --bg: #ececea; --surface: #ffffff; --surface-2: #f5f5f3; --line: #e3e3e0; --line-strong: #cfcfcc;
+    --text: #0a0a0a; --text-2: #3d3d3d; --text-3: #5e5e5e; --bad: #b42318; --bad-soft: #fbeae8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0f0f0e; --surface: #191918; --surface-2: #222221; --line: #2a2a29; --line-strong: #3a3a38;
+      --text: #f2f2f0; --text-2: #c8c8c4; --text-3: #9a9a95; --bad: #f07167; --bad-soft: #3a1d1a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f0f0e; --surface: #191918; --surface-2: #222221; --line: #2a2a29; --line-strong: #3a3a38;
+    --text: #f2f2f0; --text-2: #c8c8c4; --text-3: #9a9a95; --bad: #f07167; --bad-soft: #3a1d1a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--surface); color: var(--text); font: 400 14.5px/1.55 "Archivo", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .mono { font-family: "Courier Prime", "Courier New", monospace; }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  ::selection { background: var(--text); color: var(--surface); }
+  [hidden] { display: none !important; }
+
+  .app { display: grid; grid-template-columns: 250px 1fr; height: 100vh; }
+  .hist { border-right: 1px solid var(--line-strong); background: var(--surface-2); display: flex; flex-direction: column; min-height: 0; }
+  .hist-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 10px; border-bottom: 1px solid var(--text); }
+  .hist-h h2, .label { margin: 0; font: 700 12px/1.2 "Courier Prime", monospace; letter-spacing: .07em; text-transform: uppercase; }
+  .hist-search { margin: 10px 12px 6px; }
+  .hist-list { list-style: none; margin: 0; padding: 4px 8px 12px; overflow: auto; flex: 1; }
+  .hist-list li { display: flex; align-items: center; gap: 4px; border-radius: 3px; }
+  .hist-list li button.open { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 7px 8px; cursor: pointer; border-radius: 3px; }
+  .hist-list li button.open b { display: block; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-list li button.open span { font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); }
+  .hist-list li:hover { background: var(--surface); }
+  .hist-list li.on { background: var(--text); }
+  .hist-list li.on b, .hist-list li.on span, .hist-list li.on .x { color: var(--surface); }
+  .hist-empty { padding: 10px 12px; font-size: 12.5px; color: var(--text-3); }
+  .x { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 4px 7px; border-radius: 3px; font-size: 15px; line-height: 1; opacity: 0; }
+  .hist-list li:hover .x, .hist-list li.on .x, .x:focus-visible { opacity: 1; }
+  .x:hover { color: var(--bad); background: var(--bad-soft); }
+
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line-strong); flex-wrap: wrap; }
+  .bar .title { font-weight: 700; font-size: 14.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);
+    padding: 6px 10px; border-radius: 3px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:hover { border-color: var(--text); }
+  .btn.primary { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .btn.primary:hover { background: var(--text-2); border-color: var(--text-2); }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  .btn svg { width: 15px; height: 15px; }
+  .icon { width: 32px; height: 30px; padding: 0; justify-content: center; }
+  select, .input { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 3px; padding: 6px 9px; outline: none; }
+  select { max-width: 240px; font: 400 12.5px/1.3 "Courier Prime", monospace; }
+  .input:focus, select:focus { border-color: var(--text); }
+  .input { width: 100%; }
+
+  .msgs { flex: 1; overflow: auto; padding: 18px 18px 8px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 760px; width: 100%; margin: 0 auto; }
+  .msg .who { font: 700 11px/1.2 "Courier Prime", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+  .msg.user .body { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 4px; padding: 9px 12px; white-space: pre-wrap; }
+  .msg.assistant .body { padding: 0 2px; overflow-wrap: anywhere; }
+  .body p { margin: 0 0 .7em; } .body p:last-child { margin-bottom: 0; }
+  .body pre { background: var(--surface-2); border: 1px solid var(--line); padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12.5px; }
+  .body code { font-family: "Courier Prime", monospace; font-size: .95em; }
+  .body a { color: var(--text); text-underline-offset: 3px; }
+  .body ul, .body ol { padding-left: 1.3em; margin: 0 0 .7em; }
+  .body table { border-collapse: collapse; } .body td, .body th { border: 1px solid var(--line-strong); padding: 4px 8px; }
+  .tools { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .tool { display: inline-flex; align-items: center; gap: 5px; font: 400 11.5px/1.2 "Courier Prime", monospace; padding: 3px 7px;
+    border: 1px solid var(--line-strong); border-radius: 3px; color: var(--text-2); }
+  .tool.err { color: var(--bad); border-color: currentColor; }
+  .tool svg { width: 11px; height: 11px; }
+  .cursor::after { content: "▍"; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .spin { width: 10px; height: 10px; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .note { max-width: 760px; margin: 0 auto; width: 100%; font-size: 12.5px; color: var(--text-3); }
+  .note.err { color: var(--bad); }
+
+  .empty { margin: auto; max-width: 520px; text-align: center; padding: 20px 0; }
+  .empty h1 { font: 800 30px/1.05 "Archivo", sans-serif; font-stretch: 84%; letter-spacing: -.03em; margin: 0 0 8px; }
+  .empty p { color: var(--text-2); margin: 0 0 16px; font-size: 13.5px; }
+  .sugs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+  .banner { margin: 10px 14px 0; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2);
+    font-size: 13px; color: var(--text-2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .banner.err { color: var(--bad); background: var(--bad-soft); border-color: currentColor; }
+  .banner code { font-family: "Courier Prime", monospace; }
+
+  form.composer { padding: 10px 14px 12px; border-top: 1px solid var(--line-strong); }
+  .comp { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
+  .comp textarea { flex: 1; resize: none; min-height: 42px; max-height: 180px; line-height: 1.45; padding: 10px 12px; }
+  .hint { max-width: 760px; margin: 6px auto 0; font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); }
+
+  /* ventana flotante y pantallas angostas: el historial se abre como panel */
+  .pop .app, .narrow .app { grid-template-columns: 1fr; }
+  .pop .hist, .narrow .hist { position: fixed; inset: 0 auto 0 0; width: min(280px, 85vw); z-index: 5; box-shadow: 4px 0 18px rgba(0,0,0,.18); display: none; }
+  .pop.hist-open .hist, .narrow.hist-open .hist { display: flex; }
+  .pop .msgs { padding: 12px 12px 6px; }
+  .pop .bar { padding: 7px 10px; }
+  .pop form.composer { padding: 8px 10px 10px; }
+  #hist-btn { display: none; }
+  .pop #hist-btn, .narrow #hist-btn { display: inline-flex; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="hist" id="hist">
+    <div class="hist-h"><h2 id="t-chats"></h2><button class="btn primary" id="new-btn" type="button"></button></div>
+    <input class="input hist-search" id="hist-q" type="search" style="width:auto">
+    <ul class="hist-list" id="hist-list"></ul>
+  </aside>
+  <section class="main">
+    <div class="bar">
+      <button class="btn icon" id="hist-btn" type="button"></button>
+      <div class="title" id="title"></div>
+      <select id="model"></select>
+      <button class="btn icon" id="new-btn-2" type="button"></button>
+      <button class="btn" id="pop-btn" type="button"></button>
+    </div>
+    <div id="banner"></div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <form class="composer" id="composer">
+      <div class="comp">
+        <textarea class="input" id="text" rows="1"></textarea>
+        <button class="btn primary" id="send" type="submit"></button>
+      </div>
+      <div class="hint" id="hint"></div>
+    </form>
+  </section>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const params = new URLSearchParams(location.search);
+const MODE = params.get("mode") || (window.top !== window ? "embed" : "tab");  // embed (dashboard) · pop (flotante) · tab
+if (MODE === "pop") document.body.classList.add("pop");
+
+const I18N = {
+  es: {
+    chats: "Chats", new: "Nuevo", newTitle: "Chat nuevo", search: "Buscar chats…", noChats: "Todavía no hay chats guardados.",
+    you: "Vos", brain: "brain", send: "Enviar", stop: "Parar", ph: "Preguntá, pedí que guarde algo o que edite una nota…",
+    hint: "Enter envía · Shift+Enter salto de línea · usa tu perfil y tu memoria como contexto",
+    pop: "Ventana flotante", popTitle: "Abrir el chat en una ventana flotante, siempre visible", hist: "Historial",
+    emptyT: "Hablá con tu memoria", emptyP: "El chat corre en tu máquina con Ollama. Conoce tu perfil y tu memoria, y puede buscar, guardar y editar notas del vault por vos.",
+    sugs: ["¿Qué sabés de mí?", "Resumí mis proyectos", "Guardá que prefiero respuestas cortas", "¿Qué fuentes guardé últimamente?"],
+    noOllama: "Ollama no está corriendo. Prendelo desde el Panel del dashboard.", noModels: "No hay ningún modelo de chat en Ollama.",
+    pull: m => `Descargar ${m}`, pulling: m => `Descargando ${m}… puede tardar unos minutos.`, pullCmd: "o en la terminal:",
+    noHistory: "Chroma está apagado: el chat funciona, pero no se guarda en el historial.",
+    notSaved: "No se pudo guardar en el historial (¿Chroma apagado?).", noTools: "Este modelo no soporta tools: responde solo con el contexto, sin leer ni editar el vault.",
+    maxRounds: "Se cortó después de varias acciones seguidas.", delConfirm: "¿Borrar este chat del historial?",
+    err: { ollama: "Ollama no está corriendo. Prendelo desde el Panel.", no_model: "Elegí un modelo instalado.", empty: "Escribí un mensaje.",
+      chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", other: "Error" },
+    ago: (n, u) => new Intl.RelativeTimeFormat("es", { numeric: "auto" }).format(-n, u), model: "Modelo",
+  },
+  en: {
+    chats: "Chats", new: "New", newTitle: "New chat", search: "Search chats…", noChats: "No saved chats yet.",
+    you: "You", brain: "brain", send: "Send", stop: "Stop", ph: "Ask, or have it save something or edit a note…",
+    hint: "Enter sends · Shift+Enter new line · uses your profile and memory as context",
+    pop: "Floating window", popTitle: "Open the chat in a floating window that stays on top", hist: "History",
+    emptyT: "Talk to your memory", emptyP: "The chat runs on your machine with Ollama. It knows your profile and memory, and can search, save and edit vault notes for you.",
+    sugs: ["What do you know about me?", "Summarize my projects", "Remember that I prefer short answers", "What sources did I save lately?"],
+    noOllama: "Ollama isn't running. Turn it on from the dashboard.", noModels: "There's no chat model in Ollama.",
+    pull: m => `Download ${m}`, pulling: m => `Downloading ${m}… this can take a few minutes.`, pullCmd: "or in the terminal:",
+    noHistory: "Chroma is off: the chat works, but it isn't saved to history.",
+    notSaved: "Couldn't save to history (is Chroma off?).", noTools: "This model doesn't support tools: it answers from context only, without reading or editing the vault.",
+    maxRounds: "Stopped after several actions in a row.", delConfirm: "Delete this chat from history?",
+    err: { ollama: "Ollama isn't running. Turn it on from the Dashboard.", no_model: "Pick an installed model.", empty: "Write a message.",
+      chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", other: "Error" },
+    ago: (n, u) => new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-n, u), model: "Model",
+  },
+};
+const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+let lang = store.get("brain-lang") === "en" ? "en" : "es", T = I18N[lang];
+function applyTheme() {
+  const t = store.get("brain-theme");
+  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  else document.documentElement.removeAttribute("data-theme");
+}
+applyTheme();
+
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  pop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="11" y="11" width="8" height="6" rx="1" fill="currentColor"/></svg>',
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+};
+
+// ================= estado =================
+let chats = [], current = null, messages = [], busy = false, controller = null, historyOk = true, models = [];
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  const j = await r.json().catch(() => ({ ok: false, code: "other", detail: `HTTP ${r.status}` }));
+  if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+const errText = r => (T.err[r.code] || T.err.other) + (r.code === "other" || r.code === "ollama_http" || r.code === "pull_failed" ? ` ${r.detail || ""}` : "");
+function md(text) {
+  if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(text || ""));
+  return `<p>${esc(text).replace(/\n/g, "<br>")}</p>`;
+}
+function ago(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
+  if (s < 60) return T.ago(0, "second");
+  if (s < 3600) return T.ago(Math.round(s / 60), "minute");
+  if (s < 86400) return T.ago(Math.round(s / 3600), "hour");
+  return T.ago(Math.round(s / 86400), "day");
+}
+
+// ================= textos =================
+function applyStatic() {
+  document.documentElement.lang = lang;
+  $("#t-chats").textContent = T.chats;
+  $("#new-btn").innerHTML = `${ICON.plus}${esc(T.new)}`;
+  $("#new-btn-2").innerHTML = ICON.plus; $("#new-btn-2").title = T.newTitle; $("#new-btn-2").setAttribute("aria-label", T.newTitle);
+  $("#hist-btn").innerHTML = ICON.list; $("#hist-btn").title = T.hist; $("#hist-btn").setAttribute("aria-label", T.hist);
+  $("#pop-btn").innerHTML = `${ICON.pop}<span>${esc(T.pop)}</span>`; $("#pop-btn").title = T.popTitle;
+  $("#pop-btn").hidden = MODE === "pop";
+  $("#new-btn-2").hidden = MODE !== "pop" && !document.body.classList.contains("narrow");
+  $("#hist-q").placeholder = T.search;
+  $("#text").placeholder = T.ph;
+  $("#hint").textContent = T.hint;
+  $("#model").title = T.model; $("#model").setAttribute("aria-label", T.model);
+  renderSend(); renderList(); renderMessages();
+}
+function renderSend() { $("#send").textContent = busy ? T.stop : T.send; }
+
+// ================= modelos =================
+async function loadModels() {
+  const sel = $("#model");
+  let r;
+  try { r = await api("/api/chat/models"); } catch (e) { r = { ok: false, code: "other", detail: e.message }; }
+  if (!r.ok) { models = []; sel.innerHTML = ""; banner(r.code === "ollama" ? T.noOllama : errText(r), true); return; }
+  models = r.models;
+  if (!models.length) {
+    sel.innerHTML = "";
+    const m = r.suggested;
+    $("#banner").innerHTML = `<div class="banner"><span>${esc(T.noModels)}</span><button class="btn primary" id="pull-btn" type="button">${esc(T.pull(m))}</button>
+      <span class="mono">${esc(T.pullCmd)} <code>ollama pull ${esc(m)}</code></span></div>`;
+    $("#pull-btn").onclick = async () => {
+      $("#banner").innerHTML = `<div class="banner"><span class="spin"></span><span>${esc(T.pulling(m))}</span></div>`;
+      try { const p = await api("/api/chat/pull", { model: m }); if (!p.ok) return banner(errText(p), true); } catch (e) { return banner(e.message, true); }
+      loadModels();
+    };
+    return;
+  }
+  const saved = store.get("brain-chat-model");
+  const pick = models.find(m => m.name === saved) ? saved : (models.find(m => /^(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
+  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""}>${esc(m.name)}${m.params ? ` · ${esc(m.params)}` : ""}</option>`).join("");
+  banner(historyOk ? "" : T.noHistory);
+}
+$("#model").onchange = () => store.set("brain-chat-model", $("#model").value);
+function banner(text, err = false) { $("#banner").innerHTML = text ? `<div class="banner ${err ? "err" : ""}">${esc(text)}</div>` : ""; }
+
+// ================= historial =================
+async function loadChats() {
+  let r;
+  try { r = await api("/api/chat/list"); } catch (e) { r = { ok: false }; }
+  const was = historyOk;
+  historyOk = !!r.ok;
+  chats = r.ok ? r.chats : [];
+  renderList();
+  if (was !== historyOk && models.length) banner(historyOk ? "" : T.noHistory);
+}
+function renderList() {
+  const q = $("#hist-q").value.trim().toLowerCase();
+  const list = chats.filter(c => !q || (c.title || "").toLowerCase().includes(q));
+  $("#hist-list").innerHTML = list.length ? list.map(c => `<li class="${c.id === current ? "on" : ""}">
+      <button class="open" type="button" data-id="${esc(c.id)}"><b>${esc(c.title)}</b><span>${esc(c.updated_at ? ago(c.updated_at) : "")}</span></button>
+      <button class="x" type="button" data-del="${esc(c.id)}" title="×" aria-label="×">×</button></li>`).join("")
+    : `<li class="hist-empty">${esc(historyOk ? T.noChats : T.noHistory)}</li>`;
+  $("#hist-list").querySelectorAll("button.open").forEach(b => b.onclick = () => { openChat(b.dataset.id); document.body.classList.remove("hist-open"); });
+  $("#hist-list").querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    if (!confirm(T.delConfirm)) return;
+    try { await api("/api/chat/delete", { id: b.dataset.del }); } catch (e) { banner(e.message, true); }
+    if (b.dataset.del === current) newChat();
+    loadChats();
+  });
+}
+$("#hist-q").oninput = renderList;
+async function openChat(id) {
+  if (busy) return;
+  try {
+    const r = await api(`/api/chat/get?id=${encodeURIComponent(id)}`);
+    if (!r.ok) { banner(errText(r), true); if (r.code === "not_found") newChat(); return; }
+    current = id; messages = r.chat.messages.map(m => ({ role: m.role, content: m.content, tools: m.tools || [] }));
+    store.set("brain-chat-current", id);
+    renderList(); renderMessages(true);
+  } catch (e) { banner(e.message, true); }
+}
+function newChat() {
+  if (busy) stop();
+  current = null; messages = [];
+  store.set("brain-chat-current", "");
+  renderList(); renderMessages(); $("#text").focus();
+}
+$("#new-btn").onclick = newChat; $("#new-btn-2").onclick = newChat;
+$("#hist-btn").onclick = () => document.body.classList.toggle("hist-open");
+document.addEventListener("click", e => {
+  if (document.body.classList.contains("hist-open") && !e.target.closest("#hist") && !e.target.closest("#hist-btn")) document.body.classList.remove("hist-open");
+});
+
+// ================= mensajes =================
+function toolChip(t) {
+  const st = t.ok === undefined ? '<span class="spin"></span>' : t.ok ? ICON.check : ICON.x;
+  return `<span class="tool ${t.ok === false ? "err" : ""}" title="${esc(JSON.stringify(t.args || {}))}">${st}${esc(t.name)}</span>`;
+}
+function msgHtml(m, i) {
+  const who = m.role === "user" ? T.you : T.brain;
+  if (m.role === "user") return `<div class="msg user"><div class="who">${esc(who)}</div><div class="body">${esc(m.content)}</div></div>`;
+  const tools = (m.tools || []).length ? `<div class="tools">${m.tools.map(toolChip).join("")}</div>` : "";
+  const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("");
+  return `<div class="msg assistant" data-i="${i}"><div class="who">${esc(who)}</div>${tools}<div class="body ${m.live ? "cursor" : ""}">${md(m.content)}</div>${notes}</div>`;
+}
+function renderMessages(scroll = true) {
+  const box = $("#msgs");
+  $("#title").textContent = current ? (chats.find(c => c.id === current) || {}).title || messages[0]?.content.slice(0, 60) || "" : T.newTitle;
+  if (!messages.length) {
+    box.innerHTML = `<div class="empty"><h1>${esc(T.emptyT)}</h1><p>${esc(T.emptyP)}</p>
+      <div class="sugs">${T.sugs.map(s => `<button class="btn" type="button" data-sug="${esc(s)}">${esc(s)}</button>`).join("")}</div></div>`;
+    box.querySelectorAll("[data-sug]").forEach(b => b.onclick = () => { $("#text").value = b.dataset.sug; send(); });
+    return;
+  }
+  box.innerHTML = messages.map(msgHtml).join("");
+  if (scroll) box.scrollTop = box.scrollHeight;
+}
+let raf = 0;
+function updateLive() {
+  if (raf) return;
+  raf = requestAnimationFrame(() => {
+    raf = 0;
+    const box = $("#msgs"), i = messages.length - 1, el = box.querySelector(`.msg[data-i="${i}"]`);
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    if (el) el.outerHTML = msgHtml(messages[i], i); else renderMessages(false);
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  });
+}
+
+async function send() {
+  const text = $("#text").value.trim();
+  if (!text || busy) return;
+  const model = $("#model").value;
+  if (!model) { banner(T.err.no_model, true); return; }
+  $("#text").value = ""; autosize();
+  messages.push({ role: "user", content: text });
+  const reply = { role: "assistant", content: "", tools: [], notes: [], live: true };
+  messages.push(reply);
+  busy = true; renderSend(); renderMessages();
+  controller = new AbortController();
+  try {
+    const r = await fetch("/api/chat/send", { method: "POST", signal: controller.signal,
+      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang }) });
+    if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+        if (line) handle(JSON.parse(line), reply);
+      }
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") reply.notes.push({ text: e.message, err: true });
+  } finally {
+    reply.live = false; busy = false; controller = null;
+    if (!reply.content && !reply.tools.length && !reply.notes.length) messages.pop();
+    renderSend(); renderMessages(); loadChats();
+  }
+}
+function handle(ev, reply) {
+  if (ev.type === "start") { current = ev.chat_id; store.set("brain-chat-current", current); if (!chats.some(c => c.id === current)) chats.unshift({ id: current, title: ev.title }); renderList(); $("#title").textContent = ev.title; }
+  else if (ev.type === "token") reply.content += ev.text;
+  else if (ev.type === "tool") reply.tools.push({ name: ev.name, args: ev.args });
+  else if (ev.type === "tool_result") { const t = [...reply.tools].reverse().find(x => x.name === ev.name && x.ok === undefined); if (t) t.ok = ev.ok; }
+  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "no_tools" ? T.noTools : T.maxRounds });
+  else if (ev.type === "error") reply.notes.push({ text: errText(ev), err: true });
+  else if (ev.type === "done" && ev.saved === false) reply.notes.push({ text: T.notSaved });
+  updateLive();
+}
+function stop() { if (controller) controller.abort(); }
+$("#composer").onsubmit = e => { e.preventDefault(); busy ? stop() : send(); };
+$("#text").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) send(); }
+});
+function autosize() { const t = $("#text"); t.style.height = "auto"; t.style.height = Math.min(180, t.scrollHeight) + "px"; }
+$("#text").addEventListener("input", autosize);
+
+// ================= ventana flotante =================
+// Document Picture-in-Picture (Chrome/Edge/Arc): una ventana que queda arriba de todas las apps.
+// Se pide desde la ventana de arriba de todo (el dashboard) porque la API no funciona dentro de un iframe.
+// Sin esa API (Safari, Firefox), se abre una ventana emergente común.
+$("#pop-btn").onclick = async () => {
+  const url = `/chat?mode=pop${current ? `&chat=${encodeURIComponent(current)}` : ""}`;
+  const top = window.top;
+  try {
+    if (top.documentPictureInPicture) {
+      const pip = await top.documentPictureInPicture.requestWindow({ width: 440, height: 680 });
+      const d = pip.document;
+      d.title = "brain · chat";
+      d.body.style.cssText = "margin:0;height:100vh;overflow:hidden";
+      const f = d.createElement("iframe");
+      f.src = new URL(url, location.href).href;
+      f.style.cssText = "border:0;width:100%;height:100%;display:block";
+      f.allow = "clipboard-write";
+      d.body.appendChild(f);
+      return;
+    }
+  } catch (e) { /* se cae a la ventana común */ }
+  window.open(url, "brain-chat", "popup=yes,width=440,height=700");
+};
+
+// ================= arranque =================
+const narrowMq = matchMedia("(max-width: 700px)");
+function applyNarrow() { document.body.classList.toggle("narrow", narrowMq.matches); applyStatic(); }
+narrowMq.addEventListener("change", applyNarrow);
+window.addEventListener("storage", e => {
+  if (e.key === "brain-lang") { lang = e.newValue === "en" ? "en" : "es"; T = I18N[lang]; applyStatic(); }
+  if (e.key === "brain-theme") applyTheme();
+});
+applyNarrow();
+loadModels();
+loadChats().then(() => {
+  const start = params.get("chat") || (MODE === "pop" ? "" : store.get("brain-chat-current"));
+  if (start) openChat(start);
+});
+setInterval(() => { if (!busy) loadChats(); }, 15000);
+</script>
+</body>
+</html>

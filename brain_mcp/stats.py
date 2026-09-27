@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import frontmatter
 
-from . import agents, chroma_store, history, memory
+from . import agents, chroma_store, clients, history, memory
 from .graph import build_graph
 from .vault import VAULT
 
@@ -102,5 +102,5 @@ def health(services_status: dict[str, str]) -> list[dict]:
         {"key": "playwright", "ok": pw.exists() and any(pw.glob("chromium*")),
          "cmd": "uv run playwright install chromium"},
         # al menos un agente conectado (detalle en la vista "Conectar agente")
-        {"key": "agents", "ok": any(x["connected"] for x in agents.all_status()), "cmd": None},
+        {"key": "agents", "ok": bool(clients.listing(agents.all_status())), "cmd": None},
     ]

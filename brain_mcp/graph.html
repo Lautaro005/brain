@@ -164,7 +164,23 @@ for (const id of ["zin", "zout", "zfit"]) {
   const b = document.getElementById(id); b.title = I18N[id]; b.setAttribute("aria-label", I18N[id]);
 }
 const css = k => getComputedStyle(document.documentElement).getPropertyValue(`--${k}`).trim();
-const fill = k => css(`${k}-fill`), stroke = k => css(`${k}-stroke`);
+// colores elegidos en Ajustes del dashboard (localStorage "brain-graph-colors", mismo origen).
+// Sin elegir, queda el sistema monocromo. Los tipos huecos (perfil, memoria, tags) llevan un relleno
+// suave del color para no perder la diferencia de forma.
+const HOLLOW = new Set(["profile", "memory", "tag"]);
+let custom = {};
+function loadColors() {
+  try { custom = JSON.parse(localStorage.getItem("brain-graph-colors") || "{}") || {}; } catch (e) { custom = {}; }
+}
+function mix(hex, base, t) {
+  const p = h => { h = h.replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+  try { const a = p(hex), b = p(base); return "#" + a.map((v, i) => Math.round(v * t + b[i] * (1 - t)).toString(16).padStart(2, "0")).join(""); }
+  catch (e) { return hex; }
+}
+const valid = c => typeof c === "string" && /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(c);
+const fill = k => valid(custom[k]) ? (HOLLOW.has(k) ? mix(custom[k], css("panel"), .28) : custom[k]) : css(`${k}-fill`);
+const stroke = k => valid(custom[k]) ? custom[k] : css(`${k}-stroke`);
+loadColors();
 const swatch = k => `background:${fill(k)};border:1.5px solid ${stroke(k)}`;
 const hidden = new Set();
 let data = { nodes: [], links: [] }, lastSig = "", selected = null, sim, gAll, zoomer, fitted = false;
@@ -209,6 +225,13 @@ function buildFilters() {
     box.appendChild(el);
   });
 }
+
+function restyle() {
+  gNodes.selectAll("g.node circle").attr("fill", n => fill(n.kind)).attr("stroke", n => stroke(n.kind));
+  buildFilters();
+  if (selected) select(selected);
+}
+window.addEventListener("storage", e => { if (e.key === "brain-graph-colors" || e.key === null) { loadColors(); restyle(); } });
 
 function render() {
   const old = new Map((sim ? sim.nodes() : []).map(n => [n.id, n]));
