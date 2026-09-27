@@ -22,7 +22,9 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
-from brain_mcp import agents, chroma_store, history, memory, stats, vault  # noqa: E402
+import asyncio  # noqa: E402
+
+from brain_mcp import agents, chroma_store, connectors, history, memory, stats, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -69,6 +71,28 @@ def _status() -> dict:
     }
 
 
+def _connections_post(rest: list[str], body: dict) -> dict:
+    """/api/connections (alta) · /<id> (editar) · /<id>/toggle · /<id>/refresh · /<id>/delete"""
+    try:
+        if not rest:
+            conn = connectors.upsert(body)
+            return {"ok": True, "connection": asyncio.run(connectors.discover(conn["id"]))}
+        cid, action = rest[0], (rest[1] if len(rest) > 1 else "update")
+        if action == "update":
+            connectors.upsert(body, cid)
+            return {"ok": True, "connection": asyncio.run(connectors.discover(cid))}
+        if action == "toggle":
+            return {"ok": True, "connection": connectors.set_flag(cid, str(body.get("field")), bool(body.get("value")))}
+        if action == "refresh":
+            return {"ok": True, "connection": asyncio.run(connectors.discover(cid))}
+        if action == "delete":
+            connectors.delete(cid)
+            return {"ok": True}
+        return {"ok": False, "code": "unknown_action"}
+    except connectors.ConnectorError as e:
+        return {"ok": False, "code": e.code, "detail": e.detail}
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -104,6 +128,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"meta": post.metadata, "content": post.content})
             elif u.path == "/api/profile":
                 self._json({"profile": memory.get_profile(), "memory": memory.list_all()})
+            elif u.path == "/api/connections":
+                self._json({"connections": [connectors.public(c) for c in connectors.load()],
+                            "composio": connectors.composio_status()})
+            elif u.path == "/api/composio/auth_configs":
+                try:
+                    self._json({"ok": True, "items": connectors.composio_auth_configs()})
+                except connectors.ConnectorError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/agents":
                 self._json({"agents": agents.all_status(), "manual": agents.manual_snippets()})
             elif u.path == "/api/history":
@@ -172,6 +204,23 @@ class Handler(BaseHTTPRequestHandler):
                 except agents.AgentError as e:
                     return self._json({"ok": False, "code": e.code, "detail": e.detail})
                 self._json({"ok": True, "agent": st})
+            elif parts[:2] == ["api", "connections"]:
+                self._json(_connections_post(parts[2:], body))
+            elif u.path == "/api/composio/config":
+                try:
+                    st = connectors.composio_configure(body.get("api_key"), body.get("user_id"))
+                    conn = asyncio.run(connectors.discover(st["connection_id"])) if st["connection_id"] and st["key_kind"] == "consumer" else None
+                    self._json({"ok": True, "composio": st, "connection": conn})
+                except connectors.ConnectorError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
+            elif u.path == "/api/composio/disconnect":
+                self._json({"ok": True, "composio": connectors.composio_disconnect()})
+            elif u.path == "/api/composio/provision":
+                try:
+                    conn = connectors.composio_provision([str(x) for x in body.get("auth_config_ids") or []])
+                    self._json({"ok": True, "connection": asyncio.run(connectors.discover(conn["id"]))})
+                except connectors.ConnectorError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/memory/delete":
                 self._json({"ok": True, **memory.remove_item(str(body.get("category", "")), str(body.get("item", "")))})
             else:

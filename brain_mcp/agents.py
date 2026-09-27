@@ -261,6 +261,8 @@ def manual_snippets() -> dict:
     return {
         # para apps con formulario "Add MCP server → Run a command" (nombre, comando, un argumento por línea)
         "form": {"name": SERVER, "command": spec["command"], "args": "\n".join(spec["args"])},
+        # la carpeta de ESTA instalación (se calcula en cada Mac, nunca queda fija)
+        "install_path": str(ROOT).replace(str(Path.home()), "~", 1),
         "json": json.dumps({"mcpServers": {SERVER: spec}}, indent=2, ensure_ascii=False),
         "command": " ".join(json.dumps(x) if " " in x else x for x in [spec["command"], *spec["args"]]),
         "toml": f"[mcp_servers.{SERVER}]\ncommand = {json.dumps(spec['command'])}\n"

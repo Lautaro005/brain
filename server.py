@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 
-from brain_mcp import chroma_store, memory, vault  # noqa: E402
+from brain_mcp import chroma_store, connectors, memory, vault  # noqa: E402
 from brain_mcp.chunking import chunk_text  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
@@ -23,13 +23,48 @@ from brain_mcp.scrape import ScrapeError, scrape  # noqa: E402
 log = logging.getLogger("brain-mcp")
 SOURCES_DIR = "knowledge/sources"
 
-mcp = MCPServer(
+class BrainServer(MCPServer):
+    """MCPServer + tools proxeadas de las conexiones (data/connections.json).
+
+    list_tools y call_tool se leen en cada pedido, así prender o apagar una conexión desde el
+    dashboard se refleja sin reiniciar el server (el cliente ve el cambio al volver a listar)."""
+
+    async def list_tools(self):
+        from mcp.types import Tool as MCPTool
+
+        own = await super().list_tools()
+        names = {t.name for t in own}
+        extra = [MCPTool(name=t["name"], description=t["description"], input_schema=t["input_schema"])
+                 for t in connectors.proxied_tools() if t["name"] not in names]
+        return own + extra
+
+    async def call_tool(self, name, arguments, context=None):
+        if connectors.SEP in name and self._tool_manager.get_tool(name) is None:
+            from mcp.types import CallToolResult, TextContent
+
+            t = connectors.resolve_tool(name)
+            if t is None:
+                return CallToolResult(content=[TextContent(type="text", text=f"Error: la tool {name} no existe o su conexión está desactivada.")], is_error=True)
+            try:
+                content, is_error = await connectors.call(t["conn_id"], t["tool"], arguments or {})
+            except connectors.ConnectorError as e:
+                return CallToolResult(content=[TextContent(type="text", text=f"Error: {e}")], is_error=True)
+            except Exception as e:
+                log.exception("Falló la tool proxeada %s", name)
+                return CallToolResult(content=[TextContent(type="text", text=f"Error en {t['conn_id']}: {connectors._short(e)}")], is_error=True)
+            return CallToolResult(content=content, is_error=is_error)
+        return await super().call_tool(name, arguments, context)
+
+
+mcp = BrainServer(
     "brain",
     instructions=(
         "Base de conocimiento personal del usuario. Leé primero BRAIN.md (read_file 'BRAIN.md') y "
         "profile.md + memory/ para saber con quién hablás. Cuando aprendas algo duradero sobre el usuario, "
         "guardalo con add_memory. "
         "Usá list_skills antes de tareas complejas y search_knowledge para buscar en fuentes scrapeadas. "
+        "Las tools con prefijo (ej. gmail__..., composio__...) vienen de conexiones del usuario: su "
+        "resultado se guarda solo en knowledge/ y después se puede buscar con search_knowledge. "
         "Al escribir notas, conectalas: usá [[nombre]] para linkear otros archivos del vault, y en el "
         "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo."
     ),
@@ -133,6 +168,30 @@ def add_memory(fact: str, category: str = "General") -> str:
         return f"OK: guardado en {r['path']}" if r["added"] else f"Ya estaba en {r['path']}"
     except Exception as e:
         return _err(e)
+
+
+# ---------- conexiones ----------
+
+@mcp.tool()
+def list_connections() -> list[dict] | str:
+    """Conexiones configuradas (otros servers MCP que brain re-expone): nombre, si están activas y sus tools."""
+    try:
+        return [{k: c[k] for k in ("id", "name", "kind", "enabled", "capture", "tools", "error")}
+                for c in map(connectors.public, connectors.load())]
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def refresh_connectors() -> str:
+    """Vuelve a descubrir las tools de todas las conexiones activas (después de conectar una app nueva)."""
+    out = []
+    for c in connectors.load():
+        if not c.get("enabled", True):
+            continue
+        p = await connectors.discover(c["id"])
+        out.append(f"{p['name']}: {len(p['tools'])} tools" + (f" (error: {p['error']})" if p["error"] else ""))
+    return "\n".join(out) or "No hay conexiones activas."
 
 
 # ---------- skills ----------

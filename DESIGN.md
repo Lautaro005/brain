@@ -120,7 +120,7 @@ The world is strictly monochrome: white card stock, black typewriter ink, and a 
 
 Archivo carries the voice (condensed, heavy display; plain body). Courier Prime appears only where something is literally typed onto a card or entered in a terminal: card bodies, card headers, reference numbers, stamps, the install command.
 
-This system governs the landing page (`docs/index.html`). The product dashboard (`brain_mcp/dashboard.html`) predates it, has its own look, and is out of this system's scope; the landing's dashboard mock is a recreation of that product UI, not a rule for it.
+This system governs the landing page (`docs/index.html`) and, in a quieter working register, the product dashboard (`brain_mcp/dashboard.html` and the embedded graph `brain_mcp/graph.html`). The dashboard keeps the same tokens and faces, but drops the ruled card bodies and the drawer theatrics; card headers keep the ink rule and Courier caps, statuses are stamps, and one functional red is allowed there for errors and destructive actions only. It also has a dark theme that inverts ink and paper.
 
 **Key Characteristics:**
 - Index card as the atom: white, 1px grey border, 3px corners, black-ruled header, reference number top-right.

@@ -24,6 +24,7 @@ Then type `brain` and the dashboard opens.
 - [The dashboard](#the-dashboard)
 - [Connecting agents](#connecting-agents)
 - [How it works](#how-it-works)
+- [Connections](#connections)
 - [MCP tools](#mcp-tools)
 - [The `brain` command](#the-brain-command)
 - [Data, privacy and security](#data-privacy-and-security)
@@ -41,6 +42,7 @@ Then type `brain` and the dashboard opens.
 - **Save the web.** Give brain a URL and it downloads the page, extracts the text (including sites built with JavaScript), indexes it and makes it available to semantic search: you search by meaning, not exact words.
 - **See how everything connects.** An interactive graph shows your profile, memories, projects, skills, sources and tags, and how they relate.
 - **Undo anything.** Every write goes into a version history. If an agent deletes or overwrites something, you get it back.
+- **Bring your apps along.** Plug other MCP servers into brain (GitHub, Notion, Gmail…, or hundreds of apps through Composio): their tools show up in every agent you connected, and whatever they fetch is saved to your memory automatically.
 - **Private by design.** Embeddings are computed on your machine with [Ollama](https://ollama.com), and nothing leaves your computer.
 
 ## Installation
@@ -87,6 +89,7 @@ ollama pull nomic-embed-text
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
 | **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. |
 | **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** shows which agents are connected and whether they point to this install. |
+| **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. |
 | **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders and tags. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
 | **Knowledge** | Save a URL (optionally forcing JavaScript rendering), semantic search with a relevance score, and the list of saved sources. |
 | **Logs** | Live output of every service the dashboard manages. |
@@ -126,6 +129,21 @@ Many apps have a dialog with two options, **Run a command** and **Connect to a U
 
 The **Connect agent** tab shows these values already filled in for your machine, each with a copy button.
 
+## Connections
+
+brain is also an MCP **client**. In the **Connections** tab you add other MCP servers, and brain re-exposes their tools to every agent you connected, prefixed with the connection's name (`github__create_issue`, `composio__GMAIL_FETCH_EMAILS`) so they never clash with brain's own tools.
+
+- **Local command** (recommended): an MCP server that runs on your Mac, e.g. `npx -y @modelcontextprotocol/server-github` with `GITHUB_TOKEN=…`. The token stays on your machine.
+- **URL**: a remote MCP server, with optional headers (`Authorization: Bearer …`).
+- **Composio** (optional). **Composio stores your accounts' OAuth tokens in its own cloud**; brain keeps the key, the configuration and everything it fetches locally. Two kinds of key work:
+  - **Consumer key** (`ck_…`, the usual one from [dashboard.composio.dev](https://dashboard.composio.dev)): paste it and click *Save and connect*. brain connects to `https://connect.composio.dev/mcp` with the `x-consumer-api-key` header, and the apps you already linked in Composio come with it. No user ID needed.
+  - **Project key** (`ak_…`): fill in the user ID, click *Choose apps*, pick the auth configs, and brain creates the MCP server through Composio's developer API (`x-api-key`).
+  - *Disconnect* removes the Composio connection and wipes the key from `.env`.
+
+Every connection has two switches: **Active** (turn it off and its tools disappear from your agents right away) and **Save to memory**. With the second one on, each result is written to `vault/knowledge/connections/<connection>/…md` (or `knowledge/composio/<app>/…`), with the tool name, arguments and time in its frontmatter, and indexed in Chroma: what you fetched from GitHub or Gmail becomes searchable with `search_knowledge` and shows up in the graph.
+
+Secrets (env values, headers, the Composio API key) live in `~/.brain/.env` with `600` permissions, outside the vault and never committed. The connection list lives in `~/.brain/data/connections.json`.
+
 ## How it works
 
 ```mermaid
@@ -150,6 +168,7 @@ flowchart LR
     S1 -- embeddings --> O
     S1 -- chunks --> C
     S1 -- JS sites --> P
+    S1 -- MCP client --> X[Your connections<br/>GitHub · Notion · Composio…]
     D --> V & H & C
     D -. starts/stops .-> C & O
 ```
@@ -194,6 +213,9 @@ flowchart LR
 | `save_url(url, render_js?)` | Scrapes, indexes and saves a URL |
 | `search_knowledge(query, top_k?)` | Semantic search over what you saved |
 | `list_sources()` | Every saved URL |
+| `list_connections()` | Your connections, whether they're active, and their tools |
+| `refresh_connectors()` | Re-discovers the tools of every active connection |
+| `<connection>__<tool>` | Any tool from an active connection, proxied (and captured to memory if enabled) |
 
 ## The `brain` command
 
@@ -211,9 +233,10 @@ brain help            help
 ## Data, privacy and security
 
 - **Everything is local.** Your data lives in `~/.brain/vault/` and `~/.brain/data/`. Both folders are in `.gitignore`, so they're never uploaded anywhere, not even if you fork the repo.
-- **No external services.** Embeddings are computed with Ollama on your machine. brain only goes online when you ask it to save a URL.
+- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save a URL or use a connection that talks to a remote service. Composio, if you use it, keeps your app tokens in its cloud.
 - **The dashboard only accepts requests from your own machine.** It listens on `127.0.0.1`, rejects requests with any other `Host` (DNS-rebinding protection), and its actions require a custom header browsers won't send from other pages. No website you have open can start processes or write to your vault.
 - **Agents can't leave the vault.** The tools reject paths with `..`, absolute paths, hidden files and symlinks that point outside.
+- **Secrets stay out of the vault and the repo.** Connection tokens and API keys are in `~/.brain/.env` (permissions `600`, gitignored); the dashboard never shows them back.
 - **Everything can be undone.** Any write can be reverted with `file_history` + `restore_file`.
 
 To start from scratch: close the dashboard and your agents, and delete `~/.brain/vault` and `~/.brain/data`. They're recreated empty on the next start.
@@ -224,6 +247,7 @@ To start from scratch: close the dashboard and your agents, and delete `~/.brain
 |---|---|
 | "Ollama isn't running" | Turn on the Ollama switch in the Dashboard, or open the Ollama app. |
 | "The Chroma server isn't running" | Open the dashboard (`brain`); it starts Chroma. Agents need it for `save_url` and `search_knowledge`. |
+| Composio returns `401 Invalid API key` | Check the key type: a consumer key (`ck_…`) only works with *Save and connect*, not with *Choose apps* (that's for project keys `ak_…`). If it's a fresh key, try regenerating it in Composio's dashboard. |
 | An app returns `403` when connecting | You used "Connect to a URL". Use **Run a command** with the values from [Apps with an "Add MCP server" form](#apps-with-an-add-mcp-server-form). |
 | brain doesn't show up in Claude Desktop | Connect it from **Connect agent** and restart Claude. Check **My connections**. |
 | brain doesn't show up in ChatGPT | Use **Codex** or **ChatGPT Work** mode and go to *Settings → MCP servers → Restart*. Regular chat doesn't use local servers. |

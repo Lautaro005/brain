@@ -1,6 +1,9 @@
 # datos del usuario: nunca van al repo (el vault se crea solo desde una plantilla al arrancar)
 vault/
 data/
+# secretos locales (conexiones, Composio): nunca se suben
+.env
+.env.*
 chroma_db/
 
 .venv/
