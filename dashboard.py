@@ -19,7 +19,6 @@ from urllib.parse import parse_qs, urlparse
 logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por cada request a Chroma
 
-import frontmatter  # noqa: E402
 
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
@@ -140,8 +139,8 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/graph":
                 self._json(build_graph())
             elif u.path == "/api/file":
-                post = frontmatter.loads(vault.read_file(q.get("path", [""])[0]))
-                self._json({"meta": post.metadata, "content": post.content})
+                meta, content = vault.parse(vault.read_file(q.get("path", [""])[0]))
+                self._json({"meta": meta, "content": content})
             elif u.path == "/api/profile":
                 self._json({"profile": memory.get_profile(), "memory": memory.list_all()})
             elif u.path == "/api/connections":

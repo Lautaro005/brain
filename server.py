@@ -147,6 +147,17 @@ def str_replace_file(path: str, old: str, new: str) -> str:
 
 
 @mcp.tool()
+def set_frontmatter(path: str, fields: dict) -> str:
+    """Cambia campos del frontmatter (description, tags, related, name…) sin tocar el contenido.
+    Ej: set_frontmatter("projects/brain.md", {"description": "App de memoria local"}). null borra el campo.
+    Preferila a reescribir el archivo cuando solo cambia un metadato."""
+    try:
+        return f"OK: frontmatter de {vault.set_frontmatter(path, fields)} actualizado ({', '.join(map(str, fields))})"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 def delete_file(path: str) -> str:
     """Borra un archivo del vault. Recuperable con file_history + restore_file."""
     try:
@@ -261,7 +272,7 @@ def save_url_core(url: str, render_js: bool = False) -> dict:
     # si ya existe, borrar chunks viejos antes de insertar
     old_ids: list[str] = []
     try:
-        old_ids = list(frontmatter.loads(vault.read_file(md_path)).metadata.get("chroma_ids", []))
+        old_ids = list(vault.parse(vault.read_file(md_path))[0].get("chroma_ids", []))
     except vault.VaultError:
         pass
 
@@ -315,7 +326,7 @@ def list_sources() -> list[dict] | str:
     try:
         out = []
         for f in vault.list_files(SOURCES_DIR):
-            meta = frontmatter.loads(vault.read_file(f["path"])).metadata
+            meta = vault.parse(vault.read_file(f["path"]))[0]
             out.append(
                 {
                     "url": meta.get("url"),

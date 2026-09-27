@@ -88,7 +88,7 @@ ollama pull nomic-embed-text
 | Tab | What it's for |
 |---|---|
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
-| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes; each action shows up as a chip, and every write lands in the version history. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click). Chats are saved in Chroma (`chats` collection) with a searchable list; **Floating window** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
+| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click). Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
 | **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. |
 | **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
 | **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. |
@@ -207,6 +207,7 @@ flowchart LR
 | `write_file(path, content)` | Creates or replaces a file |
 | `append_file(path, content)` | Appends to a file |
 | `str_replace_file(path, old, new)` | Targeted replace (`old` must appear exactly once) |
+| `set_frontmatter(path, fields)` | Changes metadata (description, tags, related…) without touching the content; `null` removes a field |
 | `delete_file(path)` | Deletes a file (recoverable) |
 | `file_history(path)` | A file's versions |
 | `restore_file(path, version_id)` | Restores a file to an earlier version (also brings back deleted files) |
@@ -218,6 +219,8 @@ flowchart LR
 | `list_connections()` | Your connections, whether they're active, and their tools |
 | `refresh_connectors()` | Re-discovers the tools of every active connection |
 | `<connection>__<tool>` | Any tool from an active connection, proxied (and captured to memory if enabled) |
+
+Every write validates the note's YAML frontmatter. If an agent writes a value that breaks it (typically an unquoted `:` in a description), brain quotes it automatically; if it can't be repaired, the write is rejected with a clear error, so metadata never silently disappears from the graph.
 
 ## The `brain` command
 
@@ -254,7 +257,7 @@ To start from scratch: close the dashboard and your agents, and delete `~/.brain
 | brain doesn't show up in Claude Desktop | Connect it from **Connect agent** and restart Claude. Check **My connections**. |
 | brain doesn't show up in ChatGPT | Use **Codex** or **ChatGPT Work** mode and go to *Settings → MCP servers → Restart*. Regular chat doesn't use local servers. |
 | The chat says there's no chat model | Click *Download llama3.2* in the Chat tab, or run `ollama pull llama3.2` (any chat model works; models with tool support can also edit your vault). |
-| The chat answers but can't save or edit anything | The model doesn't support tools. Pick another one (for example `llama3.2`, `qwen2.5` or `mistral`). |
+| The chat answers but can't save or edit anything | Open the actions under the answer to see what failed. Very small models sometimes don't follow the tool format; try a larger one (for example `llama3.2`, `qwen2.5` or `mistral`). |
 | "Couldn't extract text from that URL" | The site may be paywalled or require a login. Try *Force JS rendering*. |
 | `brain: command not found` | Open a new terminal. If it persists, add `export PATH="$HOME/.local/bin:$PATH"` to your `~/.zshrc`. |
 | Port 8765 is taken | `brain --port 8766` |

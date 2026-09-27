@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
-import frontmatter
+from . import vault
 
 from . import agents, chroma_store, clients, history, memory
 from .graph import build_graph
@@ -32,7 +32,7 @@ def vault_stats() -> dict:
     sources = []
     for f in sorted((VAULT / "knowledge" / "sources").glob("*.md")):
         try:
-            meta = frontmatter.load(f).metadata
+            meta = vault.parse(f.read_text(encoding="utf-8"))[0]
         except Exception:
             continue
         url = str(meta.get("url") or "")

@@ -9,138 +9,185 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
-  /* mismo sistema "fichero" que el dashboard (DESIGN.md): monocromo, rojo solo para errores */
+  /* Chat: mismo sistema monocromo que el dashboard (DESIGN.md), en versión conversación.
+     Una sola superficie, sin paneles grises; los bloques se separan con aire y líneas finas.
+     Forma: controles en píldora, contenedores (burbujas, compositor, trazas) con radio 14-22 px. */
   :root {
     color-scheme: light;
-    --bg: #ececea; --surface: #ffffff; --surface-2: #f5f5f3; --line: #e3e3e0; --line-strong: #cfcfcc;
-    --text: #0a0a0a; --text-2: #3d3d3d; --text-3: #5e5e5e; --bad: #b42318; --bad-soft: #fbeae8;
+    --bg: #ffffff; --soft: #f3f3f1; --softer: #f8f8f6; --line: #e6e6e3; --line-strong: #cfcfcc;
+    --text: #0a0a0a; --text-2: #3d3d3d; --text-3: #6b6b67; --bad: #b42318; --bad-soft: #fbeae8;
+    --shadow: 0 1px 2px rgba(10,10,10,.05), 0 8px 28px -12px rgba(10,10,10,.18);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --bg: #0f0f0e; --surface: #191918; --surface-2: #222221; --line: #2a2a29; --line-strong: #3a3a38;
+      --bg: #191918; --soft: #252524; --softer: #1f1f1e; --line: #2a2a29; --line-strong: #3a3a38;
       --text: #f2f2f0; --text-2: #c8c8c4; --text-3: #9a9a95; --bad: #f07167; --bad-soft: #3a1d1a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.6);
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #0f0f0e; --surface: #191918; --surface-2: #222221; --line: #2a2a29; --line-strong: #3a3a38;
+    --bg: #191918; --soft: #252524; --softer: #1f1f1e; --line: #2a2a29; --line-strong: #3a3a38;
     --text: #f2f2f0; --text-2: #c8c8c4; --text-3: #9a9a95; --bad: #f07167; --bad-soft: #3a1d1a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.6);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
-  body { background: var(--surface); color: var(--text); font: 400 14.5px/1.55 "Archivo", "Helvetica Neue", Arial, sans-serif;
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.6 "Archivo", "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased; }
   button, input, select, textarea { font: inherit; color: inherit; }
   .mono { font-family: "Courier Prime", "Courier New", monospace; }
   :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-  ::selection { background: var(--text); color: var(--surface); }
+  ::selection { background: var(--text); color: var(--bg); }
   [hidden] { display: none !important; }
+  svg { flex: none; }
 
-  .app { display: grid; grid-template-columns: 250px 1fr; height: 100vh; }
-  .hist { border-right: 1px solid var(--line-strong); background: var(--surface-2); display: flex; flex-direction: column; min-height: 0; }
-  .hist-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 10px; border-bottom: 1px solid var(--text); }
-  .hist-h h2, .label { margin: 0; font: 700 12px/1.2 "Courier Prime", monospace; letter-spacing: .07em; text-transform: uppercase; }
-  .hist-search { margin: 10px 12px 6px; }
-  .hist-list { list-style: none; margin: 0; padding: 4px 8px 12px; overflow: auto; flex: 1; }
-  .hist-list li { display: flex; align-items: center; gap: 4px; border-radius: 3px; }
-  .hist-list li button.open { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 7px 8px; cursor: pointer; border-radius: 3px; }
-  .hist-list li button.open b { display: block; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hist-list li button.open span { font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); }
-  .hist-list li:hover { background: var(--surface); }
-  .hist-list li.on { background: var(--text); }
-  .hist-list li.on b, .hist-list li.on span, .hist-list li.on .x { color: var(--surface); }
-  .hist-empty { padding: 10px 12px; font-size: 12.5px; color: var(--text-3); }
-  .x { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 4px 7px; border-radius: 3px; font-size: 15px; line-height: 1; opacity: 0; }
+  .app { display: grid; grid-template-columns: 256px 1fr; height: 100vh; height: 100dvh; }
+
+  /* ---------- historial ---------- */
+  .hist { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+  .hist-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 14px 8px 18px; }
+  .label { margin: 0; font: 700 11.5px/1.2 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+  .search { margin: 6px 12px 8px; border: 0; background: var(--soft); border-radius: 999px; padding: 8px 14px; outline: none; font-size: 13.5px; }
+  .search:focus-visible { outline: 2px solid var(--text); outline-offset: 0; }
+  .hist-list { list-style: none; margin: 0; padding: 2px 8px 16px; overflow: auto; flex: 1; }
+  .hist-list li { position: relative; border-radius: 12px; }
+  .hist-list li + li { margin-top: 2px; }
+  .hist-list button.open { width: 100%; text-align: left; border: 0; background: none; padding: 8px 34px 8px 10px; cursor: pointer; border-radius: 12px; display: block; }
+  .hist-list b { display: block; font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-list span { font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); }
+  .hist-list li:hover { background: var(--softer); }
+  .hist-list li.on { background: var(--soft); }
+  .hist-empty { padding: 10px 12px; font-size: 13px; color: var(--text-3); }
+  .x { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--text-3);
+    cursor: pointer; width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; opacity: 0; }
+  .x svg { width: 13px; height: 13px; }
   .hist-list li:hover .x, .hist-list li.on .x, .x:focus-visible { opacity: 1; }
   .x:hover { color: var(--bad); background: var(--bad-soft); }
 
-  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-  .bar { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line-strong); flex-wrap: wrap; }
-  .bar .title { font-weight: 700; font-size: 14.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-  .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);
-    padding: 6px 10px; border-radius: 3px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-  .btn:hover { border-color: var(--text); }
-  .btn.primary { background: var(--text); color: var(--surface); border-color: var(--text); }
-  .btn.primary:hover { background: var(--text-2); border-color: var(--text-2); }
-  .btn:disabled { opacity: .5; cursor: progress; }
-  .btn svg { width: 15px; height: 15px; }
-  .icon { width: 32px; height: 30px; padding: 0; justify-content: center; }
-  select, .input { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 3px; padding: 6px 9px; outline: none; }
-  select { max-width: 240px; font: 400 12.5px/1.3 "Courier Prime", monospace; }
-  .input:focus, select:focus { border-color: var(--text); }
-  .input { width: 100%; }
+  /* ---------- barra ---------- */
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 14px 20px 10px; }
+  .bar .title { font-weight: 650; font-size: 15px; letter-spacing: -.01em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; height: 34px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: border-color .15s, background .15s; }
+  .pill:hover { border-color: var(--line-strong); background: var(--softer); }
+  .pill:active { transform: translateY(1px); }
+  .pill.dark { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .pill.dark:hover { opacity: .88; }
+  .pill.icon { width: 34px; padding: 0; justify-content: center; }
+  .pill svg { width: 16px; height: 16px; }
+  select.pill { font: 400 12.5px/1 "Courier Prime", monospace; max-width: 230px; padding: 0 30px 0 14px; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b6b67' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; }
 
-  .msgs { flex: 1; overflow: auto; padding: 18px 18px 8px; display: flex; flex-direction: column; gap: 14px; }
-  .msg { max-width: 760px; width: 100%; margin: 0 auto; }
-  .msg .who { font: 700 11px/1.2 "Courier Prime", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
-  .msg.user .body { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 4px; padding: 9px 12px; white-space: pre-wrap; }
-  .msg.assistant .body { padding: 0 2px; overflow-wrap: anywhere; }
-  .body p { margin: 0 0 .7em; } .body p:last-child { margin-bottom: 0; }
-  .body pre { background: var(--surface-2); border: 1px solid var(--line); padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12.5px; }
+  /* ---------- mensajes ---------- */
+  .msgs { flex: 1; overflow: auto; padding: 8px 20px 24px; scroll-behavior: smooth; }
+  .col { max-width: 740px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+  .msg.user { align-self: flex-end; max-width: 82%; background: var(--soft); border-radius: 20px 20px 6px 20px; padding: 10px 16px;
+    white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.assistant { align-self: stretch; }
+  .who { display: flex; align-items: center; gap: 8px; font: 700 11.5px/1 "Courier Prime", monospace; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-2); margin-bottom: 8px; }
+  .who svg { width: 20px; height: 20px; }
+  .body { overflow-wrap: anywhere; }
+  .body p { margin: 0 0 .75em; } .body p:last-child { margin-bottom: 0; }
+  .body pre { background: var(--softer); border: 1px solid var(--line); padding: 12px 14px; border-radius: 14px; overflow-x: auto; font-size: 13px; }
   .body code { font-family: "Courier Prime", monospace; font-size: .95em; }
+  .body :not(pre) > code { background: var(--soft); padding: 1px 6px; border-radius: 6px; }
   .body a { color: var(--text); text-underline-offset: 3px; }
-  .body ul, .body ol { padding-left: 1.3em; margin: 0 0 .7em; }
-  .body table { border-collapse: collapse; } .body td, .body th { border: 1px solid var(--line-strong); padding: 4px 8px; }
-  .tools { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-  .tool { display: inline-flex; align-items: center; gap: 5px; font: 400 11.5px/1.2 "Courier Prime", monospace; padding: 3px 7px;
-    border: 1px solid var(--line-strong); border-radius: 3px; color: var(--text-2); }
-  .tool.err { color: var(--bad); border-color: currentColor; }
-  .tool svg { width: 11px; height: 11px; }
-  .cursor::after { content: "▍"; animation: blink 1s steps(2) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
+  .body ul, .body ol { padding-left: 1.3em; margin: 0 0 .75em; }
+  .body h1, .body h2, .body h3 { font-size: 1.05em; margin: 1em 0 .4em; }
+  .body table { border-collapse: collapse; font-size: 14px; } .body td, .body th { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+  .cursor::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 4px; border-radius: 999px; background: var(--text); vertical-align: middle; animation: breathe 1.1s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .25; transform: scale(.7); } }
+
+  /* traza de tools: todas las llamadas, cada una desplegable con argumentos y resultado */
+  .trace { margin: 0 0 12px; border-left: 2px solid var(--line); padding-left: 12px; display: grid; gap: 4px; }
+  .trace-h { font: 700 11px/1.4 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+  .call { border-radius: 12px; }
+  .call summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 8px; border-radius: 10px;
+    font: 400 13px/1.35 "Courier Prime", monospace; color: var(--text-2); }
+  .call summary::-webkit-details-marker { display: none; }
+  .call summary:hover { background: var(--softer); }
+  .call summary b { color: var(--text); font-weight: 700; }
+  .call summary .args { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+  .call summary .chev { width: 12px; height: 12px; color: var(--text-3); transition: transform .15s; }
+  .call[open] summary .chev { transform: rotate(90deg); }
+  .call .st { width: 16px; height: 16px; border-radius: 999px; display: grid; place-items: center; flex: none; }
+  .call .st svg { width: 10px; height: 10px; }
+  .call.ok .st { background: var(--text); color: var(--bg); }
+  .call.err .st { background: var(--bad); color: #fff; }
+  .call.err summary b { color: var(--bad); }
+  .call-b { margin: 2px 0 8px 32px; display: grid; gap: 6px; }
+  .call-b .k { font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+  .call-b pre { margin: 0; background: var(--softer); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font: 12.5px/1.5 "Courier Prime", monospace;
+    white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; color: var(--text-2); }
   .spin { width: 10px; height: 10px; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .note { max-width: 760px; margin: 0 auto; width: 100%; font-size: 12.5px; color: var(--text-3); }
+  .note { font-size: 13px; color: var(--text-3); margin-top: 8px; }
   .note.err { color: var(--bad); }
 
-  .empty { margin: auto; max-width: 520px; text-align: center; padding: 20px 0; }
-  .empty h1 { font: 800 30px/1.05 "Archivo", sans-serif; font-stretch: 84%; letter-spacing: -.03em; margin: 0 0 8px; }
-  .empty p { color: var(--text-2); margin: 0 0 16px; font-size: 13.5px; }
-  .sugs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .empty { min-height: 58vh; display: flex; flex-direction: column; justify-content: center; padding: 20px 0; }
+  .empty h1 { font: 800 clamp(28px, 4vw, 40px)/1.05 "Archivo", sans-serif; font-stretch: 84%; letter-spacing: -.03em; margin: 0 0 10px; }
+  .empty p { color: var(--text-2); margin: 0 0 22px; max-width: 52ch; }
+  .sugs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sugs .pill { font-weight: 500; }
 
-  .banner { margin: 10px 14px 0; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2);
-    font-size: 13px; color: var(--text-2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .banner.err { color: var(--bad); background: var(--bad-soft); border-color: currentColor; }
+  .banner { max-width: 740px; margin: 0 auto 10px; width: calc(100% - 40px); padding: 10px 14px; border-radius: 14px; background: var(--softer);
+    border: 1px solid var(--line); font-size: 13.5px; color: var(--text-2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .banner.err { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
   .banner code { font-family: "Courier Prime", monospace; }
 
-  form.composer { padding: 10px 14px 12px; border-top: 1px solid var(--line-strong); }
-  .comp { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
-  .comp textarea { flex: 1; resize: none; min-height: 42px; max-height: 180px; line-height: 1.45; padding: 10px 12px; }
-  .hint { max-width: 760px; margin: 6px auto 0; font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); }
+  /* ---------- compositor ---------- */
+  form.composer { padding: 0 20px 16px; }
+  .comp { max-width: 740px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; background: var(--bg); border: 1px solid var(--line-strong);
+    border-radius: 24px; padding: 8px 8px 8px 18px; box-shadow: var(--shadow); transition: border-color .15s; }
+  .comp:focus-within { border-color: var(--text-3); }
+  .comp textarea { flex: 1; resize: none; border: 0; outline: none; background: none; min-height: 40px; max-height: 200px; line-height: 1.5; padding: 8px 0; }
+  .send { width: 40px; height: 40px; border-radius: 999px; border: 0; background: var(--text); color: var(--bg); display: grid; place-items: center; cursor: pointer; flex: none; transition: opacity .15s, transform .1s; }
+  .send:hover { opacity: .85; } .send:active { transform: scale(.96); }
+  .send:disabled { opacity: .3; cursor: default; }
+  .send svg { width: 18px; height: 18px; }
+  .hint { max-width: 740px; margin: 8px auto 0; font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); text-align: center; }
 
   /* ventana flotante y pantallas angostas: el historial se abre como panel */
   .pop .app, .narrow .app { grid-template-columns: 1fr; }
-  .pop .hist, .narrow .hist { position: fixed; inset: 0 auto 0 0; width: min(280px, 85vw); z-index: 5; box-shadow: 4px 0 18px rgba(0,0,0,.18); display: none; }
+  .pop .hist, .narrow .hist { position: fixed; inset: 0 auto 0 0; width: min(290px, 86vw); z-index: 5; box-shadow: var(--shadow); display: none; }
   .pop.hist-open .hist, .narrow.hist-open .hist { display: flex; }
-  .pop .msgs { padding: 12px 12px 6px; }
-  .pop .bar { padding: 7px 10px; }
-  .pop form.composer { padding: 8px 10px 10px; }
-  #hist-btn { display: none; }
-  .pop #hist-btn, .narrow #hist-btn { display: inline-flex; }
+  .pop .msgs, .narrow .msgs { padding: 4px 14px 18px; }
+  .pop .bar, .narrow .bar { padding: 10px 12px 6px; }
+  .pop form.composer, .narrow form.composer { padding: 0 10px 10px; }
+  .pop .hint { display: none; }
+  .pop .banner, .narrow .banner { width: calc(100% - 24px); }
+  #hist-btn, #new-btn-2 { display: none; }
+  .pop #hist-btn, .narrow #hist-btn, .pop #new-btn-2, .narrow #new-btn-2 { display: inline-flex; }
+  .narrow #pop-label { display: none; }
+  @media (prefers-reduced-motion: reduce) { .cursor::after, .spin { animation: none; } .msgs { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
 <div class="app">
   <aside class="hist" id="hist">
-    <div class="hist-h"><h2 id="t-chats"></h2><button class="btn primary" id="new-btn" type="button"></button></div>
-    <input class="input hist-search" id="hist-q" type="search" style="width:auto">
+    <div class="hist-h"><h2 class="label" id="t-chats"></h2><button class="pill icon" id="new-btn" type="button"></button></div>
+    <input class="search" id="hist-q" type="search">
     <ul class="hist-list" id="hist-list"></ul>
   </aside>
   <section class="main">
     <div class="bar">
-      <button class="btn icon" id="hist-btn" type="button"></button>
+      <button class="pill icon" id="hist-btn" type="button"></button>
       <div class="title" id="title"></div>
-      <select id="model"></select>
-      <button class="btn icon" id="new-btn-2" type="button"></button>
-      <button class="btn" id="pop-btn" type="button"></button>
+      <select class="pill" id="model"></select>
+      <button class="pill icon" id="new-btn-2" type="button"></button>
+      <button class="pill" id="pop-btn" type="button"></button>
     </div>
     <div id="banner"></div>
-    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="msgs" id="msgs" aria-live="polite"><div class="col" id="col"></div></div>
     <form class="composer" id="composer">
       <div class="comp">
-        <textarea class="input" id="text" rows="1"></textarea>
-        <button class="btn primary" id="send" type="submit"></button>
+        <textarea id="text" rows="1"></textarea>
+        <button class="send" id="send" type="submit"></button>
       </div>
       <div class="hint" id="hint"></div>
     </form>
@@ -155,33 +202,37 @@ if (MODE === "pop") document.body.classList.add("pop");
 
 const I18N = {
   es: {
-    chats: "Chats", new: "Nuevo", newTitle: "Chat nuevo", search: "Buscar chats…", noChats: "Todavía no hay chats guardados.",
-    you: "Vos", brain: "brain", send: "Enviar", stop: "Parar", ph: "Preguntá, pedí que guarde algo o que edite una nota…",
-    hint: "Enter envía · Shift+Enter salto de línea · usa tu perfil y tu memoria como contexto",
-    pop: "Ventana flotante", popTitle: "Abrir el chat en una ventana flotante, siempre visible", hist: "Historial",
-    emptyT: "Hablá con tu memoria", emptyP: "El chat corre en tu máquina con Ollama. Conoce tu perfil y tu memoria, y puede buscar, guardar y editar notas del vault por vos.",
+    chats: "Chats", newTitle: "Chat nuevo", search: "Buscar chats", noChats: "Todavía no hay chats guardados.",
+    brain: "brain", send: "Enviar", stop: "Parar", ph: "Preguntá, pedí que guarde algo o que edite una nota", phShort: "Escribí un mensaje",
+    hint: "Enter envía · Shift+Enter salto de línea",
+    pop: "Flotante", popTitle: "Abrir el chat en una ventana flotante, siempre visible", hist: "Historial",
+    emptyT: "Hablá con tu memoria", emptyP: "Corre en tu máquina con Ollama. Conoce tu perfil y tu memoria, y puede buscar, guardar y editar notas del vault por vos.",
     sugs: ["¿Qué sabés de mí?", "Resumí mis proyectos", "Guardá que prefiero respuestas cortas", "¿Qué fuentes guardé últimamente?"],
     noOllama: "Ollama no está corriendo. Prendelo desde el Panel del dashboard.", noModels: "No hay ningún modelo de chat en Ollama.",
     pull: m => `Descargar ${m}`, pulling: m => `Descargando ${m}… puede tardar unos minutos.`, pullCmd: "o en la terminal:",
     noHistory: "Chroma está apagado: el chat funciona, pero no se guarda en el historial.",
-    notSaved: "No se pudo guardar en el historial (¿Chroma apagado?).", noTools: "Este modelo no soporta tools: responde solo con el contexto, sin leer ni editar el vault.",
-    maxRounds: "Se cortó después de varias acciones seguidas.", delConfirm: "¿Borrar este chat del historial?",
+    notSaved: "No se pudo guardar en el historial (¿Chroma apagado?).",
+    textTools: "Este modelo no acepta tools nativas: se las paso como texto, así igual puede leer y editar el vault.",
+    maxRounds: "Se cortó después de varias acciones seguidas.", delConfirm: "¿Borrar este chat del historial?", del: "Borrar chat",
+    actions: n => n === 1 ? "1 acción" : `${n} acciones`, args: "Argumentos", result: "Resultado", running: "ejecutando…",
     err: { ollama: "Ollama no está corriendo. Prendelo desde el Panel.", no_model: "Elegí un modelo instalado.", empty: "Escribí un mensaje.",
       chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("es", { numeric: "auto" }).format(-n, u), model: "Modelo",
   },
   en: {
-    chats: "Chats", new: "New", newTitle: "New chat", search: "Search chats…", noChats: "No saved chats yet.",
-    you: "You", brain: "brain", send: "Send", stop: "Stop", ph: "Ask, or have it save something or edit a note…",
-    hint: "Enter sends · Shift+Enter new line · uses your profile and memory as context",
-    pop: "Floating window", popTitle: "Open the chat in a floating window that stays on top", hist: "History",
-    emptyT: "Talk to your memory", emptyP: "The chat runs on your machine with Ollama. It knows your profile and memory, and can search, save and edit vault notes for you.",
+    chats: "Chats", newTitle: "New chat", search: "Search chats", noChats: "No saved chats yet.",
+    brain: "brain", send: "Send", stop: "Stop", ph: "Ask, or have it save something or edit a note", phShort: "Write a message",
+    hint: "Enter sends · Shift+Enter new line",
+    pop: "Float", popTitle: "Open the chat in a floating window that stays on top", hist: "History",
+    emptyT: "Talk to your memory", emptyP: "Runs on your machine with Ollama. It knows your profile and memory, and can search, save and edit vault notes for you.",
     sugs: ["What do you know about me?", "Summarize my projects", "Remember that I prefer short answers", "What sources did I save lately?"],
     noOllama: "Ollama isn't running. Turn it on from the dashboard.", noModels: "There's no chat model in Ollama.",
     pull: m => `Download ${m}`, pulling: m => `Downloading ${m}… this can take a few minutes.`, pullCmd: "or in the terminal:",
     noHistory: "Chroma is off: the chat works, but it isn't saved to history.",
-    notSaved: "Couldn't save to history (is Chroma off?).", noTools: "This model doesn't support tools: it answers from context only, without reading or editing the vault.",
-    maxRounds: "Stopped after several actions in a row.", delConfirm: "Delete this chat from history?",
+    notSaved: "Couldn't save to history (is Chroma off?).",
+    textTools: "This model doesn't take native tools: they're passed as text, so it can still read and edit the vault.",
+    maxRounds: "Stopped after several actions in a row.", delConfirm: "Delete this chat from history?", del: "Delete chat",
+    actions: n => n === 1 ? "1 action" : `${n} actions`, args: "Arguments", result: "Result", running: "running…",
     err: { ollama: "Ollama isn't running. Turn it on from the Dashboard.", no_model: "Pick an installed model.", empty: "Write a message.",
       chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-n, u), model: "Model",
@@ -197,12 +248,17 @@ function applyTheme() {
 }
 applyTheme();
 
+const I = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICON = {
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
-  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
-  pop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="11" y="11" width="8" height="6" rx="1" fill="currentColor"/></svg>',
-  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
-  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check: I('<path d="m5 12 5 5 9-10"/>', 3.2),
+  x: I('<path d="M6 6l12 12M18 6 6 18"/>', 2.6),
+  pop: I('<rect x="3" y="4" width="18" height="16" rx="3"/><rect x="11.5" y="11" width="7" height="6" rx="1.5" fill="currentColor" stroke="none"/>'),
+  list: I('<path d="M4 7h16M4 12h16M4 17h10"/>'),
+  plus: I('<path d="M12 5v14M5 12h14"/>', 2.2),
+  up: I('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4),
+  stop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>',
+  chev: I('<path d="m9 6 6 6-6 6"/>', 2.4),
+  mark: '<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="4" stroke="currentColor" stroke-width="2.2"/><path d="M3 12.5h26" stroke="currentColor" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="currentColor" stroke-width="1.8"/></svg>',
 };
 
 // ================= estado =================
@@ -215,7 +271,7 @@ async function api(path, body) {
   if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
   return j;
 }
-const errText = r => (T.err[r.code] || T.err.other) + (r.code === "other" || r.code === "ollama_http" || r.code === "pull_failed" ? ` ${r.detail || ""}` : "");
+const errText = r => (T.err[r.code] || T.err.other) + (["other", "ollama_http", "pull_failed"].includes(r.code) ? ` ${r.detail || ""}` : "");
 function md(text) {
   if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(text || ""));
   return `<p>${esc(text).replace(/\n/g, "<br>")}</p>`;
@@ -232,31 +288,35 @@ function ago(iso) {
 function applyStatic() {
   document.documentElement.lang = lang;
   $("#t-chats").textContent = T.chats;
-  $("#new-btn").innerHTML = `${ICON.plus}${esc(T.new)}`;
-  $("#new-btn-2").innerHTML = ICON.plus; $("#new-btn-2").title = T.newTitle; $("#new-btn-2").setAttribute("aria-label", T.newTitle);
+  for (const id of ["#new-btn", "#new-btn-2"]) { $(id).innerHTML = ICON.plus; $(id).title = T.newTitle; $(id).setAttribute("aria-label", T.newTitle); }
   $("#hist-btn").innerHTML = ICON.list; $("#hist-btn").title = T.hist; $("#hist-btn").setAttribute("aria-label", T.hist);
-  $("#pop-btn").innerHTML = `${ICON.pop}<span>${esc(T.pop)}</span>`; $("#pop-btn").title = T.popTitle;
+  $("#pop-btn").innerHTML = `${ICON.pop}<span id="pop-label">${esc(T.pop)}</span>`; $("#pop-btn").title = T.popTitle; $("#pop-btn").setAttribute("aria-label", T.popTitle);
   $("#pop-btn").hidden = MODE === "pop";
-  $("#new-btn-2").hidden = MODE !== "pop" && !document.body.classList.contains("narrow");
-  $("#hist-q").placeholder = T.search;
-  $("#text").placeholder = T.ph;
+  $("#hist-q").placeholder = T.search; $("#hist-q").setAttribute("aria-label", T.search);
+  const shortPh = MODE === "pop" || document.body.classList.contains("narrow");
+  $("#text").placeholder = shortPh ? T.phShort : T.ph; $("#text").setAttribute("aria-label", T.ph);
   $("#hint").textContent = T.hint;
   $("#model").title = T.model; $("#model").setAttribute("aria-label", T.model);
   renderSend(); renderList(); renderMessages();
 }
-function renderSend() { $("#send").textContent = busy ? T.stop : T.send; }
+function renderSend() {
+  const b = $("#send");
+  b.innerHTML = busy ? ICON.stop : ICON.up;
+  b.title = busy ? T.stop : T.send; b.setAttribute("aria-label", b.title);
+  b.disabled = !busy && !$("#text").value.trim();
+}
 
 // ================= modelos =================
 async function loadModels() {
   const sel = $("#model");
   let r;
   try { r = await api("/api/chat/models"); } catch (e) { r = { ok: false, code: "other", detail: e.message }; }
-  if (!r.ok) { models = []; sel.innerHTML = ""; banner(r.code === "ollama" ? T.noOllama : errText(r), true); return; }
+  if (!r.ok) { models = []; sel.innerHTML = ""; sel.hidden = true; banner(r.code === "ollama" ? T.noOllama : errText(r), true); return; }
   models = r.models;
+  sel.hidden = !models.length;
   if (!models.length) {
-    sel.innerHTML = "";
     const m = r.suggested;
-    $("#banner").innerHTML = `<div class="banner"><span>${esc(T.noModels)}</span><button class="btn primary" id="pull-btn" type="button">${esc(T.pull(m))}</button>
+    $("#banner").innerHTML = `<div class="banner"><span>${esc(T.noModels)}</span><button class="pill dark" id="pull-btn" type="button">${esc(T.pull(m))}</button>
       <span class="mono">${esc(T.pullCmd)} <code>ollama pull ${esc(m)}</code></span></div>`;
     $("#pull-btn").onclick = async () => {
       $("#banner").innerHTML = `<div class="banner"><span class="spin"></span><span>${esc(T.pulling(m))}</span></div>`;
@@ -267,7 +327,7 @@ async function loadModels() {
   }
   const saved = store.get("brain-chat-model");
   const pick = models.find(m => m.name === saved) ? saved : (models.find(m => /^(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
-  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""}>${esc(m.name)}${m.params ? ` · ${esc(m.params)}` : ""}</option>`).join("");
+  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""}>${esc(m.name.replace(/:latest$/, "").replace(/^hf\.co\/[^/]+\//, ""))}${m.params ? ` · ${esc(m.params)}` : ""}</option>`).join("");
   banner(historyOk ? "" : T.noHistory);
 }
 $("#model").onchange = () => store.set("brain-chat-model", $("#model").value);
@@ -288,7 +348,7 @@ function renderList() {
   const list = chats.filter(c => !q || (c.title || "").toLowerCase().includes(q));
   $("#hist-list").innerHTML = list.length ? list.map(c => `<li class="${c.id === current ? "on" : ""}">
       <button class="open" type="button" data-id="${esc(c.id)}"><b>${esc(c.title)}</b><span>${esc(c.updated_at ? ago(c.updated_at) : "")}</span></button>
-      <button class="x" type="button" data-del="${esc(c.id)}" title="×" aria-label="×">×</button></li>`).join("")
+      <button class="x" type="button" data-del="${esc(c.id)}" title="${esc(T.del)}" aria-label="${esc(T.del)}">${ICON.x}</button></li>`).join("")
     : `<li class="hist-empty">${esc(historyOk ? T.noChats : T.noHistory)}</li>`;
   $("#hist-list").querySelectorAll("button.open").forEach(b => b.onclick = () => { openChat(b.dataset.id); document.body.classList.remove("hist-open"); });
   $("#hist-list").querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
@@ -322,27 +382,33 @@ document.addEventListener("click", e => {
 });
 
 // ================= mensajes =================
-function toolChip(t) {
+const argsLine = a => Object.entries(a || {}).map(([k, v]) => `${k}=${typeof v === "string" ? JSON.stringify(v.length > 40 ? v.slice(0, 40) + "…" : v) : JSON.stringify(v)}`).join(" ");
+function callHtml(t, i, open) {
   const st = t.ok === undefined ? '<span class="spin"></span>' : t.ok ? ICON.check : ICON.x;
-  return `<span class="tool ${t.ok === false ? "err" : ""}" title="${esc(JSON.stringify(t.args || {}))}">${st}${esc(t.name)}</span>`;
+  const cls = t.ok === undefined ? "" : t.ok ? "ok" : "err";
+  const result = t.ok === undefined ? T.running : (t.result || "");
+  return `<details class="call ${cls}" data-call="${i}" ${open.has(i) ? "open" : ""}><summary><span class="st">${st}</span><b>${esc(t.name)}</b><span class="args">${esc(argsLine(t.args))}</span>${ICON.chev.replace("<svg", '<svg class="chev"')}</summary>
+    <div class="call-b"><span class="k">${esc(T.args)}</span><pre>${esc(JSON.stringify(t.args || {}, null, 2))}</pre>
+    <span class="k">${esc(T.result)}</span><pre>${esc(result)}</pre></div></details>`;
 }
-function msgHtml(m, i) {
-  const who = m.role === "user" ? T.you : T.brain;
-  if (m.role === "user") return `<div class="msg user"><div class="who">${esc(who)}</div><div class="body">${esc(m.content)}</div></div>`;
-  const tools = (m.tools || []).length ? `<div class="tools">${m.tools.map(toolChip).join("")}</div>` : "";
+function msgHtml(m, i, open = new Set()) {
+  if (m.role === "user") return `<div class="msg user">${esc(m.content)}</div>`;
+  const tools = m.tools || [];
+  const trace = tools.length ? `<div class="trace"><div class="trace-h">${esc(T.actions(tools.length))}</div>${tools.map((t, j) => callHtml(t, j, open)).join("")}</div>` : "";
   const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("");
-  return `<div class="msg assistant" data-i="${i}"><div class="who">${esc(who)}</div>${tools}<div class="body ${m.live ? "cursor" : ""}">${md(m.content)}</div>${notes}</div>`;
+  const body = m.content || !m.live ? `<div class="body ${m.live ? "cursor" : ""}">${md(m.content)}</div>` : `<div class="body cursor"></div>`;
+  return `<div class="msg assistant" data-i="${i}"><div class="who">${ICON.mark}${esc(T.brain)}</div>${trace}${body}${notes}</div>`;
 }
 function renderMessages(scroll = true) {
-  const box = $("#msgs");
+  const col = $("#col"), box = $("#msgs");
   $("#title").textContent = current ? (chats.find(c => c.id === current) || {}).title || messages[0]?.content.slice(0, 60) || "" : T.newTitle;
   if (!messages.length) {
-    box.innerHTML = `<div class="empty"><h1>${esc(T.emptyT)}</h1><p>${esc(T.emptyP)}</p>
-      <div class="sugs">${T.sugs.map(s => `<button class="btn" type="button" data-sug="${esc(s)}">${esc(s)}</button>`).join("")}</div></div>`;
-    box.querySelectorAll("[data-sug]").forEach(b => b.onclick = () => { $("#text").value = b.dataset.sug; send(); });
+    col.innerHTML = `<div class="empty"><h1>${esc(T.emptyT)}</h1><p>${esc(T.emptyP)}</p>
+      <div class="sugs">${T.sugs.map(s => `<button class="pill" type="button" data-sug="${esc(s)}">${esc(s)}</button>`).join("")}</div></div>`;
+    col.querySelectorAll("[data-sug]").forEach(b => b.onclick = () => { $("#text").value = b.dataset.sug; send(); });
     return;
   }
-  box.innerHTML = messages.map(msgHtml).join("");
+  col.innerHTML = messages.map((m, i) => msgHtml(m, i)).join("");
   if (scroll) box.scrollTop = box.scrollHeight;
 }
 let raf = 0;
@@ -351,8 +417,12 @@ function updateLive() {
   raf = requestAnimationFrame(() => {
     raf = 0;
     const box = $("#msgs"), i = messages.length - 1, el = box.querySelector(`.msg[data-i="${i}"]`);
-    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-    if (el) el.outerHTML = msgHtml(messages[i], i); else renderMessages(false);
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+    if (el) {
+      // conservar las llamadas que el usuario abrió mientras se generaba la respuesta
+      const open = new Set([...el.querySelectorAll("details.call[open]")].map(d => +d.dataset.call));
+      el.outerHTML = msgHtml(messages[i], i, open);
+    } else renderMessages(false);
     if (atBottom) box.scrollTop = box.scrollHeight;
   });
 }
@@ -389,15 +459,19 @@ async function send() {
   } finally {
     reply.live = false; busy = false; controller = null;
     if (!reply.content && !reply.tools.length && !reply.notes.length) messages.pop();
-    renderSend(); renderMessages(); loadChats();
+    renderSend(); updateLive(); loadChats();
   }
 }
 function handle(ev, reply) {
   if (ev.type === "start") { current = ev.chat_id; store.set("brain-chat-current", current); if (!chats.some(c => c.id === current)) chats.unshift({ id: current, title: ev.title }); renderList(); $("#title").textContent = ev.title; }
   else if (ev.type === "token") reply.content += ev.text;
-  else if (ev.type === "tool") reply.tools.push({ name: ev.name, args: ev.args });
-  else if (ev.type === "tool_result") { const t = [...reply.tools].reverse().find(x => x.name === ev.name && x.ok === undefined); if (t) t.ok = ev.ok; }
-  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "no_tools" ? T.noTools : T.maxRounds });
+  else if (ev.type === "rewrite") reply.content = ev.text;
+  else if (ev.type === "tool") reply.tools[ev.i ?? reply.tools.length] = { name: ev.name, args: ev.args };
+  else if (ev.type === "tool_result") {
+    const t = ev.i !== undefined ? reply.tools[ev.i] : [...reply.tools].reverse().find(x => x.name === ev.name && x.ok === undefined);
+    if (t) { t.ok = ev.ok; t.result = ev.result ?? ev.preview ?? ""; }
+  }
+  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "text_tools" || ev.code === "no_tools" ? T.textTools : T.maxRounds });
   else if (ev.type === "error") reply.notes.push({ text: errText(ev), err: true });
   else if (ev.type === "done" && ev.saved === false) reply.notes.push({ text: T.notSaved });
   updateLive();
@@ -407,7 +481,7 @@ $("#composer").onsubmit = e => { e.preventDefault(); busy ? stop() : send(); };
 $("#text").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) send(); }
 });
-function autosize() { const t = $("#text"); t.style.height = "auto"; t.style.height = Math.min(180, t.scrollHeight) + "px"; }
+function autosize() { const t = $("#text"); t.style.height = "auto"; t.style.height = Math.min(200, t.scrollHeight) + "px"; renderSend(); }
 $("#text").addEventListener("input", autosize);
 
 // ================= ventana flotante =================

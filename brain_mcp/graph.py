@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-import frontmatter
+from . import vault
 
 from .vault import VAULT
 
@@ -49,8 +49,7 @@ def build_graph() -> dict:
     for f in files:
         rel = f.relative_to(VAULT).as_posix()
         try:
-            post = frontmatter.load(f)
-            meta, body = post.metadata, post.content
+            meta, body = vault.parse(f.read_text(encoding="utf-8"))
         except Exception:
             meta, body = {}, f.read_text(encoding="utf-8", errors="replace")
         docs[rel] = (meta, body)
