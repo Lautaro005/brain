@@ -536,7 +536,15 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Services</h2>
   <p>Each service has a state: <b>Running</b>, <b>Starting</b>, <b>External</b>, <b>Off</b> or <b>Error</b>. When the dashboard starts it turns on Ollama and Chroma if they're off. If one was already running outside the dashboard (for example the Ollama menu-bar app) it shows as <b>External</b>, its switch is locked and the dashboard never stops it. Ctrl+C stops only what the dashboard started.</p>
   <h2>Sidebar</h2>
-  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language and <b>Settings</b> (graph colors). Preferences are stored in the browser (<code>localStorage</code>).</p>
+  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>).</p>
+  <h2>Settings</h2>
+  <p>A full view (<code>#ajustes</code>) with four sections:</p>
+  <ul>
+    <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release only when you click it. If there's a newer one, Settings shows it with a link to the release notes, and the gear turns green until you update with <code>brain update</code>.</li>
+    <li><b>Sidebar</b>: reorder the views with the arrows and hide the ones you don't use. A hidden view is still reachable by its URL (<code>#logs</code>, <code>#grafo</code>…).</li>
+    <li><b>Chat</b>: the default model, selected when the chat opens and on every new chat. "The last one I used" keeps the previous behavior.</li>
+    <li><b>Graph colors</b>: a color per node type, or back to black and white.</li>
+  </ul>
 </div>
 <div class="l-es">
   <h1>Dashboard</h1>
@@ -556,7 +564,15 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Servicios</h2>
   <p>Cada servicio tiene un estado: <b>Corriendo</b>, <b>Iniciando</b>, <b>Externo</b>, <b>Apagado</b> o <b>Error</b>. Al arrancar, el dashboard prende Ollama y Chroma si están apagados. Si uno ya corría por fuera (por ejemplo la app de Ollama) aparece como <b>Externo</b>, con el switch bloqueado, y el dashboard nunca lo apaga. Ctrl+C apaga solo lo que prendió él.</p>
   <h2>Sidebar</h2>
-  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma y <b>Ajustes</b> (colores del grafo). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
+  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
+  <h2>Ajustes</h2>
+  <p>Una vista completa (<code>#ajustes</code>) con cuatro secciones:</p>
+  <ul>
+    <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release solo cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades y el engranaje se pone en verde hasta que actualices con <code>brain update</code>.</li>
+    <li><b>Sidebar</b>: reordená las vistas con las flechas y ocultá las que no uses. Una vista oculta sigue accesible por su URL (<code>#logs</code>, <code>#grafo</code>…).</li>
+    <li><b>Chat</b>: el modelo por defecto, que se elige al abrir el chat y en cada chat nuevo. "El último que usé" mantiene el comportamiento de antes.</li>
+    <li><b>Colores del grafo</b>: un color por tipo de nodo, o volver a blanco y negro.</li>
+  </ul>
 </div>
 </section>
 

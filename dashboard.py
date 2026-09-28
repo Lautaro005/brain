@@ -23,7 +23,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, chat, clients, connectors, history, memory, reflect, stats, vault  # noqa: E402
+from brain_mcp import agents, chat, clients, connectors, history, memory, reflect, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -156,6 +156,8 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/agents":
                 st = agents.all_status()
                 self._json({"agents": st, "manual": agents.manual_snippets(), "mine": clients.listing(st)})
+            elif u.path == "/api/version":
+                self._json({"current": updates.current(), "releases": updates.RELEASES_URL})
             elif u.path == "/api/history":
                 self._json({"changes": history.list_changes(path=q.get("path", [None])[0], limit=int(q.get("limit", ["50"])[0]))})
             elif u.path.startswith("/api/logs/"):
@@ -210,6 +212,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, **mcp_tools.reindex_keyword_core()})
             elif u.path == "/api/reflect":
                 self._json({"ok": True, **reflect.run()})
+            elif u.path == "/api/version/check":
+                try:
+                    self._json({"ok": True, **updates.check()})
+                except updates.UpdateError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail, "current": updates.current()})
             elif u.path == "/api/profile":
                 path = memory.save_profile(str(body.get("name", "")), str(body.get("headline", "")), str(body.get("about", "")))
                 self._json({"ok": True, "path": path})

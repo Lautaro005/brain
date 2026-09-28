@@ -428,3 +428,30 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 - Dashboard con Playwright: logo y nombre en una fila; Reflect muestra una contradicción y un duplicado; el grafo dibuja los nodos de entidad y el chip "Entidades"; textos en ES y EN; POST sin `X-Brain` sigue dando 403.
 - Web a 1440 y 390 px: landing, docs y changelog sin desborde horizontal (se corrigieron un desborde de 25 px en el changelog, el menú de docs en celular que quedaba bajo la barra, y los links Docs/Changelog de la landing que desaparecían en celular); cambio de idioma, filtro, "En esta página" y anterior/siguiente funcionan.
 - **No probado**: un modelo real de Ollama (no hay Ollama en esta máquina; la calidad de resúmenes y entidades depende del modelo) ni la mejora de la búsqueda sobre embeddings reales de `nomic-embed-text` (el Ollama falso usa bolsa de palabras). Que GitHub muestre "MIT" se ve recién después de mergear a `main`.
+
+## 2026-09-28 — v0.02.5 (sigue): header de la web más limpio y Ajustes como vista, con versión y actualizaciones
+
+**Qué se hizo**
+- **Landing (`docs/index.html`)**:
+  - El header deja solo el logo de GitHub (sin texto, con `aria-label`) al lado de EN/ES. Docs y Changelog salieron del header: corrían las pestañas y no parecían centradas.
+  - El header pasó de `flex` con `space-between` a una grilla `1fr auto 1fr`, así las pestañas quedan centradas en la página sin importar el ancho del logo o del lado derecho (verificado: centro de las pestañas = centro de la página a 1440 y 1000 px). En celular, donde las pestañas se ocultan, la grilla pasa a `1fr auto`.
+  - El pie tiene Docs, Changelog y **GitHub con el logo y el texto** (antes era el link `github.com/Lautaro005/brain`).
+- **Ajustes es una vista del dashboard** (`#ajustes`, antes un modal). El engranaje del sidebar lleva ahí y queda marcado como activo. Secciones:
+  1. **Versión**: archivo `VERSION` nuevo (`v0.02.5`) y `brain_mcp/updates.py`. El botón "Buscar actualizaciones" (`POST /api/version/check`) le pregunta a GitHub por `/releases/latest` y compara números. Si hay una versión nueva, Ajustes muestra un aviso en verde con `brain update` y un link a las novedades, y **el engranaje del sidebar se pone en verde** (con un punto). El resultado queda en `localStorage` (`brain-update`), así el verde sigue después de recargar y se apaga solo cuando la versión instalada la alcanza. `GET /api/version` da la versión instalada.
+  2. **Sidebar**: orden con flechas ↑/↓ y un check "Visible" por vista, más "Restablecer orden". Se guarda en `brain-nav` (`{order, hidden}`) y se aplica moviendo los botones del sidebar. Al menos una vista tiene que quedar visible. Ajustes no está en la lista: es el engranaje, siempre visible.
+  3. **Chat**: modelo por defecto (`brain-chat-default`), de los modelos instalados en Ollama, o "El último que usé" (el comportamiento de antes). `chat.html` lo elige al cargar y en cada chat nuevo.
+  4. **Colores del grafo**: lo mismo que había en el modal.
+- **Celular**: el sidebar de arriba ahora muestra la fila de tema, idioma y Ajustes (antes se ocultaba, y Ajustes no se podía abrir en celular).
+- README, CLAUDE.md, las docs (Dashboard → Ajustes, EN/ES) y el changelog de v0.02.5 actualizados.
+
+**En qué se apartó del pedido y por qué**
+- **El chequeo de actualizaciones es manual**, no automático al abrir: brain promete no salir a internet solo (README, SECURITY.md, docs). El botón en verde se mantiene entre sesiones con el último resultado guardado.
+- **Verde**: el sistema del dashboard es monocromo con rojo solo para errores; el verde se agregó solo para "hay una versión nueva" (variables `--update`/`--update-soft`, con versión oscura), como pidió el usuario.
+- **La vista no instala la actualización**: muestra `brain update`. Actualizar desde el dashboard implicaría reiniciar el proceso que lo sirve (y los servers MCP de los agentes siguen con el código viejo hasta reiniciarlos).
+- **Una clase `.links` rompía el ícono de GitHub del pie**: la landing ya usa `.links path` para las líneas punteadas del hero, así que el contenedor del pie se llama `foot-links`.
+- La rama se rehízo desde `main` porque el PR anterior (#5) ya estaba mergeado; estos cambios van en un PR nuevo.
+
+**Verificado**
+- `updates.check()` contra GitHub real: con `VERSION` = v0.02.5 da "al día" (el último publicado es v0.02.1); con `VERSION` = v0.02.0 da `update_available: true` con v0.02.1.
+- Playwright (dashboard con un Ollama falso): el engranaje abre `#ajustes`; bajar Panel y ocultar Logs cambia el sidebar y persiste al recargar; elegir `llama3.2` como default hace que el chat lo use al abrir; con v0.02.0, "Buscar actualizaciones" muestra el aviso y pone el engranaje en verde, y sigue verde después de recargar y con el sidebar plegado; textos en EN; a 390 px sin desborde y con Ajustes accesible; sin errores de JS.
+- Landing a 1440, 1000 y 390 px sin desborde; pie con el logo de GitHub bien dibujado.
