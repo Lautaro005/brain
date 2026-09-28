@@ -97,7 +97,14 @@ ollama pull nomic-embed-text
 | **Knowledge** | Save a URL (optionally forcing JavaScript rendering), hybrid search (semantic score, or a *keyword* tag for exact matches), a button to rebuild the keyword index, and the list of saved sources. |
 | **Logs** | Live output of every service the dashboard manages. |
 
-The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**) and **Settings**, where you can give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags, Entities) its own color, or go back to black and white. The button next to the logo collapses the sidebar into a narrow rail of icons.
+The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**) and **Settings** (the gear), a full view where you can:
+
+- see the installed **version** and **check for updates**: brain asks GitHub for the latest release only when you click the button. If there's a newer one, Settings shows it with a link to the release notes (update with `brain update`) and the gear turns green until you update;
+- reorder the **sidebar** and hide the views you don't use (a hidden view is still reachable by its URL, e.g. `#logs`);
+- pick the **default chat model**, used when the chat opens and on every new chat;
+- give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags, Entities) its own color, or go back to black and white.
+
+The button next to the logo collapses the sidebar into a narrow rail of icons.
 
 When you close the dashboard, it only stops what it started. If Ollama was already running (for example the menu-bar app), it shows up as **External** and is left alone.
 

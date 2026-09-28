@@ -325,8 +325,10 @@ async function loadModels() {
     };
     return;
   }
-  const saved = store.get("brain-chat-model");
-  const pick = models.find(m => m.name === saved) ? saved : (models.find(m => /^(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
+  // orden: el modelo por defecto de Ajustes (brain-chat-default), el último elegido, uno conocido, el primero
+  const has = n => n && models.some(m => m.name === n);
+  const def = store.get("brain-chat-default"), saved = store.get("brain-chat-model");
+  const pick = has(def) ? def : has(saved) ? saved : (models.find(m => /^(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
   sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""}>${esc(m.name.replace(/:latest$/, "").replace(/^hf\.co\/[^/]+\//, ""))}${m.params ? ` · ${esc(m.params)}` : ""}</option>`).join("");
   banner(historyOk ? "" : T.noHistory);
 }
@@ -373,6 +375,8 @@ function newChat() {
   if (busy) stop();
   current = null; messages = [];
   store.set("brain-chat-current", "");
+  const def = store.get("brain-chat-default");
+  if (def && models.some(m => m.name === def)) { $("#model").value = def; store.set("brain-chat-model", def); }
   renderList(); renderMessages(); $("#text").focus();
 }
 $("#new-btn").onclick = newChat; $("#new-btn-2").onclick = newChat;
