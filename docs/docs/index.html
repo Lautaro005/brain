@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs · brain</title>
+<meta name="description" content="brain documentation: installation, memory, hybrid search, the graph, agents, connections, MCP tools and configuration.">
+<meta property="og:title" content="brain docs">
+<meta property="og:description" content="Everything about brain, the local memory shared by Claude, ChatGPT and your other AI agents.">
+<meta property="og:url" content="https://lautaro005.github.io/brain/docs/">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='7' width='26' height='18' rx='2' fill='%23fff' stroke='%230a0a0a' stroke-width='2.4'/%3E%3Cpath d='M3 12.5h26' stroke='%230a0a0a' stroke-width='2.4'/%3E%3Cpath d='M8 17.5h10M8 21h7' stroke='%230a0a0a' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="../assets/pages.css">
+<script>window.PAGE_TITLES = { en: "brain docs", es: "Documentación de brain" };</script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="../" aria-label="brain">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="2" fill="#fff" stroke="#0a0a0a" stroke-width="2.2"/><path d="M3 12.5h26" stroke="#0a0a0a" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="#0a0a0a" stroke-width="1.8"/></svg>
+      <span class="mark-word">brain</span>
+    </a>
+    <nav class="tabs" aria-label="Site">
+      <a href="../"><span class="no">1</span><span class="l-en">Home</span><span class="l-es">Inicio</span></a>
+      <a href="./" aria-current="page"><span class="no">2</span><span class="l-en">Docs</span><span class="l-es">Docs</span></a>
+      <a href="../changelog/"><span class="no">3</span><span>Changelog</span></a>
+    </nav>
+    <div class="top-right">
+      <button class="menu-btn" id="menu-btn" type="button" data-ui="menu">Menu</button>
+      <a class="gh-top" href="https://github.com/Lautaro005/brain">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="es" aria-pressed="false">ES</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" aria-label="Docs">
+    <input class="side-search" id="side-search" type="search" autocomplete="off">
+    <nav id="side-nav"></nav>
+  </aside>
+
+  <main class="content" id="content">
+    <div class="crumbs" id="crumbs"></div>
+
+<!-- ============================ GETTING STARTED ============================ -->
+<section class="page" id="introduction" data-group-en="Getting started" data-group-es="Primeros pasos" data-title-en="Introduction" data-title-es="Introducción">
+<div class="l-en">
+  <h1>Introduction</h1>
+  <p class="lead">brain is a local MCP server that gives Claude, ChatGPT, Cursor and any other AI agent the same memory about you. It runs on your Mac; nothing goes to anyone's cloud.</p>
+  <h2>What brain is</h2>
+  <p>Every AI app keeps its own little memory, and none of them talk to each other. brain is one knowledge base that all of them read and write through <a href="https://modelcontextprotocol.io">MCP</a>, the standard protocol agents use to call tools:</p>
+  <ul>
+    <li><b>A vault of Markdown notes</b> — your profile, what agents learned about you, projects, reusable skills and saved web pages.</li>
+    <li><b>Search</b> — hybrid: semantic (by meaning, with embeddings computed locally by Ollama) plus exact keyword (names, IDs, dates).</li>
+    <li><b>A version history</b> — every write is recorded, so anything an agent changes can be undone.</li>
+    <li><b>A dashboard</b> — a local web app to turn services on and off, edit your profile, import memory from other chatbots, connect agents, explore the graph and chat with a local model.</li>
+  </ul>
+  <h2>How the pieces fit</h2>
+  <p>Each agent launches its own <code>server.py</code> process and talks to it over stdio. All processes share the same vault, the same history database and one Chroma server, and a file lock keeps concurrent writes safe.</p>
+  <table>
+    <tr><th>Piece</th><th>What it does</th><th>Where</th></tr>
+    <tr><td>MCP server</td><td>Exposes the <a href="#tools">tools</a> to your agents</td><td><code>server.py</code></td></tr>
+    <tr><td>Vault</td><td>Markdown with YAML frontmatter</td><td><code>~/.brain/vault/</code></td></tr>
+    <tr><td>History</td><td>Previous and new content of every write</td><td><code>data/history.sqlite3</code></td></tr>
+    <tr><td>Keyword index</td><td>SQLite FTS5 (BM25) over saved text</td><td><code>data/search.sqlite3</code></td></tr>
+    <tr><td>Chroma</td><td>Vector database, shared HTTP server</td><td><code>127.0.0.1:8055</code></td></tr>
+    <tr><td>Ollama</td><td>Embeddings (<code>nomic-embed-text</code>) and the optional chat model</td><td><code>localhost:11434</code></td></tr>
+    <tr><td>Dashboard</td><td>Local web UI</td><td><code>127.0.0.1:8765</code></td></tr>
+  </table>
+  <h2>Who it's for</h2>
+  <p>People who use more than one AI tool and are tired of explaining themselves again in each one. You don't need to write code: the installer and the dashboard cover everything. Developers get a plain Markdown vault and MCP tools they can build on.</p>
+</div>
+<div class="l-es">
+  <h1>Introducción</h1>
+  <p class="lead">brain es un server MCP local que les da a Claude, ChatGPT, Cursor y cualquier otro agente de IA la misma memoria sobre vos. Corre en tu Mac; nada va a la nube de nadie.</p>
+  <h2>Qué es brain</h2>
+  <p>Cada app de IA guarda su propia memoria, y ninguna habla con las otras. brain es una sola base de conocimiento que todas leen y escriben por <a href="https://modelcontextprotocol.io">MCP</a>, el protocolo estándar con el que los agentes llaman tools:</p>
+  <ul>
+    <li><b>Un vault de notas en Markdown</b>: tu perfil, lo que los agentes aprendieron de vos, proyectos, skills reutilizables y páginas web guardadas.</li>
+    <li><b>Búsqueda</b> híbrida: semántica (por significado, con embeddings calculados en tu máquina por Ollama) más por palabra exacta (nombres, IDs, fechas).</li>
+    <li><b>Historial de versiones</b>: cada escritura queda registrada, así que cualquier cambio de un agente se puede deshacer.</li>
+    <li><b>Un dashboard</b>: una web local para prender y apagar servicios, editar tu perfil, importar la memoria de otros chatbots, conectar agentes, explorar el grafo y chatear con un modelo local.</li>
+  </ul>
+  <h2>Cómo encajan las piezas</h2>
+  <p>Cada agente lanza su propio proceso de <code>server.py</code> y le habla por stdio. Todos comparten el mismo vault, la misma base de historial y un único server de Chroma, y un lock de archivo hace seguras las escrituras simultáneas.</p>
+  <table>
+    <tr><th>Pieza</th><th>Qué hace</th><th>Dónde</th></tr>
+    <tr><td>Server MCP</td><td>Expone las <a href="#tools">tools</a> a tus agentes</td><td><code>server.py</code></td></tr>
+    <tr><td>Vault</td><td>Markdown con frontmatter YAML</td><td><code>~/.brain/vault/</code></td></tr>
+    <tr><td>Historial</td><td>Contenido anterior y nuevo de cada escritura</td><td><code>data/history.sqlite3</code></td></tr>
+    <tr><td>Índice por palabra</td><td>SQLite FTS5 (BM25) sobre el texto guardado</td><td><code>data/search.sqlite3</code></td></tr>
+    <tr><td>Chroma</td><td>Base vectorial, server HTTP compartido</td><td><code>127.0.0.1:8055</code></td></tr>
+    <tr><td>Ollama</td><td>Embeddings (<code>nomic-embed-text</code>) y el modelo de chat opcional</td><td><code>localhost:11434</code></td></tr>
+    <tr><td>Dashboard</td><td>Interfaz web local</td><td><code>127.0.0.1:8765</code></td></tr>
+  </table>
+  <h2>Para quién es</h2>
+  <p>Para quien usa más de una herramienta de IA y está cansado de explicarse de nuevo en cada una. No hace falta programar: el instalador y el dashboard cubren todo. Si programás, tenés un vault de Markdown común y tools MCP para construir encima.</p>
+</div>
+</section>
+
+<section class="page" id="installation" data-group-en="Getting started" data-group-es="Primeros pasos" data-title-en="Installation" data-title-es="Instalación">
+<div class="l-en">
+  <h1>Installation</h1>
+  <p class="lead">One command on macOS (Apple Silicon or Intel). You need git (<code>xcode-select --install</code>); the installer handles the rest.</p>
+  <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</pre>
+  <h2>What the installer does</h2>
+  <ol>
+    <li>Installs <a href="https://docs.astral.sh/uv/">uv</a> if it's missing. uv manages Python and the dependencies without touching the system Python.</li>
+    <li>Clones brain into <code>~/.brain</code> (or runs <code>git pull</code> if it's already there).</li>
+    <li>Runs <code>uv sync</code> and installs the headless Chromium used to scrape JavaScript sites.</li>
+    <li>Installs <a href="https://ollama.com">Ollama</a> with Homebrew if needed and pulls <code>nomic-embed-text</code> (~270 MB). Without Homebrew it tells you where to download Ollama.</li>
+    <li>Creates the <code>brain</code> command in <code>~/.local/bin</code> and adds it to your <code>PATH</code>.</li>
+  </ol>
+  <p>It's idempotent: running it again updates the install. It never asks for input, because it runs through <code>curl | bash</code>.</p>
+  <h2>Optional: a chat model</h2>
+  <p>The Chat tab, source summaries (<code>abstract</code>) and entity extraction for the graph use a <b>chat</b> model in Ollama. <code>nomic-embed-text</code> only computes embeddings and can't write text. The installer doesn't pull a chat model (it's ~2 GB); get one when you want those features:</p>
+  <pre>ollama pull llama3.2</pre>
+  <p>Or click <i>Download llama3.2</i> in the Chat tab. Without it, those three features are skipped and everything else works the same.</p>
+  <h2>Installer options</h2>
+  <table>
+    <tr><th>Variable</th><th>Default</th><th>What it changes</th></tr>
+    <tr><td><code>BRAIN_HOME</code></td><td><code>~/.brain</code></td><td>Install folder</td></tr>
+    <tr><td><code>BRAIN_BIN</code></td><td><code>~/.local/bin</code></td><td>Where the <code>brain</code> command goes</td></tr>
+    <tr><td><code>BRAIN_REPO</code></td><td>GitHub repo</td><td>Where to clone from (useful for testing a local clone)</td></tr>
+    <tr><td><code>BRAIN_BRANCH</code></td><td><code>main</code></td><td>Branch to install</td></tr>
+  </table>
+  <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | BRAIN_HOME=~/tools/brain bash</pre>
+  <h2>Manual installation</h2>
+  <pre>git clone https://github.com/Lautaro005/brain ~/.brain && cd ~/.brain
+uv sync
+uv run playwright install chromium
+ollama pull nomic-embed-text
+./brain.sh</pre>
+</div>
+<div class="l-es">
+  <h1>Instalación</h1>
+  <p class="lead">Un comando en macOS (Apple Silicon o Intel). Hace falta git (<code>xcode-select --install</code>); el instalador se ocupa del resto.</p>
+  <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</pre>
+  <h2>Qué hace el instalador</h2>
+  <ol>
+    <li>Instala <a href="https://docs.astral.sh/uv/">uv</a> si falta. uv maneja Python y las dependencias sin tocar el Python del sistema.</li>
+    <li>Clona brain en <code>~/.brain</code> (o hace <code>git pull</code> si ya estaba).</li>
+    <li>Corre <code>uv sync</code> e instala el Chromium headless que se usa para scrapear sitios con JavaScript.</li>
+    <li>Instala <a href="https://ollama.com">Ollama</a> con Homebrew si hace falta y baja <code>nomic-embed-text</code> (~270 MB). Sin Homebrew, te dice de dónde bajar Ollama.</li>
+    <li>Crea el comando <code>brain</code> en <code>~/.local/bin</code> y lo agrega a tu <code>PATH</code>.</li>
+  </ol>
+  <p>Es idempotente: correrlo de nuevo actualiza la instalación. Nunca pide nada, porque se ejecuta con <code>curl | bash</code>.</p>
+  <h2>Opcional: un modelo de chat</h2>
+  <p>La pestaña Chat, los resúmenes de fuentes (<code>abstract</code>) y la extracción de entidades para el grafo usan un modelo de <b>chat</b> en Ollama. <code>nomic-embed-text</code> solo calcula embeddings y no puede escribir texto. El instalador no baja un modelo de chat (pesa ~2 GB); bajalo cuando quieras esas funciones:</p>
+  <pre>ollama pull llama3.2</pre>
+  <p>O tocá <i>Descargar llama3.2</i> en la pestaña Chat. Sin él, esas tres funciones se saltean y todo lo demás anda igual.</p>
+  <h2>Opciones del instalador</h2>
+  <table>
+    <tr><th>Variable</th><th>Por defecto</th><th>Qué cambia</th></tr>
+    <tr><td><code>BRAIN_HOME</code></td><td><code>~/.brain</code></td><td>Carpeta de instalación</td></tr>
+    <tr><td><code>BRAIN_BIN</code></td><td><code>~/.local/bin</code></td><td>Dónde va el comando <code>brain</code></td></tr>
+    <tr><td><code>BRAIN_REPO</code></td><td>el repo de GitHub</td><td>De dónde clonar (sirve para probar un clon local)</td></tr>
+    <tr><td><code>BRAIN_BRANCH</code></td><td><code>main</code></td><td>Rama a instalar</td></tr>
+  </table>
+  <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | BRAIN_HOME=~/tools/brain bash</pre>
+  <h2>Instalación manual</h2>
+  <pre>git clone https://github.com/Lautaro005/brain ~/.brain && cd ~/.brain
+uv sync
+uv run playwright install chromium
+ollama pull nomic-embed-text
+./brain.sh</pre>
+</div>
+</section>
+
+<section class="page" id="quickstart" data-group-en="Getting started" data-group-es="Primeros pasos" data-title-en="Quickstart" data-title-es="Inicio rápido">
+<div class="l-en">
+  <h1>Quickstart</h1>
+  <p class="lead">From install to an agent that knows you, in four steps.</p>
+  <h2>1. Open the dashboard</h2>
+  <pre>brain</pre>
+  <p>It opens <code>http://127.0.0.1:8765</code> and starts Ollama and Chroma if they aren't running. Keep it open while you use your agents; <b>Ctrl+C</b> closes it and stops only what it started.</p>
+  <h2>2. Connect your agents</h2>
+  <p><b>Connect agent</b> tab → <i>Connect</i> on Claude Desktop, ChatGPT, Claude Code, Cursor or whichever you use. brain adds its entry to that app's config (with a backup). Restart the app. Details in <a href="#agents">Connecting agents</a>.</p>
+  <h2>3. Tell it who you are</h2>
+  <p><b>Profile</b> tab → fill in <i>About you</i>. Then <i>Import memory</i>: pick the chatbot you use today, copy the prompt, paste it in that chatbot, and paste its answer back. You get a preview before anything is saved.</p>
+  <h2>4. Try it</h2>
+  <p>In any connected agent:</p>
+  <pre>What do you know about me according to brain?</pre>
+  <pre>Save this URL to brain: https://example.com/some-article</pre>
+  <pre>I moved from Palermo to Núñez — update my memory.</pre>
+  <p>The last one uses <code>add_memory</code> with <code>supersede</code>: the old fact isn't deleted, it moves to the history of that memory file with the date. See <a href="#memory">Memory</a>.</p>
+</div>
+<div class="l-es">
+  <h1>Inicio rápido</h1>
+  <p class="lead">De la instalación a un agente que te conoce, en cuatro pasos.</p>
+  <h2>1. Abrí el dashboard</h2>
+  <pre>brain</pre>
+  <p>Abre <code>http://127.0.0.1:8765</code> y prende Ollama y Chroma si no están corriendo. Dejalo abierto mientras usás tus agentes; <b>Ctrl+C</b> lo cierra y apaga solo lo que prendió él.</p>
+  <h2>2. Conectá tus agentes</h2>
+  <p>Pestaña <b>Conectar agente</b> → <i>Conectar</i> en Claude Desktop, ChatGPT, Claude Code, Cursor o el que uses. brain agrega su entrada a la config de esa app (con backup). Reiniciá la app. Detalles en <a href="#agents">Conectar agentes</a>.</p>
+  <h2>3. Contale quién sos</h2>
+  <p>Pestaña <b>Perfil</b> → completá <i>Sobre vos</i>. Después <i>Importar memoria</i>: elegí el chatbot que usás hoy, copiá el prompt, pegalo en ese chatbot y pegá la respuesta de vuelta. Ves una previsualización antes de guardar nada.</p>
+  <h2>4. Probalo</h2>
+  <p>En cualquier agente conectado:</p>
+  <pre>¿Qué sabés de mí según brain?</pre>
+  <pre>Guardá esta URL en brain: https://example.com/un-articulo</pre>
+  <pre>Me mudé de Palermo a Núñez: actualizá mi memoria.</pre>
+  <p>La última usa <code>add_memory</code> con <code>supersede</code>: el hecho viejo no se borra, pasa al historial de ese archivo de memoria con la fecha. Ver <a href="#memory">Memoria</a>.</p>
+</div>
+</section>
+
+<!-- ============================ CORE CONCEPTS ============================ -->
+<section class="page" id="vault" data-group-en="Core concepts" data-group-es="Conceptos" data-title-en="The vault" data-title-es="El vault">
+<div class="l-en">
+  <h1>The vault</h1>
+  <p class="lead">Plain Markdown files with YAML frontmatter in <code>~/.brain/vault/</code>. It's created from a template the first time brain starts.</p>
+  <h2>Layout</h2>
+  <table>
+    <tr><th>Path</th><th>What goes there</th></tr>
+    <tr><td><code>BRAIN.md</code></td><td>A short index agents read first. Not content: just where each thing is.</td></tr>
+    <tr><td><code>profile.md</code></td><td>Your profile (name, headline, about you).</td></tr>
+    <tr><td><code>memory/</code></td><td>One file per category ("Work", "Preferences"…), one fact per bullet.</td></tr>
+    <tr><td><code>projects/</code></td><td>Notes about your projects.</td></tr>
+    <tr><td><code>skills/</code></td><td>Reusable instructions agents can load with <code>get_skill</code>.</td></tr>
+    <tr><td><code>knowledge/sources/</code></td><td>The full text of every saved URL.</td></tr>
+    <tr><td><code>knowledge/connections/</code>, <code>knowledge/composio/</code></td><td>Results captured from your <a href="#connections">connections</a>.</td></tr>
+  </table>
+  <h2>Frontmatter</h2>
+  <p>Every note starts with a YAML block. <code>name</code> and <code>description</code> are expected; the description is what <code>list_vault</code> and the graph show.</p>
+  <pre>---
+name: online-store
+description: Next.js store, launch at the end of the month
+tags: [work, nextjs]
+related: [pricing-that-converts]
+---
+# Online store
+
+Uses the ideas from [[pricing-that-converts]].</pre>
+  <p>Fields brain writes on its own: <code>chroma_ids</code> (chunk ids of a source), <code>abstract</code> (summary of long sources), <code>entities</code> (names mentioned, for the graph), <code>url</code>, <code>scraped_at</code>, and in memory files <code>category</code>, <code>sources</code> and <code>related</code>.</p>
+  <h2>Linking notes</h2>
+  <ul>
+    <li><code>[[name]]</code> in the text links to another note.</li>
+    <li><code>tags: [a, b]</code> groups notes under shared tag nodes.</li>
+    <li><code>related: [name]</code> relates notes without a link in the text.</li>
+  </ul>
+  <h2>Frontmatter validation</h2>
+  <p>Every write checks the YAML. If an agent writes something that breaks it (usually an unquoted <code>:</code> in a description), brain quotes the value automatically. If it can't be repaired, the write is rejected with a clear error. Use <code>set_frontmatter</code> to change metadata without rewriting the note.</p>
+  <h2>Path safety</h2>
+  <p>Tools reject empty and absolute paths, <code>..</code>, hidden files and symlinks that point outside the vault. Agents can't read or write anything else on your disk through brain.</p>
+</div>
+<div class="l-es">
+  <h1>El vault</h1>
+  <p class="lead">Archivos Markdown comunes con frontmatter YAML en <code>~/.brain/vault/</code>. Se crea desde una plantilla la primera vez que arranca brain.</p>
+  <h2>Estructura</h2>
+  <table>
+    <tr><th>Path</th><th>Qué va ahí</th></tr>
+    <tr><td><code>BRAIN.md</code></td><td>Un índice corto que los agentes leen primero. No es contenido: solo dónde está cada cosa.</td></tr>
+    <tr><td><code>profile.md</code></td><td>Tu perfil (nombre, en una línea, sobre vos).</td></tr>
+    <tr><td><code>memory/</code></td><td>Un archivo por categoría ("Trabajo", "Preferencias"…), un hecho por viñeta.</td></tr>
+    <tr><td><code>projects/</code></td><td>Notas sobre tus proyectos.</td></tr>
+    <tr><td><code>skills/</code></td><td>Instrucciones reutilizables que los agentes cargan con <code>get_skill</code>.</td></tr>
+    <tr><td><code>knowledge/sources/</code></td><td>El texto completo de cada URL guardada.</td></tr>
+    <tr><td><code>knowledge/connections/</code>, <code>knowledge/composio/</code></td><td>Resultados capturados de tus <a href="#connections">conexiones</a>.</td></tr>
+  </table>
+  <h2>Frontmatter</h2>
+  <p>Cada nota empieza con un bloque YAML. Se esperan <code>name</code> y <code>description</code>; la description es lo que muestran <code>list_vault</code> y el grafo.</p>
+  <pre>---
+name: tienda-online
+description: Tienda en Next.js, lanzamiento a fin de mes
+tags: [trabajo, nextjs]
+related: [precios-que-convierten]
+---
+# Tienda online
+
+Usa las ideas de [[precios-que-convierten]].</pre>
+  <p>Campos que escribe brain solo: <code>chroma_ids</code> (ids de los chunks de una fuente), <code>abstract</code> (resumen de fuentes largas), <code>entities</code> (nombres mencionados, para el grafo), <code>url</code>, <code>scraped_at</code>, y en los archivos de memoria <code>category</code>, <code>sources</code> y <code>related</code>.</p>
+  <h2>Relacionar notas</h2>
+  <ul>
+    <li><code>[[nombre]]</code> en el texto enlaza otra nota.</li>
+    <li><code>tags: [a, b]</code> agrupa notas bajo nodos de tag compartidos.</li>
+    <li><code>related: [nombre]</code> relaciona notas sin un link en el texto.</li>
+  </ul>
+  <h2>Validación del frontmatter</h2>
+  <p>Cada escritura revisa el YAML. Si un agente escribe algo que lo rompe (típicamente un <code>:</code> sin comillas en una description), brain pone el valor entre comillas solo. Si no se puede reparar, la escritura se rechaza con un error claro. Usá <code>set_frontmatter</code> para cambiar metadatos sin reescribir la nota.</p>
+  <h2>Seguridad de paths</h2>
+  <p>Las tools rechazan paths vacíos o absolutos, <code>..</code>, archivos ocultos y symlinks que salgan del vault. Los agentes no pueden leer ni escribir nada más de tu disco a través de brain.</p>
+</div>
+</section>
+
+<section class="page" id="memory" data-group-en="Core concepts" data-group-es="Conceptos" data-title-en="Memory" data-title-es="Memoria">
+<div class="l-en">
+  <h1>Memory</h1>
+  <p class="lead">What your agents know about you: a profile you write, plus facts imported from other chatbots or saved by agents as they learn them. Facts are dated, and when one changes the old version is kept.</p>
+  <h2>Profile</h2>
+  <p><code>profile.md</code> holds your name, a one-line headline and a free "about me". Edit it in the <b>Profile</b> tab. Agents are told to read it first.</p>
+  <h2>Memory files</h2>
+  <p>Each category is one file in <code>memory/</code> with one fact per bullet. Every active fact carries the date it was saved, as an HTML comment at the end of the line (invisible when reading the note):</p>
+  <pre>---
+name: about-me
+description: Memoria · About me (2)
+category: About me
+sources: [chatgpt, claude]
+related: [online-store]
+entities: [Palermo, Next.js]
+---
+# About me
+
+- Lives in Núñez &lt;!-- since:2026-09-28 --&gt;
+- Building an online store in Next.js &lt;!-- since:2026-09-20 --&gt;
+
+## Historial
+
+- Lives in Palermo (since 2026-03-02, superado el 2026-09-28, ver: "Lives in Núñez")</pre>
+  <p>If a fact names one of your projects, skills or sources, the category is related to it automatically (<code>related</code>) and shows up connected in the graph.</p>
+  <h2>Saving facts: add_memory</h2>
+  <p>Agents call <code>add_memory(fact, category?)</code> whenever they learn something durable about you. Duplicates are ignored (comparison ignores case, accents and punctuation).</p>
+  <h2>When a fact changes: supersede</h2>
+  <p>If the new fact replaces an old one (you moved, changed jobs, switched tools), the agent passes the old text in <code>supersede</code>:</p>
+  <pre>add_memory("Lives in Núñez", "About me", supersede="Lives in Palermo")</pre>
+  <ul>
+    <li>The old fact isn't deleted: it moves to a <code>## Historial</code> section at the end of its file, with the date it stopped being true and what replaced it.</li>
+    <li>The match is the same as the duplicate check; if there's no exact match, a fact that contains the text (or is contained in it) is used when there's exactly one. It looks in the same category first, then in the others.</li>
+    <li>If nothing matches, the new fact is saved anyway and the answer includes a warning.</li>
+    <li>Agents only see active facts when they read your memory; the history stays in the file (<code>read_file</code>) and in <code>memory_history(category)</code>.</li>
+  </ul>
+  <h2>Importing from other chatbots</h2>
+  <p><b>Profile</b> tab → <i>Import memory</i>. Pick Claude, ChatGPT, Gemini or other, copy the prompt (it asks the chatbot for everything it remembers, grouped as <code>## Category</code> / <code>- fact</code>) and paste the answer. The parser also accepts plain lists, bold labels, numbered lists and JSON, strips date prefixes and drops the chatbot's intro line. You can remove items in the preview before importing.</p>
+</div>
+<div class="l-es">
+  <h1>Memoria</h1>
+  <p class="lead">Lo que tus agentes saben de vos: un perfil que escribís vos, más hechos importados de otros chatbots o guardados por los agentes a medida que los aprenden. Los hechos llevan fecha, y cuando uno cambia se conserva la versión vieja.</p>
+  <h2>Perfil</h2>
+  <p><code>profile.md</code> guarda tu nombre, una línea que te describe y un "sobre mí" libre. Se edita en la pestaña <b>Perfil</b>. Los agentes tienen la instrucción de leerlo primero.</p>
+  <h2>Archivos de memoria</h2>
+  <p>Cada categoría es un archivo en <code>memory/</code> con un hecho por viñeta. Cada hecho activo lleva la fecha en que se guardó, como comentario HTML al final de la línea (no se ve al leer la nota):</p>
+  <pre>---
+name: sobre-mi
+description: Memoria · Sobre mí (2)
+category: Sobre mí
+sources: [chatgpt, claude]
+related: [tienda-online]
+entities: [Palermo, Next.js]
+---
+# Sobre mí
+
+- Vive en Núñez &lt;!-- since:2026-09-28 --&gt;
+- Está armando una tienda online en Next.js &lt;!-- since:2026-09-20 --&gt;
+
+## Historial
+
+- Vive en Palermo (desde 2026-03-02, superado el 2026-09-28, ver: "Vive en Núñez")</pre>
+  <p>Si un hecho nombra uno de tus proyectos, skills o fuentes, la categoría queda relacionada sola (<code>related</code>) y aparece conectada en el grafo.</p>
+  <h2>Guardar hechos: add_memory</h2>
+  <p>Los agentes llaman a <code>add_memory(fact, category?)</code> cuando aprenden algo duradero sobre vos. Los duplicados se ignoran (la comparación no distingue mayúsculas, acentos ni puntuación).</p>
+  <h2>Cuando un hecho cambia: supersede</h2>
+  <p>Si el hecho nuevo reemplaza a uno viejo (te mudaste, cambiaste de trabajo o de herramienta), el agente pasa el texto viejo en <code>supersede</code>:</p>
+  <pre>add_memory("Vive en Núñez", "Sobre mí", supersede="Vive en Palermo")</pre>
+  <ul>
+    <li>El hecho viejo no se borra: pasa a una sección <code>## Historial</code> al final de su archivo, con la fecha en que dejó de valer y qué lo reemplazó.</li>
+    <li>La coincidencia es la misma que la de los duplicados; si no hay una exacta, se usa el único hecho que contiene el texto (o está contenido en él). Busca primero en la misma categoría y después en las demás.</li>
+    <li>Si no coincide nada, el hecho nuevo se guarda igual y la respuesta trae un aviso.</li>
+    <li>Al leer tu memoria, los agentes ven solo los hechos activos; el historial queda en el archivo (<code>read_file</code>) y en <code>memory_history(category)</code>.</li>
+  </ul>
+  <h2>Importar de otros chatbots</h2>
+  <p>Pestaña <b>Perfil</b> → <i>Importar memoria</i>. Elegí Claude, ChatGPT, Gemini u otro, copiá el prompt (le pide al chatbot todo lo que recuerda, agrupado como <code>## Categoría</code> / <code>- dato</code>) y pegá la respuesta. El parser también acepta listas planas, etiquetas en negrita, listas numeradas y JSON, saca prefijos de fecha y descarta la línea de introducción del chatbot. En la previsualización podés sacar ítems antes de importar.</p>
+</div>
+</section>
+
+<section class="page" id="search" data-group-en="Core concepts" data-group-es="Conceptos" data-title-en="Saving and search" data-title-es="Guardar y buscar">
+<div class="l-en">
+  <h1>Saving and search</h1>
+  <p class="lead">Save any web page, then find it by meaning or by exact words. Search is hybrid: semantic and keyword results are merged into one list.</p>
+  <h2>Saving a URL</h2>
+  <p><code>save_url(url, render_js?)</code>, or the <b>Knowledge</b> tab:</p>
+  <ol>
+    <li><a href="https://trafilatura.readthedocs.io">trafilatura</a> downloads the page and extracts clean text.</li>
+    <li>If it gets fewer than 30 words (typical of JavaScript-built sites) or the download fails, the page is rendered in headless Chromium with Playwright and extracted again. <code>render_js=True</code> goes straight to Chromium.</li>
+    <li>The text is split into ~500-word chunks with a 50-word overlap.</li>
+    <li>Each chunk is embedded with Ollama (<code>nomic-embed-text</code>) and stored in Chroma, and also written to the keyword index.</li>
+    <li>If a chat model is installed: pages over 800 words get a short <code>abstract</code>, and the names they mention go to <code>entities</code>.</li>
+    <li><code>knowledge/sources/&lt;slug&gt;.md</code> is written with the full text. Saving the same URL again updates it instead of duplicating it.</li>
+  </ol>
+  <h2>How search works</h2>
+  <p><code>search_knowledge(query, top_k?)</code> runs two searches and fuses them:</p>
+  <table>
+    <tr><th>Search</th><th>Good at</th><th>Engine</th></tr>
+    <tr><td>Semantic</td><td>Topics and paraphrases: "how to price a product" finds "pricing that converts"</td><td>Chroma + Ollama embeddings</td></tr>
+    <tr><td>Keyword</td><td>Proper names, IDs, numbers, dates, error codes</td><td>SQLite FTS5 with BM25 (<code>data/search.sqlite3</code>)</td></tr>
+  </table>
+  <p>Each side returns 3× <code>top_k</code> candidates, and they're merged with <b>reciprocal rank fusion</b>: every chunk scores <code>Σ 1 / (60 + rank)</code> over the lists it appears in. Chunks found by both rise to the top.</p>
+  <p>Each result has <code>text</code>, <code>url</code>, <code>source_md_path</code>, <code>score</code> (semantic similarity 0–1, or <code>null</code> if only the keyword search found it) and <code>match</code> (<code>both</code>, <code>semantic</code> or <code>keyword</code>). The keyword index ignores case and accents: "nunez" finds "Núñez".</p>
+  <h2>When something is down</h2>
+  <p>If Chroma or Ollama isn't running, keyword search keeps working and the answer includes a note saying semantic search wasn't available. It only fails if both are unavailable.</p>
+  <h2>Rebuilding the keyword index</h2>
+  <p>Sources saved before v0.02.5 aren't in the keyword index. Run <code>reindex_keyword_search()</code> (or <i>Rebuild keyword index</i> in the Knowledge tab): it rebuilds the index from the <code>.md</code> files in <code>knowledge/</code> without scraping or embedding anything again.</p>
+  <h2>Summaries</h2>
+  <p><code>list_sources()</code> returns each source's <code>abstract</code>, so an agent can decide whether a long page is worth reading in full. Summaries are best-effort: if Ollama doesn't answer, the source is saved without one.</p>
+</div>
+<div class="l-es">
+  <h1>Guardar y buscar</h1>
+  <p class="lead">Guardá cualquier página web y después encontrala por significado o por palabras exactas. La búsqueda es híbrida: los resultados semánticos y por palabra se juntan en una sola lista.</p>
+  <h2>Guardar una URL</h2>
+  <p><code>save_url(url, render_js?)</code>, o la pestaña <b>Conocimiento</b>:</p>
+  <ol>
+    <li><a href="https://trafilatura.readthedocs.io">trafilatura</a> baja la página y extrae el texto limpio.</li>
+    <li>Si saca menos de 30 palabras (típico de sitios hechos con JavaScript) o falla la descarga, la página se renderiza en Chromium headless con Playwright y se extrae de nuevo. <code>render_js=True</code> va directo a Chromium.</li>
+    <li>El texto se parte en chunks de ~500 palabras con 50 de solapamiento.</li>
+    <li>Cada chunk se embebe con Ollama (<code>nomic-embed-text</code>) y se guarda en Chroma, y también en el índice por palabra.</li>
+    <li>Si hay un modelo de chat instalado: las páginas de más de 800 palabras llevan un <code>abstract</code> corto, y los nombres que mencionan van a <code>entities</code>.</li>
+    <li>Se escribe <code>knowledge/sources/&lt;slug&gt;.md</code> con el texto completo. Guardar la misma URL de nuevo la actualiza en vez de duplicarla.</li>
+  </ol>
+  <h2>Cómo funciona la búsqueda</h2>
+  <p><code>search_knowledge(query, top_k?)</code> corre dos búsquedas y las fusiona:</p>
+  <table>
+    <tr><th>Búsqueda</th><th>Sirve para</th><th>Motor</th></tr>
+    <tr><td>Semántica</td><td>Temas y paráfrasis: "cómo ponerle precio a un producto" encuentra "precios que convierten"</td><td>Chroma + embeddings de Ollama</td></tr>
+    <tr><td>Por palabra</td><td>Nombres propios, IDs, números, fechas, códigos de error</td><td>SQLite FTS5 con BM25 (<code>data/search.sqlite3</code>)</td></tr>
+  </table>
+  <p>Cada lado devuelve 3× <code>top_k</code> candidatos, y se fusionan con <b>reciprocal rank fusion</b>: cada chunk suma <code>Σ 1 / (60 + posición)</code> en las listas donde aparece. Los que encuentran las dos suben arriba.</p>
+  <p>Cada resultado trae <code>text</code>, <code>url</code>, <code>source_md_path</code>, <code>score</code> (similitud semántica 0–1, o <code>null</code> si solo lo encontró la búsqueda por palabra) y <code>match</code> (<code>both</code>, <code>semantic</code> o <code>keyword</code>). El índice por palabra ignora mayúsculas y acentos: "nunez" encuentra "Núñez".</p>
+  <h2>Cuando algo está caído</h2>
+  <p>Si Chroma u Ollama no están corriendo, la búsqueda por palabra sigue funcionando y la respuesta trae una nota que avisa que la semántica no estaba disponible. Solo falla si no está ninguna de las dos.</p>
+  <h2>Reconstruir el índice por palabra</h2>
+  <p>Las fuentes guardadas antes de v0.02.5 no están en el índice por palabra. Corré <code>reindex_keyword_search()</code> (o <i>Reindexar búsqueda por palabra</i> en Conocimiento): reconstruye el índice desde los <code>.md</code> de <code>knowledge/</code> sin volver a scrapear ni embeber nada.</p>
+  <h2>Resúmenes</h2>
+  <p><code>list_sources()</code> devuelve el <code>abstract</code> de cada fuente, así un agente decide si vale la pena leer entera una página larga. Los resúmenes son best-effort: si Ollama no responde, la fuente se guarda sin él.</p>
+</div>
+</section>
+
+<section class="page" id="graph" data-group-en="Core concepts" data-group-es="Conceptos" data-title-en="The graph" data-title-es="El grafo">
+<div class="l-en">
+  <h1>The graph</h1>
+  <p class="lead">An interactive map of the vault: how your profile, memories, projects, skills, sources, tags and entities connect.</p>
+  <h2>Node types</h2>
+  <p>The graph is black and white by default; types differ by fill, outline and stroke. <b>Settings</b> (gear icon in the sidebar) lets you give each type its own color.</p>
+  <table>
+    <tr><th>Type</th><th>What it is</th></tr>
+    <tr><td>Brain</td><td><code>BRAIN.md</code>, the hub</td></tr>
+    <tr><td>Profile</td><td><code>profile.md</code>, thick ring, labeled with your name</td></tr>
+    <tr><td>Memory</td><td>A memory category (hollow)</td></tr>
+    <tr><td>Projects, Skills, Notes</td><td>Files in those folders</td></tr>
+    <tr><td>Sources</td><td>Saved pages and captures (dashed outline)</td></tr>
+    <tr><td>Folders, Tags</td><td>Folder hierarchy and <code>tags:</code></td></tr>
+    <tr><td>Entities</td><td>A person, place, organization or project named in <code>entities</code> (small, dotted ring)</td></tr>
+  </table>
+  <h2>How links are found</h2>
+  <p>In order of strength (only the strongest is drawn per pair of nodes): <code>[[wikilinks]]</code> and Markdown links → memory under the profile → <code>related:</code> → shared entities → paths mentioned in backticks → tags → folders.</p>
+  <h2>Entities</h2>
+  <p>When a source, a capture or a memory file is saved, the local chat model lists the names it mentions and they go to <code>entities</code> in the frontmatter. Each entity becomes a node, so two notes that mention the same person or project end up connected through it, even if nobody linked them. It's best-effort: without a chat model in Ollama, notes are saved without entities, and <a href="#reflect-skills">Reflect</a> lists the ones missing them.</p>
+  <h2>Controls</h2>
+  <ul>
+    <li>Click a node to see its content and connections in the side panel; <code>[[links]]</code> are clickable.</li>
+    <li>Filter by type with the chips, search by name.</li>
+    <li>Zoom in/out and re-center with the buttons at the bottom right, the <code>+</code>/<code>-</code>/<code>0</code> keys, or double-click the background.</li>
+  </ul>
+</div>
+<div class="l-es">
+  <h1>El grafo</h1>
+  <p class="lead">Un mapa interactivo del vault: cómo se conectan tu perfil, memorias, proyectos, skills, fuentes, tags y entidades.</p>
+  <h2>Tipos de nodo</h2>
+  <p>Por defecto el grafo es blanco y negro; los tipos se distinguen por relleno, contorno y trazo. En <b>Ajustes</b> (engranaje del sidebar) podés darle un color a cada tipo.</p>
+  <table>
+    <tr><th>Tipo</th><th>Qué es</th></tr>
+    <tr><td>Brain</td><td><code>BRAIN.md</code>, el centro</td></tr>
+    <tr><td>Perfil</td><td><code>profile.md</code>, anillo grueso, con tu nombre</td></tr>
+    <tr><td>Memoria</td><td>Una categoría de memoria (hueca)</td></tr>
+    <tr><td>Proyectos, Skills, Notas</td><td>Archivos de esas carpetas</td></tr>
+    <tr><td>Fuentes</td><td>Páginas guardadas y capturas (contorno punteado)</td></tr>
+    <tr><td>Carpetas, Tags</td><td>Jerarquía de carpetas y <code>tags:</code></td></tr>
+    <tr><td>Entidades</td><td>Una persona, lugar, organización o proyecto nombrado en <code>entities</code> (chico, anillo de puntos)</td></tr>
+  </table>
+  <h2>Cómo se encuentran las relaciones</h2>
+  <p>De más fuerte a más débil (se dibuja solo la más fuerte por par de nodos): <code>[[wikilinks]]</code> y links Markdown → memoria bajo el perfil → <code>related:</code> → entidades compartidas → paths mencionados entre backticks → tags → carpetas.</p>
+  <h2>Entidades</h2>
+  <p>Al guardar una fuente, una captura o un archivo de memoria, el modelo de chat local lista los nombres que menciona y van a <code>entities</code> en el frontmatter. Cada entidad es un nodo, así dos notas que nombran a la misma persona o proyecto quedan conectadas por él aunque nadie las haya enlazado. Es best-effort: sin un modelo de chat en Ollama, las notas se guardan sin entidades, y <a href="#reflect-skills">Reflect</a> lista las que les faltan.</p>
+  <h2>Controles</h2>
+  <ul>
+    <li>Click en un nodo para ver su contenido y conexiones en el panel lateral; los <code>[[links]]</code> se pueden clickear.</li>
+    <li>Filtrá por tipo con los chips y buscá por nombre.</li>
+    <li>Acercá, alejá y volvé al centro con los botones de abajo a la derecha, las teclas <code>+</code>/<code>-</code>/<code>0</code>, o doble click en el fondo.</li>
+  </ul>
+</div>
+</section>
+
+<section class="page" id="history" data-group-en="Core concepts" data-group-es="Conceptos" data-title-en="Version history" data-title-es="Historial de versiones">
+<div class="l-en">
+  <h1>Version history</h1>
+  <p class="lead">Every write and every delete stores the file's previous and new content. Any file can go back to any earlier version, including files that were deleted.</p>
+  <h2>How it works</h2>
+  <p>The history lives in <code>data/history.sqlite3</code> (table <code>changes</code>: id, timestamp, operation, path, before, after). It doesn't use git, so the app's repo never carries your data or a nested repository.</p>
+  <p>Several processes write at the same time (one <code>server.py</code> per agent, plus the dashboard). Every write takes a file lock on <code>data/.vault.lock</code> that covers read, write and history, and SQLite runs in WAL mode.</p>
+  <h2>Restoring</h2>
+  <pre>file_history("projects/online-store.md")
+# → [{"id": 42, "ts": "2026-09-28T14:03:11Z", "op": "edit", …}, …]
+
+restore_file("projects/online-store.md", 41)</pre>
+  <p>The restore is itself recorded, so it can be undone too. Operations: <code>create</code>, <code>update</code>, <code>edit</code>, <code>append</code>, <code>delete</code>, <code>restore</code>.</p>
+</div>
+<div class="l-es">
+  <h1>Historial de versiones</h1>
+  <p class="lead">Cada escritura y cada borrado guardan el contenido anterior y el nuevo del archivo. Cualquier archivo puede volver a cualquier versión anterior, incluso si se borró.</p>
+  <h2>Cómo funciona</h2>
+  <p>El historial vive en <code>data/history.sqlite3</code> (tabla <code>changes</code>: id, fecha, operación, path, antes, después). No usa git, así que el repo de la app nunca arrastra tus datos ni un repositorio anidado.</p>
+  <p>Varios procesos escriben a la vez (un <code>server.py</code> por agente, más el dashboard). Cada escritura toma un lock de archivo sobre <code>data/.vault.lock</code> que cubre leer, escribir y registrar, y SQLite corre en modo WAL.</p>
+  <h2>Restaurar</h2>
+  <pre>file_history("projects/tienda-online.md")
+# → [{"id": 42, "ts": "2026-09-28T14:03:11Z", "op": "edit", …}, …]
+
+restore_file("projects/tienda-online.md", 41)</pre>
+  <p>La restauración también queda registrada, así que se puede deshacer. Operaciones: <code>create</code>, <code>update</code>, <code>edit</code>, <code>append</code>, <code>delete</code>, <code>restore</code>.</p>
+</div>
+</section>
+
+<!-- ============================ USING BRAIN ============================ -->
+<section class="page" id="dashboard" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Dashboard" data-title-es="Dashboard">
+<div class="l-en">
+  <h1>Dashboard</h1>
+  <p class="lead">The local web app at <code>http://127.0.0.1:8765</code>, opened with <code>brain</code>. English or Spanish, light, dark or system theme.</p>
+  <h2>Tabs</h2>
+  <table>
+    <tr><th>Tab</th><th>What it's for</th></tr>
+    <tr><td>Dashboard</td><td>Switches for Chroma, Ollama and the MCP Inspector; vault metrics, 30-day activity, sources by domain, system health, recent changes.</td></tr>
+    <tr><td>Chat</td><td>A local Ollama model with your memory as context and the same tools as your agents. See <a href="#chat">Chat</a>.</td></tr>
+    <tr><td>Profile</td><td>Your profile, your memory (filterable, delete per item), the memory importer and <b>Reflect</b>.</td></tr>
+    <tr><td>Connect agent</td><td>One-click connect/disconnect for each supported agent, manual config for anything else, and <b>My connections</b>.</td></tr>
+    <tr><td>Connections</td><td>Other MCP servers brain uses for you. See <a href="#connections">Connections</a>.</td></tr>
+    <tr><td>Graph</td><td>The <a href="#graph">graph</a>.</td></tr>
+    <tr><td>Knowledge</td><td>Save a URL, hybrid search, rebuild the keyword index, list of sources.</td></tr>
+    <tr><td>Logs</td><td>Live output of every service the dashboard manages.</td></tr>
+  </table>
+  <h2>Services</h2>
+  <p>Each service has a state: <b>Running</b>, <b>Starting</b>, <b>External</b>, <b>Off</b> or <b>Error</b>. When the dashboard starts it turns on Ollama and Chroma if they're off. If one was already running outside the dashboard (for example the Ollama menu-bar app) it shows as <b>External</b>, its switch is locked and the dashboard never stops it. Ctrl+C stops only what the dashboard started.</p>
+  <h2>Sidebar</h2>
+  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language and <b>Settings</b> (graph colors). Preferences are stored in the browser (<code>localStorage</code>).</p>
+</div>
+<div class="l-es">
+  <h1>Dashboard</h1>
+  <p class="lead">La web local en <code>http://127.0.0.1:8765</code>, que se abre con <code>brain</code>. En español o inglés, con tema claro, oscuro o el del sistema.</p>
+  <h2>Pestañas</h2>
+  <table>
+    <tr><th>Pestaña</th><th>Para qué sirve</th></tr>
+    <tr><td>Panel</td><td>Switches de Chroma, Ollama y el Inspector MCP; métricas del vault, actividad de 30 días, fuentes por dominio, salud del sistema, últimos cambios.</td></tr>
+    <tr><td>Chat</td><td>Un modelo local de Ollama con tu memoria como contexto y las mismas tools que tus agentes. Ver <a href="#chat">Chat</a>.</td></tr>
+    <tr><td>Perfil</td><td>Tu perfil, tu memoria (filtrable, se borra por ítem), el importador y <b>Reflect</b>.</td></tr>
+    <tr><td>Conectar agente</td><td>Conectar y desconectar cada agente soportado en un click, config manual para cualquier otro, y <b>Mis conexiones</b>.</td></tr>
+    <tr><td>Conexiones</td><td>Otros servers MCP que brain usa por vos. Ver <a href="#connections">Conexiones</a>.</td></tr>
+    <tr><td>Grafo</td><td>El <a href="#graph">grafo</a>.</td></tr>
+    <tr><td>Conocimiento</td><td>Guardar una URL, búsqueda híbrida, reindexar la búsqueda por palabra, lista de fuentes.</td></tr>
+    <tr><td>Logs</td><td>Salida en vivo de cada servicio que maneja el dashboard.</td></tr>
+  </table>
+  <h2>Servicios</h2>
+  <p>Cada servicio tiene un estado: <b>Corriendo</b>, <b>Iniciando</b>, <b>Externo</b>, <b>Apagado</b> o <b>Error</b>. Al arrancar, el dashboard prende Ollama y Chroma si están apagados. Si uno ya corría por fuera (por ejemplo la app de Ollama) aparece como <b>Externo</b>, con el switch bloqueado, y el dashboard nunca lo apaga. Ctrl+C apaga solo lo que prendió él.</p>
+  <h2>Sidebar</h2>
+  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma y <b>Ajustes</b> (colores del grafo). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
+</div>
+</section>
+
+<section class="page" id="chat" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Chat" data-title-es="Chat">
+<div class="l-en">
+  <h1>Chat</h1>
+  <p class="lead">Talk to a local Ollama model that already knows your profile and memory, and can look things up and edit your vault with the same tools your agents have.</p>
+  <h2>Context</h2>
+  <p>The system prompt includes <code>profile.md</code>, all your active memories (up to ~12k characters), <code>BRAIN.md</code> and the fragments of past chats most similar to your question.</p>
+  <h2>Tools</h2>
+  <p>The chat gets exactly the tools your agents get, including your connections'. Every call is listed under the answer; expand it to see the arguments and the result. Up to 6 rounds of tool calls per answer.</p>
+  <p>Models that can't take native tools (common with GGUF models pulled from Hugging Face, which fail with "Unable to generate parser for this template") switch to <b>text mode</b>: the tools are described in the prompt and the model asks for them with <code>&lt;tool_call&gt;{…}&lt;/tool_call&gt;</code>. The mode is remembered per model while the dashboard runs.</p>
+  <h2>History and floating window</h2>
+  <p>Chats are stored in Chroma (collection <code>chats</code>) with embeddings, so past conversations feed the context of new ones. Without Chroma the chat works but isn't saved. <b>Float</b> opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere).</p>
+  <h2>Choosing a model</h2>
+  <p>The selector lists your installed chat models. Without any, click <i>Download llama3.2</i>. Small models sometimes don't follow the tool format; larger ones (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) do better.</p>
+</div>
+<div class="l-es">
+  <h1>Chat</h1>
+  <p class="lead">Hablá con un modelo local de Ollama que ya conoce tu perfil y tu memoria, y que puede consultar y editar tu vault con las mismas tools que tus agentes.</p>
+  <h2>Contexto</h2>
+  <p>El system prompt incluye <code>profile.md</code>, todas tus memorias activas (hasta ~12k caracteres), <code>BRAIN.md</code> y los fragmentos de chats anteriores más parecidos a tu pregunta.</p>
+  <h2>Tools</h2>
+  <p>El chat recibe exactamente las tools de tus agentes, incluidas las de tus conexiones. Cada llamada aparece debajo de la respuesta; desplegala para ver los argumentos y el resultado. Hasta 6 vueltas de tools por respuesta.</p>
+  <p>Los modelos que no aceptan tools nativas (típico de GGUF bajados de Hugging Face, que fallan con "Unable to generate parser for this template") pasan al <b>modo texto</b>: las tools van descritas en el prompt y el modelo las pide con <code>&lt;tool_call&gt;{…}&lt;/tool_call&gt;</code>. El modo se recuerda por modelo mientras corre el dashboard.</p>
+  <h2>Historial y ventana flotante</h2>
+  <p>Los chats se guardan en Chroma (colección <code>chats</code>) con embeddings, así las conversaciones anteriores alimentan el contexto de las nuevas. Sin Chroma el chat funciona pero no se guarda. <b>Ventana flotante</b> abre el chat en una ventana siempre visible (Document Picture-in-Picture en Chrome, Edge y Arc; una ventana emergente común en el resto).</p>
+  <h2>Elegir un modelo</h2>
+  <p>El selector lista tus modelos de chat instalados. Si no hay ninguno, tocá <i>Descargar llama3.2</i>. Los modelos chicos a veces no siguen el formato de tools; los más grandes (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) andan mejor.</p>
+</div>
+</section>
+
+<section class="page" id="agents" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Connecting agents" data-title-es="Conectar agentes">
+<div class="l-en">
+  <h1>Connecting agents</h1>
+  <p class="lead">Each agent keeps its list of MCP servers in its own file. <i>Connect</i> adds brain's entry without touching anything else, after saving a backup (<code>&lt;file&gt;.bak-brain</code>).</p>
+  <h2>Supported agents</h2>
+  <table>
+    <tr><th>Agent</th><th>Config</th><th>Notes</th></tr>
+    <tr><td>Claude Desktop</td><td><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></td><td>Claude rewrites this file when it quits, so it's edited with the app closed; the dashboard offers to quit, connect and reopen it.</td></tr>
+    <tr><td>ChatGPT (desktop)</td><td><code>~/.codex/config.toml</code></td><td>Works in Codex and ChatGPT Work modes; regular chat doesn't use local servers. Then <i>Settings → MCP servers → Restart</i>.</td></tr>
+    <tr><td>Claude Code</td><td><code>claude mcp add -s user</code></td><td>Available in all your projects.</td></tr>
+    <tr><td>Codex CLI</td><td><code>~/.codex/config.toml</code></td><td>Same file as ChatGPT.</td></tr>
+    <tr><td>Cursor</td><td><code>~/.cursor/mcp.json</code></td><td></td></tr>
+    <tr><td>VS Code (Copilot)</td><td><code>~/Library/Application Support/Code/User/mcp.json</code></td><td>If the file has comments (JSONC) it isn't rewritten; you get the snippet to paste.</td></tr>
+    <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td></td></tr>
+    <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
+  </table>
+  <p>All of them launch the same command with absolute paths, so they work from any folder:</p>
+  <pre>/Users/you/.local/bin/uv run --directory /Users/you/.brain python server.py</pre>
+  <h2>Apps with an "Add MCP server" form</h2>
+  <p>Choose <b>Run a command</b>, not "Connect to a URL": brain is a local (stdio) server and doesn't expose an MCP URL. Pointing an app at the dashboard's address returns <code>403</code>.</p>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>Name</td><td><code>brain</code></td></tr>
+    <tr><td>Command</td><td>absolute path to <code>uv</code> (<code>which uv</code>)</td></tr>
+    <tr><td>Arguments (one per line)</td><td><code>run</code>, <code>--directory</code>, <code>/Users/you/.brain</code>, <code>python</code>, <code>server.py</code></td></tr>
+  </table>
+  <p>The Connect agent tab shows these values filled in for your machine, with copy buttons.</p>
+  <h2>My connections</h2>
+  <p>Lists the agents brain configured, plus every app that has used brain: brain records the client name each app sends in the MCP handshake (<code>data/clients.json</code>), so apps you set up with a form appear the first time they use it. You can also note an app by hand.</p>
+</div>
+<div class="l-es">
+  <h1>Conectar agentes</h1>
+  <p class="lead">Cada agente guarda su lista de servers MCP en su propio archivo. <i>Conectar</i> agrega la entrada de brain sin tocar nada más, después de guardar un backup (<code>&lt;archivo&gt;.bak-brain</code>).</p>
+  <h2>Agentes soportados</h2>
+  <table>
+    <tr><th>Agente</th><th>Config</th><th>Notas</th></tr>
+    <tr><td>Claude Desktop</td><td><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></td><td>Claude reescribe este archivo al cerrarse, así que se edita con la app cerrada; el dashboard ofrece cerrarla, conectar y volver a abrirla.</td></tr>
+    <tr><td>ChatGPT (escritorio)</td><td><code>~/.codex/config.toml</code></td><td>Funciona en los modos Codex y ChatGPT Work; el chat común no usa servers locales. Después: <i>Settings → MCP servers → Restart</i>.</td></tr>
+    <tr><td>Claude Code</td><td><code>claude mcp add -s user</code></td><td>Disponible en todos tus proyectos.</td></tr>
+    <tr><td>Codex CLI</td><td><code>~/.codex/config.toml</code></td><td>El mismo archivo que ChatGPT.</td></tr>
+    <tr><td>Cursor</td><td><code>~/.cursor/mcp.json</code></td><td></td></tr>
+    <tr><td>VS Code (Copilot)</td><td><code>~/Library/Application Support/Code/User/mcp.json</code></td><td>Si el archivo tiene comentarios (JSONC) no se reescribe; te da el fragmento para pegar.</td></tr>
+    <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td></td></tr>
+    <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
+  </table>
+  <p>Todos lanzan el mismo comando con paths absolutos, así funcionan desde cualquier carpeta:</p>
+  <pre>/Users/vos/.local/bin/uv run --directory /Users/vos/.brain python server.py</pre>
+  <h2>Apps con formulario "Add MCP server"</h2>
+  <p>Elegí <b>Run a command</b>, no "Connect to a URL": brain es un server local (stdio) y no expone una URL MCP. Apuntar una app a la dirección del dashboard devuelve <code>403</code>.</p>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Nombre</td><td><code>brain</code></td></tr>
+    <tr><td>Comando</td><td>path absoluto de <code>uv</code> (<code>which uv</code>)</td></tr>
+    <tr><td>Argumentos (uno por línea)</td><td><code>run</code>, <code>--directory</code>, <code>/Users/vos/.brain</code>, <code>python</code>, <code>server.py</code></td></tr>
+  </table>
+  <p>La pestaña Conectar agente muestra estos valores completos para tu máquina, con botones de copiar.</p>
+  <h2>Mis conexiones</h2>
+  <p>Lista los agentes que configuró brain, más cada app que usó brain: brain anota el nombre de cliente que manda cada app en el handshake MCP (<code>data/clients.json</code>), así las apps que agregaste con un formulario aparecen la primera vez que lo usan. También podés anotar una app a mano.</p>
+</div>
+</section>
+
+<section class="page" id="connections" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Connections" data-title-es="Conexiones">
+<div class="l-en">
+  <h1>Connections</h1>
+  <p class="lead">brain is also an MCP client. Add other MCP servers (GitHub, Notion, Gmail…) and their tools show up in every agent you connected, with their results saved to your memory.</p>
+  <h2>Types</h2>
+  <ul>
+    <li><b>Local command</b> (recommended): an MCP server that runs on your Mac, e.g. <code>npx -y @modelcontextprotocol/server-github</code> with <code>GITHUB_TOKEN=…</code>. The token stays on your machine.</li>
+    <li><b>URL</b>: a remote MCP server, with optional headers (<code>Authorization: Bearer …</code>).</li>
+    <li><b>Composio</b> (optional): hundreds of apps through one connection. <b>Composio keeps your accounts' OAuth tokens in its own cloud.</b> A consumer key (<code>ck_…</code>) connects directly; a project key (<code>ak_…</code>) lets you pick auth configs and creates an MCP server through Composio's developer API.</li>
+  </ul>
+  <h2>Proxied tools</h2>
+  <p>Tools are re-exposed with the connection's prefix: <code>github__create_issue</code>, <code>composio__GMAIL_FETCH_EMAILS</code>. Turning a connection off removes its tools from your agents right away, without restarting anything. Each call opens a session with the origin server, runs, and closes it.</p>
+  <h2>Save to memory</h2>
+  <p>With the switch on, every result is written to <code>knowledge/connections/&lt;connection&gt;/…md</code> (or <code>knowledge/composio/&lt;app&gt;/…</code>) with the tool, arguments and time in its frontmatter, and indexed for semantic and keyword search. Long results get an <code>abstract</code>, and all get <code>entities</code> when a chat model is available. Capturing never breaks the call: without Chroma or Ollama the <code>.md</code> is saved anyway.</p>
+  <h2>Secrets</h2>
+  <p>Env values, headers and API keys go to <code>~/.brain/.env</code> (permissions <code>600</code>, gitignored); the config only stores references (<code>$env:KEY</code>). The dashboard never returns them.</p>
+</div>
+<div class="l-es">
+  <h1>Conexiones</h1>
+  <p class="lead">brain también es cliente MCP. Agregá otros servers MCP (GitHub, Notion, Gmail…) y sus tools aparecen en todos los agentes que conectaste, con sus resultados guardados en tu memoria.</p>
+  <h2>Tipos</h2>
+  <ul>
+    <li><b>Comando local</b> (recomendado): un server MCP que corre en tu Mac, por ejemplo <code>npx -y @modelcontextprotocol/server-github</code> con <code>GITHUB_TOKEN=…</code>. El token queda en tu máquina.</li>
+    <li><b>URL</b>: un server MCP remoto, con headers opcionales (<code>Authorization: Bearer …</code>).</li>
+    <li><b>Composio</b> (opcional): cientos de apps con una sola conexión. <b>Composio guarda los tokens OAuth de tus cuentas en su nube.</b> Una consumer key (<code>ck_…</code>) conecta directo; una key de proyecto (<code>ak_…</code>) te deja elegir auth configs y crea un server MCP con la API de desarrollador de Composio.</li>
+  </ul>
+  <h2>Tools proxeadas</h2>
+  <p>Las tools se re-exponen con el prefijo de la conexión: <code>github__create_issue</code>, <code>composio__GMAIL_FETCH_EMAILS</code>. Apagar una conexión saca sus tools de tus agentes en el momento, sin reiniciar nada. Cada llamada abre una sesión con el server de origen, ejecuta y la cierra.</p>
+  <h2>Guardar en memoria</h2>
+  <p>Con el switch prendido, cada resultado se escribe en <code>knowledge/connections/&lt;conexión&gt;/…md</code> (o <code>knowledge/composio/&lt;app&gt;/…</code>) con la tool, los argumentos y la hora en el frontmatter, y se indexa para la búsqueda semántica y por palabra. Los resultados largos llevan un <code>abstract</code>, y todos llevan <code>entities</code> si hay un modelo de chat. Capturar nunca rompe la llamada: sin Chroma u Ollama el <code>.md</code> se guarda igual.</p>
+  <h2>Secretos</h2>
+  <p>Los valores de env, headers y API keys van a <code>~/.brain/.env</code> (permisos <code>600</code>, en el gitignore); la config solo guarda referencias (<code>$env:CLAVE</code>). El dashboard nunca los devuelve.</p>
+</div>
+</section>
+
+<section class="page" id="reflect-skills" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Reflect and skills" data-title-es="Reflect y skills">
+<div class="l-en">
+  <h1>Reflect and skills</h1>
+  <p class="lead">Two ways to make stored memory more useful: Reflect reviews it and suggests fixes, and <code>distill_skill</code> turns everything on a topic into a reusable skill.</p>
+  <h2>Reflect</h2>
+  <p><b>Profile</b> tab → <i>Review my memory</i>. It looks for:</p>
+  <table>
+    <tr><th>Suggestion</th><th>When</th><th>Suggested action</th></tr>
+    <tr><td>Possible duplicate</td><td>The same fact (or nearly) in two places of <code>memory/</code></td><td>Remove one (Profile → Your memory, or <code>str_replace_file</code>)</td></tr>
+    <tr><td>Possible contradiction</td><td>Two facts that start the same but say something different ("Lives in Palermo" / "Lives in Núñez")</td><td><code>add_memory(new, category, supersede=old)</code></td></tr>
+    <tr><td>No entities</td><td>Recently changed notes in <code>knowledge/</code> or <code>memory/</code> without <code>entities</code></td><td><code>set_frontmatter(path, {"entities": […]})</code> with the names the local model found</td></tr>
+  </table>
+  <p><b>Reflect never writes anything.</b> Each suggestion shows the tool call that would apply it; apply it yourself or ask the chat to. Without a chat model, the entity check is skipped; it processes up to 20 files per run.</p>
+  <h2>distill_skill</h2>
+  <p>Ask an agent "make a skill about X". It calls <code>distill_skill("X")</code>, which returns:</p>
+  <pre>{
+  "topic": "pricing",
+  "skill_path": "skills/pricing.md",
+  "existing_skill": null,
+  "chunks":  [ …hybrid search hits… ],
+  "memory":  [ {"category": "Work", "fact": "…"} ],
+  "sources": [ "knowledge/sources/…md" ],
+  "instructions": "Synthesize this material into a reusable skill…"
+}</pre>
+  <p>The agent writes the skill and saves it with <code>write_file</code>. brain only gathers the material: the skill is written by the same model that will use it later, not by a hidden call with another prompt. If a skill with that name exists, the agent is told to update it instead of overwriting it.</p>
+</div>
+<div class="l-es">
+  <h1>Reflect y skills</h1>
+  <p class="lead">Dos formas de hacer más útil la memoria guardada: Reflect la revisa y sugiere arreglos, y <code>distill_skill</code> convierte todo lo que hay sobre un tema en un skill reutilizable.</p>
+  <h2>Reflect</h2>
+  <p>Pestaña <b>Perfil</b> → <i>Revisar mi memoria</i>. Busca:</p>
+  <table>
+    <tr><th>Sugerencia</th><th>Cuándo</th><th>Acción sugerida</th></tr>
+    <tr><td>Posible duplicado</td><td>El mismo hecho (o casi) en dos lugares de <code>memory/</code></td><td>Sacar uno (Perfil → Tu memoria, o <code>str_replace_file</code>)</td></tr>
+    <tr><td>Posible contradicción</td><td>Dos hechos que empiezan igual pero dicen otra cosa ("Vive en Palermo" / "Vive en Núñez")</td><td><code>add_memory(nuevo, categoría, supersede=viejo)</code></td></tr>
+    <tr><td>Sin entidades</td><td>Notas de <code>knowledge/</code> o <code>memory/</code> tocadas hace poco sin <code>entities</code></td><td><code>set_frontmatter(path, {"entities": […]})</code> con los nombres que encontró el modelo local</td></tr>
+  </table>
+  <p><b>Reflect nunca escribe nada.</b> Cada sugerencia muestra la tool que la aplicaría; aplicala vos o pedíselo al chat. Sin un modelo de chat, se saltea la revisión de entidades; procesa hasta 20 archivos por corrida.</p>
+  <h2>distill_skill</h2>
+  <p>Pedile a un agente "armá un skill sobre X". Llama a <code>distill_skill("X")</code>, que devuelve:</p>
+  <pre>{
+  "topic": "precios",
+  "skill_path": "skills/precios.md",
+  "existing_skill": null,
+  "chunks":  [ …resultados de la búsqueda híbrida… ],
+  "memory":  [ {"category": "Trabajo", "fact": "…"} ],
+  "sources": [ "knowledge/sources/…md" ],
+  "instructions": "Sintetizá este material en un skill reutilizable…"
+}</pre>
+  <p>El agente redacta el skill y lo guarda con <code>write_file</code>. brain solo junta el material: el skill lo escribe el mismo modelo que después lo va a usar, no una llamada oculta con otro prompt. Si ya existe un skill con ese nombre, el agente tiene la instrucción de actualizarlo en vez de pisarlo.</p>
+</div>
+</section>
+
+<!-- ============================ REFERENCE ============================ -->
+<section class="page" id="tools" data-group-en="Reference" data-group-es="Referencia" data-title-en="MCP tools" data-title-es="Tools MCP">
+<div class="l-en">
+  <h1>MCP tools</h1>
+  <p class="lead">Every tool brain exposes to your agents. Errors come back as text starting with <code>Error:</code>, never as exceptions.</p>
+  <h2>Vault</h2>
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>list_vault(prefix?)</code></td><td>Lists <code>.md</code> files with their description. <code>prefix</code> filters by folder, e.g. <code>projects</code>.</td></tr>
+    <tr><td><code>read_file(path)</code></td><td>Full content of a file.</td></tr>
+    <tr><td><code>write_file(path, content)</code></td><td>Creates or replaces a whole file.</td></tr>
+    <tr><td><code>append_file(path, content)</code></td><td>Appends to the end (creates the file if missing).</td></tr>
+    <tr><td><code>str_replace_file(path, old, new)</code></td><td>Targeted replace; <code>old</code> must appear exactly once.</td></tr>
+    <tr><td><code>set_frontmatter(path, fields)</code></td><td>Changes metadata without touching the content; <code>null</code> removes a field.</td></tr>
+    <tr><td><code>delete_file(path)</code></td><td>Deletes a file (recoverable).</td></tr>
+    <tr><td><code>file_history(path)</code></td><td>A file's versions, newest first.</td></tr>
+    <tr><td><code>restore_file(path, version_id)</code></td><td>Restores a version (also brings back deleted files).</td></tr>
+  </table>
+  <h2>Memory</h2>
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>add_memory(fact, category?, supersede?)</code></td><td>Saves a dated fact in <code>memory/&lt;category&gt;.md</code> without duplicates. With <code>supersede</code>, the old fact moves to <code>## Historial</code>.</td></tr>
+    <tr><td><code>memory_history(category?)</code></td><td>Superseded facts of a category.</td></tr>
+  </table>
+  <h2>Knowledge</h2>
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>save_url(url, render_js?)</code></td><td>Scrapes, indexes and saves a URL.</td></tr>
+    <tr><td><code>search_knowledge(query, top_k?)</code></td><td>Hybrid search (semantic + keyword). <code>top_k</code> 1–50, default 5.</td></tr>
+    <tr><td><code>list_sources()</code></td><td>Saved URLs with title, date, path and <code>abstract</code>.</td></tr>
+    <tr><td><code>reindex_keyword_search()</code></td><td>Rebuilds the keyword index from <code>knowledge/</code>.</td></tr>
+  </table>
+  <h2>Skills</h2>
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>list_skills()</code></td><td>Skills in <code>skills/</code> with their description.</td></tr>
+    <tr><td><code>get_skill(name)</code></td><td>A skill's content.</td></tr>
+    <tr><td><code>distill_skill(topic)</code></td><td>Gathers the material on a topic so the agent writes a skill.</td></tr>
+  </table>
+  <h2>Connections</h2>
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>list_connections()</code></td><td>Your connections, whether they're active, and their tools.</td></tr>
+    <tr><td><code>refresh_connectors()</code></td><td>Re-discovers the tools of every active connection.</td></tr>
+    <tr><td><code>&lt;connection&gt;__&lt;tool&gt;</code></td><td>Any tool from an active connection, proxied.</td></tr>
+  </table>
+</div>
+<div class="l-es">
+  <h1>Tools MCP</h1>
+  <p class="lead">Todas las tools que brain expone a tus agentes. Los errores vuelven como texto que empieza con <code>Error:</code>, nunca como excepciones.</p>
+  <h2>Vault</h2>
+  <table>
+    <tr><th>Tool</th><th>Qué hace</th></tr>
+    <tr><td><code>list_vault(prefix?)</code></td><td>Lista los <code>.md</code> con su description. <code>prefix</code> filtra por carpeta, ej. <code>projects</code>.</td></tr>
+    <tr><td><code>read_file(path)</code></td><td>Contenido completo de un archivo.</td></tr>
+    <tr><td><code>write_file(path, content)</code></td><td>Crea o reemplaza un archivo entero.</td></tr>
+    <tr><td><code>append_file(path, content)</code></td><td>Agrega al final (crea el archivo si no existe).</td></tr>
+    <tr><td><code>str_replace_file(path, old, new)</code></td><td>Reemplazo puntual; <code>old</code> tiene que aparecer exactamente una vez.</td></tr>
+    <tr><td><code>set_frontmatter(path, fields)</code></td><td>Cambia metadatos sin tocar el contenido; <code>null</code> borra un campo.</td></tr>
+    <tr><td><code>delete_file(path)</code></td><td>Borra un archivo (recuperable).</td></tr>
+    <tr><td><code>file_history(path)</code></td><td>Versiones de un archivo, la más nueva primero.</td></tr>
+    <tr><td><code>restore_file(path, version_id)</code></td><td>Restaura una versión (también recupera archivos borrados).</td></tr>
+  </table>
+  <h2>Memoria</h2>
+  <table>
+    <tr><th>Tool</th><th>Qué hace</th></tr>
+    <tr><td><code>add_memory(fact, category?, supersede?)</code></td><td>Guarda un hecho con fecha en <code>memory/&lt;categoría&gt;.md</code> sin duplicar. Con <code>supersede</code>, el hecho viejo pasa a <code>## Historial</code>.</td></tr>
+    <tr><td><code>memory_history(category?)</code></td><td>Hechos superados de una categoría.</td></tr>
+  </table>
+  <h2>Conocimiento</h2>
+  <table>
+    <tr><th>Tool</th><th>Qué hace</th></tr>
+    <tr><td><code>save_url(url, render_js?)</code></td><td>Scrapea, indexa y guarda una URL.</td></tr>
+    <tr><td><code>search_knowledge(query, top_k?)</code></td><td>Búsqueda híbrida (semántica + por palabra). <code>top_k</code> de 1 a 50, por defecto 5.</td></tr>
+    <tr><td><code>list_sources()</code></td><td>URLs guardadas con título, fecha, path y <code>abstract</code>.</td></tr>
+    <tr><td><code>reindex_keyword_search()</code></td><td>Reconstruye el índice por palabra desde <code>knowledge/</code>.</td></tr>
+  </table>
+  <h2>Skills</h2>
+  <table>
+    <tr><th>Tool</th><th>Qué hace</th></tr>
+    <tr><td><code>list_skills()</code></td><td>Skills de <code>skills/</code> con su description.</td></tr>
+    <tr><td><code>get_skill(name)</code></td><td>El contenido de un skill.</td></tr>
+    <tr><td><code>distill_skill(topic)</code></td><td>Junta el material sobre un tema para que el agente redacte un skill.</td></tr>
+  </table>
+  <h2>Conexiones</h2>
+  <table>
+    <tr><th>Tool</th><th>Qué hace</th></tr>
+    <tr><td><code>list_connections()</code></td><td>Tus conexiones, si están activas y sus tools.</td></tr>
+    <tr><td><code>refresh_connectors()</code></td><td>Vuelve a descubrir las tools de cada conexión activa.</td></tr>
+    <tr><td><code>&lt;conexión&gt;__&lt;tool&gt;</code></td><td>Cualquier tool de una conexión activa, proxeada.</td></tr>
+  </table>
+</div>
+</section>
+
+<section class="page" id="command" data-group-en="Reference" data-group-es="Referencia" data-title-en="The brain command" data-title-es="El comando brain">
+<div class="l-en">
+  <h1>The brain command</h1>
+  <p class="lead">Installed in <code>~/.local/bin/brain</code>. From a clone, <code>./brain.sh</code> does the same.</p>
+  <pre>brain                 opens the dashboard and starts Ollama and Chroma
+brain --port 8766     dashboard on another port
+brain --no-autostart  don't start Ollama/Chroma automatically
+brain --no-browser    don't open the browser
+brain update          updates to the latest version (git pull + uv sync)
+brain path            shows where it's installed
+brain uninstall       removes the command (keeps your data)
+brain help            help</pre>
+  <h2>Standalone scripts</h2>
+  <p>For when you need a piece without the dashboard:</p>
+  <pre>./chroma_server.sh    # Chroma alone on 127.0.0.1:8055
+./start.sh            # MCP server over stdio (normally launched by the client)
+npx @modelcontextprotocol/inspector uv run python server.py   # MCP Inspector</pre>
+</div>
+<div class="l-es">
+  <h1>El comando brain</h1>
+  <p class="lead">Se instala en <code>~/.local/bin/brain</code>. Desde un clon, <code>./brain.sh</code> hace lo mismo.</p>
+  <pre>brain                 abre el dashboard y prende Ollama y Chroma
+brain --port 8766     dashboard en otro puerto
+brain --no-autostart  no prender Ollama/Chroma solo
+brain --no-browser    no abrir el navegador
+brain update          actualiza a la última versión (git pull + uv sync)
+brain path            muestra dónde está instalado
+brain uninstall       saca el comando (tus datos quedan)
+brain help            ayuda</pre>
+  <h2>Scripts sueltos</h2>
+  <p>Para cuando necesitás una pieza sin el dashboard:</p>
+  <pre>./chroma_server.sh    # solo Chroma en 127.0.0.1:8055
+./start.sh            # server MCP por stdio (normalmente lo lanza el cliente)
+npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</pre>
+</div>
+</section>
+
+<section class="page" id="configuration" data-group-en="Reference" data-group-es="Referencia" data-title-en="Configuration" data-title-es="Configuración">
+<div class="l-en">
+  <h1>Configuration</h1>
+  <p class="lead">brain works without configuration. These are the knobs and the files it uses.</p>
+  <h2>Environment variables</h2>
+  <table>
+    <tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+    <tr><td><code>BRAIN_CHROMA_PORT</code></td><td><code>8055</code></td><td>Port of the Chroma server (read by the scripts and the server).</td></tr>
+    <tr><td><code>BRAIN_SUMMARY_MODEL</code></td><td><code>llama3.2</code> if installed, otherwise the first chat model</td><td>Ollama chat model used for <code>abstract</code> and <code>entities</code>. <code>off</code> disables both.</td></tr>
+    <tr><td><code>BRAIN_LLM_TIMEOUT</code></td><td><code>45</code></td><td>Seconds to wait for a summary or entity list before giving up (the note is saved anyway).</td></tr>
+  </table>
+  <h2>Ports</h2>
+  <table>
+    <tr><th>Port</th><th>Service</th></tr>
+    <tr><td><code>8765</code></td><td>Dashboard (<code>--port</code> to change)</td></tr>
+    <tr><td><code>8055</code></td><td>Chroma</td></tr>
+    <tr><td><code>11434</code></td><td>Ollama</td></tr>
+    <tr><td><code>6274</code> / <code>6275</code></td><td>MCP Inspector</td></tr>
+  </table>
+  <h2>Files</h2>
+  <table>
+    <tr><th>Path (inside <code>~/.brain</code>)</th><th>Contents</th></tr>
+    <tr><td><code>vault/</code></td><td>Your notes, profile and memory</td></tr>
+    <tr><td><code>data/history.sqlite3</code></td><td>Version history</td></tr>
+    <tr><td><code>data/search.sqlite3</code></td><td>Keyword index (can be rebuilt)</td></tr>
+    <tr><td><code>data/chroma/</code></td><td>Vector index</td></tr>
+    <tr><td><code>data/connections.json</code>, <code>connections_tools.json</code></td><td>Connections and their cached tools</td></tr>
+    <tr><td><code>data/clients.json</code></td><td>Apps detected through the MCP handshake</td></tr>
+    <tr><td><code>.env</code></td><td>Secrets (permissions <code>600</code>)</td></tr>
+  </table>
+  <p><code>vault/</code>, <code>data/</code> and <code>.env</code> are in <code>.gitignore</code>. To start from scratch, close the dashboard and your agents, delete <code>vault/</code> and <code>data/</code>, and open brain again.</p>
+</div>
+<div class="l-es">
+  <h1>Configuración</h1>
+  <p class="lead">brain funciona sin configurar nada. Estas son las perillas y los archivos que usa.</p>
+  <h2>Variables de entorno</h2>
+  <table>
+    <tr><th>Variable</th><th>Por defecto</th><th>Qué hace</th></tr>
+    <tr><td><code>BRAIN_CHROMA_PORT</code></td><td><code>8055</code></td><td>Puerto del server de Chroma (lo leen los scripts y el server).</td></tr>
+    <tr><td><code>BRAIN_SUMMARY_MODEL</code></td><td><code>llama3.2</code> si está instalado, si no el primer modelo de chat</td><td>Modelo de chat de Ollama para <code>abstract</code> y <code>entities</code>. <code>off</code> apaga los dos.</td></tr>
+    <tr><td><code>BRAIN_LLM_TIMEOUT</code></td><td><code>45</code></td><td>Segundos de espera para un resumen o una lista de entidades antes de abandonar (la nota se guarda igual).</td></tr>
+  </table>
+  <h2>Puertos</h2>
+  <table>
+    <tr><th>Puerto</th><th>Servicio</th></tr>
+    <tr><td><code>8765</code></td><td>Dashboard (<code>--port</code> para cambiarlo)</td></tr>
+    <tr><td><code>8055</code></td><td>Chroma</td></tr>
+    <tr><td><code>11434</code></td><td>Ollama</td></tr>
+    <tr><td><code>6274</code> / <code>6275</code></td><td>Inspector MCP</td></tr>
+  </table>
+  <h2>Archivos</h2>
+  <table>
+    <tr><th>Path (dentro de <code>~/.brain</code>)</th><th>Contenido</th></tr>
+    <tr><td><code>vault/</code></td><td>Tus notas, perfil y memoria</td></tr>
+    <tr><td><code>data/history.sqlite3</code></td><td>Historial de versiones</td></tr>
+    <tr><td><code>data/search.sqlite3</code></td><td>Índice por palabra (se puede reconstruir)</td></tr>
+    <tr><td><code>data/chroma/</code></td><td>Índice vectorial</td></tr>
+    <tr><td><code>data/connections.json</code>, <code>connections_tools.json</code></td><td>Conexiones y el caché de sus tools</td></tr>
+    <tr><td><code>data/clients.json</code></td><td>Apps detectadas por el handshake MCP</td></tr>
+    <tr><td><code>.env</code></td><td>Secretos (permisos <code>600</code>)</td></tr>
+  </table>
+  <p><code>vault/</code>, <code>data/</code> y <code>.env</code> están en el <code>.gitignore</code>. Para arrancar de cero, cerrá el dashboard y tus agentes, borrá <code>vault/</code> y <code>data/</code>, y abrí brain de nuevo.</p>
+</div>
+</section>
+
+<section class="page" id="security" data-group-en="Reference" data-group-es="Referencia" data-title-en="Privacy and security" data-title-es="Privacidad y seguridad">
+<div class="l-en">
+  <h1>Privacy and security</h1>
+  <p class="lead">Your data stays on your Mac. brain only goes online when you save a URL or use a connection that talks to a remote service.</p>
+  <h2>What stays local</h2>
+  <ul>
+    <li>The vault, the history, both search indexes and your secrets live in <code>~/.brain</code>.</li>
+    <li>Embeddings, summaries and entities are computed by Ollama on your machine.</li>
+    <li>Composio, if you use it, keeps your app tokens in its cloud; everything it fetches is saved locally.</li>
+  </ul>
+  <h2>The dashboard</h2>
+  <ul>
+    <li>Listens only on <code>127.0.0.1</code>.</li>
+    <li>Rejects any request whose <code>Host</code> isn't <code>127.0.0.1:&lt;port&gt;</code> or <code>localhost:&lt;port&gt;</code> (DNS-rebinding protection).</li>
+    <li>Every POST requires the <code>X-Brain: 1</code> header, which forces a CORS preflight the server never approves: no website you have open can start processes or write to your vault.</li>
+  </ul>
+  <h2>Agents</h2>
+  <ul>
+    <li>Tools can't leave the vault (<code>..</code>, absolute paths, hidden files and outbound symlinks are rejected).</li>
+    <li>Every write is versioned and can be undone.</li>
+    <li>Agent configs are never rewritten without a backup, and other entries are never removed.</li>
+  </ul>
+  <h2>Reporting a vulnerability</h2>
+  <p>Please don't open a public issue. Use GitHub's private reporting: <a href="https://github.com/Lautaro005/brain/security/advisories/new">Security → Report a vulnerability</a>. Scope and response times are in <a href="https://github.com/Lautaro005/brain/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+</div>
+<div class="l-es">
+  <h1>Privacidad y seguridad</h1>
+  <p class="lead">Tus datos se quedan en tu Mac. brain solo sale a internet cuando guardás una URL o usás una conexión que habla con un servicio remoto.</p>
+  <h2>Qué queda local</h2>
+  <ul>
+    <li>El vault, el historial, los dos índices de búsqueda y tus secretos viven en <code>~/.brain</code>.</li>
+    <li>Los embeddings, resúmenes y entidades los calcula Ollama en tu máquina.</li>
+    <li>Composio, si lo usás, guarda los tokens de tus apps en su nube; todo lo que trae se guarda local.</li>
+  </ul>
+  <h2>El dashboard</h2>
+  <ul>
+    <li>Escucha solo en <code>127.0.0.1</code>.</li>
+    <li>Rechaza cualquier pedido cuyo <code>Host</code> no sea <code>127.0.0.1:&lt;puerto&gt;</code> o <code>localhost:&lt;puerto&gt;</code> (protección contra DNS rebinding).</li>
+    <li>Cada POST exige el header <code>X-Brain: 1</code>, que fuerza un preflight CORS que el server nunca aprueba: ninguna web que tengas abierta puede prender procesos ni escribir en tu vault.</li>
+  </ul>
+  <h2>Agentes</h2>
+  <ul>
+    <li>Las tools no pueden salir del vault (se rechazan <code>..</code>, paths absolutos, archivos ocultos y symlinks hacia afuera).</li>
+    <li>Cada escritura queda versionada y se puede deshacer.</li>
+    <li>Las configs de los agentes nunca se reescriben sin backup, y nunca se borran entradas ajenas.</li>
+  </ul>
+  <h2>Reportar una vulnerabilidad</h2>
+  <p>Por favor no abras un issue público. Usá el reporte privado de GitHub: <a href="https://github.com/Lautaro005/brain/security/advisories/new">Security → Report a vulnerability</a>. El alcance y los tiempos de respuesta están en <a href="https://github.com/Lautaro005/brain/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+</div>
+</section>
+
+<section class="page" id="troubleshooting" data-group-en="Reference" data-group-es="Referencia" data-title-en="Troubleshooting" data-title-es="Solución de problemas">
+<div class="l-en">
+  <h1>Troubleshooting</h1>
+  <p class="lead">The usual problems and their fixes.</p>
+  <h2>Services</h2>
+  <table>
+    <tr><th>Problem</th><th>Fix</th></tr>
+    <tr><td>"Ollama isn't running"</td><td>Turn on the Ollama switch in the Dashboard tab, or open the Ollama app.</td></tr>
+    <tr><td>"The Chroma server isn't running"</td><td>Open the dashboard (<code>brain</code>); it starts Chroma. Keyword search keeps working without it.</td></tr>
+    <tr><td>Port 8765 is taken</td><td><code>brain --port 8766</code></td></tr>
+    <tr><td><code>brain: command not found</code></td><td>Open a new terminal, or add <code>export PATH="$HOME/.local/bin:$PATH"</code> to <code>~/.zshrc</code>.</td></tr>
+  </table>
+  <h2>Search and memory</h2>
+  <table>
+    <tr><th>Problem</th><th>Fix</th></tr>
+    <tr><td>A name you know is saved isn't found</td><td>Sources from before v0.02.5 aren't in the keyword index: <i>Rebuild keyword index</i> in Knowledge, or <code>reindex_keyword_search</code>.</td></tr>
+    <tr><td>No <code>abstract</code> or entities</td><td>Install a chat model: <code>ollama pull llama3.2</code>. Then run Reflect to find notes missing entities.</td></tr>
+    <tr><td>"Couldn't extract text from that URL"</td><td>The site may be paywalled or need a login. Try <i>Force JS rendering</i>.</td></tr>
+  </table>
+  <h2>Agents</h2>
+  <table>
+    <tr><th>Problem</th><th>Fix</th></tr>
+    <tr><td>brain doesn't show up in Claude Desktop</td><td>Connect it from Connect agent and restart Claude.</td></tr>
+    <tr><td>brain doesn't show up in ChatGPT</td><td>Use Codex or ChatGPT Work mode, then <i>Settings → MCP servers → Restart</i>.</td></tr>
+    <tr><td>An app returns <code>403</code></td><td>You used "Connect to a URL". Use <b>Run a command</b>.</td></tr>
+    <tr><td>Composio returns <code>401</code></td><td>A consumer key (<code>ck_…</code>) only works with <i>Save and connect</i>; <i>Choose apps</i> is for project keys (<code>ak_…</code>).</td></tr>
+  </table>
+  <h2>Chat</h2>
+  <table>
+    <tr><th>Problem</th><th>Fix</th></tr>
+    <tr><td>No chat model</td><td><i>Download llama3.2</i> in the Chat tab, or <code>ollama pull llama3.2</code>.</td></tr>
+    <tr><td>It answers but can't save anything</td><td>Open the actions under the answer to see what failed; try a larger model.</td></tr>
+  </table>
+</div>
+<div class="l-es">
+  <h1>Solución de problemas</h1>
+  <p class="lead">Los problemas típicos y cómo resolverlos.</p>
+  <h2>Servicios</h2>
+  <table>
+    <tr><th>Problema</th><th>Solución</th></tr>
+    <tr><td>"Ollama no está corriendo"</td><td>Prendé el switch de Ollama en el Panel, o abrí la app de Ollama.</td></tr>
+    <tr><td>"El server de Chroma no está corriendo"</td><td>Abrí el dashboard (<code>brain</code>); prende Chroma. La búsqueda por palabra sigue andando sin él.</td></tr>
+    <tr><td>El puerto 8765 está ocupado</td><td><code>brain --port 8766</code></td></tr>
+    <tr><td><code>brain: command not found</code></td><td>Abrí una terminal nueva, o agregá <code>export PATH="$HOME/.local/bin:$PATH"</code> a <code>~/.zshrc</code>.</td></tr>
+  </table>
+  <h2>Búsqueda y memoria</h2>
+  <table>
+    <tr><th>Problema</th><th>Solución</th></tr>
+    <tr><td>No encuentra un nombre que sabés que está guardado</td><td>Las fuentes de antes de v0.02.5 no están en el índice por palabra: <i>Reindexar búsqueda por palabra</i> en Conocimiento, o <code>reindex_keyword_search</code>.</td></tr>
+    <tr><td>Sin <code>abstract</code> ni entidades</td><td>Instalá un modelo de chat: <code>ollama pull llama3.2</code>. Después corré Reflect para ver qué notas no tienen entidades.</td></tr>
+    <tr><td>"No se pudo extraer texto de esa URL"</td><td>El sitio puede tener paywall o pedir login. Probá <i>Forzar render con JS</i>.</td></tr>
+  </table>
+  <h2>Agentes</h2>
+  <table>
+    <tr><th>Problema</th><th>Solución</th></tr>
+    <tr><td>brain no aparece en Claude Desktop</td><td>Conectalo desde Conectar agente y reiniciá Claude.</td></tr>
+    <tr><td>brain no aparece en ChatGPT</td><td>Usá el modo Codex o ChatGPT Work, y después <i>Settings → MCP servers → Restart</i>.</td></tr>
+    <tr><td>Una app devuelve <code>403</code></td><td>Usaste "Connect to a URL". Usá <b>Run a command</b>.</td></tr>
+    <tr><td>Composio devuelve <code>401</code></td><td>Una consumer key (<code>ck_…</code>) solo anda con <i>Guardar y conectar</i>; <i>Elegir apps</i> es para keys de proyecto (<code>ak_…</code>).</td></tr>
+  </table>
+  <h2>Chat</h2>
+  <table>
+    <tr><th>Problema</th><th>Solución</th></tr>
+    <tr><td>No hay modelo de chat</td><td><i>Descargar llama3.2</i> en la pestaña Chat, o <code>ollama pull llama3.2</code>.</td></tr>
+    <tr><td>Responde pero no puede guardar nada</td><td>Abrí las acciones debajo de la respuesta para ver qué falló; probá un modelo más grande.</td></tr>
+  </table>
+</div>
+</section>
+
+<section class="page" id="license" data-group-en="Reference" data-group-es="Referencia" data-title-en="License" data-title-es="Licencia">
+<div class="l-en">
+  <h1>License</h1>
+  <p class="lead">MIT with the Commons Clause. Source available: use it, study it, change it and share it for free, including at work. Don't sell it.</p>
+  <h2>What you can do</h2>
+  <ul>
+    <li>Use brain personally or at work, for free.</li>
+    <li>Read, modify and fork the code.</li>
+    <li>Share it, keeping the copyright notice and both license files.</li>
+  </ul>
+  <h2>What you can't do</h2>
+  <p>Sell it: charge third parties for a product or service (hosting, support or consulting included) whose value comes entirely or substantially from brain.</p>
+  <h2>Files</h2>
+  <p><a href="https://github.com/Lautaro005/brain/blob/main/LICENSE"><code>LICENSE</code></a> has the MIT text and <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md"><code>COMMONS-CLAUSE.md</code></a> the condition. They're separate so GitHub can detect the base license; together they're brain's license. Because of the Commons Clause, brain isn't "open source" under the OSI definition. Versions before <code>v0.02.0</code> remain under plain MIT.</p>
+</div>
+<div class="l-es">
+  <h1>Licencia</h1>
+  <p class="lead">MIT con Commons Clause. Código a la vista: usalo, estudialo, cambialo y compartilo gratis, también en el trabajo. No lo vendas.</p>
+  <h2>Qué podés hacer</h2>
+  <ul>
+    <li>Usar brain para vos o en el trabajo, gratis.</li>
+    <li>Leer, modificar y hacer fork del código.</li>
+    <li>Compartirlo, manteniendo el aviso de copyright y los dos archivos de licencia.</li>
+  </ul>
+  <h2>Qué no podés hacer</h2>
+  <p>Venderlo: cobrarle a terceros por un producto o servicio (incluidos hosting, soporte o consultoría) cuyo valor venga entera o sustancialmente de brain.</p>
+  <h2>Archivos</h2>
+  <p><a href="https://github.com/Lautaro005/brain/blob/main/LICENSE"><code>LICENSE</code></a> tiene el texto MIT y <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md"><code>COMMONS-CLAUSE.md</code></a> la condición. Están separados para que GitHub detecte la licencia base; juntos son la licencia de brain. Por la Commons Clause, brain no es "open source" según la definición de la OSI. Las versiones anteriores a <code>v0.02.0</code> siguen bajo MIT puro.</p>
+</div>
+</section>
+
+    <nav class="pager" id="pager" aria-label="Pages"></nav>
+    <p class="edit"><a href="https://github.com/Lautaro005/brain/blob/main/docs/docs/index.html"><span class="l-en">Edit this page on GitHub</span><span class="l-es">Editar esta página en GitHub</span></a> · v0.02.5</p>
+  </main>
+
+  <aside class="toc" id="toc" aria-label="On this page"></aside>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT</a> + <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md">Commons Clause</a> © 2026 Lautaro Silva</span>
+    <span><a href="../">Home</a> · <a href="./">Docs</a> · <a href="../changelog/">Changelog</a> · <a href="https://github.com/Lautaro005/brain">GitHub</a></span>
+  </div>
+</footer>
+<script src="../assets/pages.js"></script>
+</body>
+</html>

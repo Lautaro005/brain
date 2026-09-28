@@ -23,7 +23,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, chat, chroma_store, clients, connectors, history, memory, stats, vault  # noqa: E402
+from brain_mcp import agents, chat, clients, connectors, history, memory, reflect, stats, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -200,12 +200,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, **r})
             elif u.path == "/api/search":
                 try:
-                    hits = chroma_store.query(str(body.get("query", "")), top_k=max(1, min(int(body.get("top_k", 5)), 20)))
+                    hits, _, down = mcp_tools.search_core(str(body.get("query", "")), max(1, min(int(body.get("top_k", 5)), 20)))
                 except Exception as e:
                     return self._json({"ok": False, "code": _error_code(e), "detail": str(e)})
-                self._json({"ok": True, "hits": [
-                    {"text": h["text"], "url": h["metadata"].get("url"), "path": h["metadata"].get("source_md_path"),
-                     "score": round(1 - h["distance"], 4)} for h in hits]})
+                self._json({"ok": True, "down": down, "hits": [
+                    {"text": h["text"], "url": h["url"], "path": h["source_md_path"],
+                     "score": h["score"], "match": h["match"]} for h in hits]})
+            elif u.path == "/api/search/reindex":
+                self._json({"ok": True, **mcp_tools.reindex_keyword_core()})
+            elif u.path == "/api/reflect":
+                self._json({"ok": True, **reflect.run()})
             elif u.path == "/api/profile":
                 path = memory.save_profile(str(body.get("name", "")), str(body.get("headline", "")), str(body.get("about", "")))
                 self._json({"ok": True, "path": path})

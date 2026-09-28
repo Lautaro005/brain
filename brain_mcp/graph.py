@@ -1,5 +1,6 @@
 """Construye el grafo de relaciones del vault (nodos + links) para la vista web."""
 import re
+import unicodedata
 from pathlib import Path
 
 from . import vault
@@ -19,6 +20,11 @@ def _kind(rel: str) -> str:
     if rel == "profile.md":
         return "profile"
     return TOP_KINDS.get(rel.split("/")[0], "note")
+
+
+def _slug(s: str) -> str:
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
 def _as_list(v) -> list[str]:
@@ -111,9 +117,17 @@ def build_graph() -> dict:
             tid = f"tag:{tag.lower()}"
             nodes.setdefault(tid, {"id": tid, "label": f"#{tag}", "kind": "tag", "path": None})
             links.add((rel, tid, "tag"))
+        # entidades extraídas por el modelo local (brain_mcp/entities.py): dos notas que nombran lo
+        # mismo quedan unidas por el nodo compartido aunque nadie las haya linkeado
+        for ent in _as_list(meta.get("entities")):
+            eid = f"entity:{_slug(ent)}"
+            if eid == "entity:":
+                continue
+            nodes.setdefault(eid, {"id": eid, "label": ent, "kind": "entity", "path": None})
+            links.add((rel, eid, "entity"))
 
     # una sola línea por par de nodos, quedándose con la relación más fuerte
-    rank = {"link": 0, "memory": 1, "related": 2, "mention": 3, "tag": 4, "folder": 5}
+    rank = {"link": 0, "memory": 1, "related": 2, "entity": 3, "mention": 4, "tag": 5, "folder": 6}
     best: dict[frozenset, tuple[str, str, str]] = {}
     for s, t, k in sorted(links):
         key = frozenset((s, t))

@@ -33,11 +33,14 @@ brain es un servidor MCP local: un vault en Markdown, el perfil y la memoria del
 | `delete_file(path)` | borra (recuperable) |
 | `file_history(path)` | versiones de un archivo (id, fecha, operación) |
 | `restore_file(path, version_id)` | vuelve un archivo a una versión; la restauración también queda en el historial |
-| `add_memory(fact, category?)` | guarda un hecho sobre el usuario en `memory/` (sin duplicar) |
+| `add_memory(fact, category?, supersede?)` | guarda un hecho con fecha en `memory/` (sin duplicar). `supersede` pasa el hecho viejo a `## Historial` del mismo archivo |
+| `memory_history(category?)` | hechos superados de una categoría |
 | `list_skills()` / `get_skill(name)` | skills en `vault/skills/` |
-| `save_url(url, render_js?)` | scrapea, indexa y crea o actualiza `knowledge/sources/<slug>.md`. Si el fetch normal saca menos de 30 palabras, prueba con Playwright; `render_js=True` lo fuerza |
-| `search_knowledge(query, top_k?)` | búsqueda semántica |
-| `list_sources()` | todo lo scrapeado |
+| `distill_skill(topic)` | junta búsqueda + memoria + fuentes sobre un tema para que el agente redacte el skill (no escribe) |
+| `save_url(url, render_js?)` | scrapea, indexa (Chroma + FTS5) y crea o actualiza `knowledge/sources/<slug>.md`, con `abstract` si pasa de 800 palabras y `entities`. Si el fetch normal saca menos de 30 palabras, prueba con Playwright; `render_js=True` lo fuerza |
+| `search_knowledge(query, top_k?)` | búsqueda híbrida: semántica + BM25, fusionadas con RRF |
+| `reindex_keyword_search()` | reconstruye el índice por palabra desde `knowledge/**.md` |
+| `list_sources()` | todo lo scrapeado, con `abstract` |
 
 ## Instalación
 
@@ -68,7 +71,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector (tambi
 
 Todo lo tuyo vive en dos carpetas que el `.gitignore` excluye, así que nunca se suben al repo:
 - `vault/`: tus notas, perfil y memoria.
-- `data/`: `history.sqlite3` (historial de versiones), `chroma/` (índice vectorial) y el lock de escritura.
+- `data/`: `history.sqlite3` (historial de versiones), `search.sqlite3` (índice por palabra), `chroma/` (índice vectorial) y el lock de escritura.
 
 Para arrancar de cero: cerrá el dashboard y los clientes MCP, borrá `vault/` y `data/`, y volvé a abrir. El vault se recrea vacío desde la plantilla.
 
@@ -93,6 +96,10 @@ brain_mcp/
   connectors.py        conexiones: brain como cliente MCP de otros servers (stdio/URL/Composio), proxy + auto-captura
   embeddings.py        Ollama HTTP, con prefijos search_document/search_query
   chroma_store.py      ChromaDB HttpClient, colección "sources"
+  keyword_store.py     índice por palabra: SQLite FTS5 (BM25) en data/search.sqlite3, misma interfaz que chroma_store
+  summarize.py         resumen corto (abstract) con el modelo de chat de Ollama, best-effort; también generate() y model()
+  entities.py          entidades (nombres) con el modelo de chat, best-effort; van a `entities` del frontmatter
+  reflect.py           revisa memoria y knowledge y SUGIERE arreglos (duplicados, contradicciones, sin entidades); nunca escribe
   chunking.py          chunks de ~500 palabras con overlap de 50
   scrape.py            trafilatura + fallback a Playwright (Chromium headless, thread dedicado)
   graph.py             arma nodos y links del vault
@@ -101,6 +108,11 @@ brain_mcp/
   stats.py             estadísticas del vault + chequeos de salud
   dashboard.html       UI del dashboard (ES/EN, gráficos en SVG a mano, sin librería)
 docs/index.html        landing page (GitHub Pages, main /docs): un solo HTML sin build, EN/ES, blanco y negro
+docs/docs/index.html   documentación (/docs/): páginas por hash (#memory…), sidebar, "en esta página", anterior/siguiente
+docs/changelog/        changelog (/changelog/): versión + fecha de publicación, EN/ES
+docs/assets/           pages.css + pages.js compartidos por docs y changelog (la landing sigue autocontenida)
+SECURITY.md            política de seguridad (GitHub la muestra en la pestaña Security)
+COMMONS-CLAUSE.md      la condición de la licencia; LICENSE queda con el MIT puro para que GitHub lo detecte
 docs/.nojekyll         Pages sirve el HTML tal cual (sin Jekyll)
 PRODUCT.md / DESIGN.md contexto de producto y sistema visual de la landing (skill impeccable)
 LICENSE                MIT + Commons Clause (se puede usar y modificar, no vender)
@@ -138,5 +150,10 @@ data/                  (ignorado) historial, Chroma, lock
 - **Ventana flotante**: Document Picture-in-Picture pedido desde `window.top` (no anda dentro de un iframe) con un iframe a `/chat?mode=pop`; sin esa API, `window.open`. La PiP se cierra si se cierra la pestaña del dashboard.
 - **Mis conexiones (`clients.py`)**: `BrainServer` sobrescribe `_handle_list_tools`/`_handle_call_tool` (métodos privados del SDK) para anotar `clientInfo` en `data/clients.json` (flock en `data/.clients.lock`, como mucho una escritura por minuto por cliente). Si el SDK cambia esos nombres, la detección se apaga sola sin romper nada (está en try/except).
 - **Preferencias del navegador** (localStorage, mismo origen para dashboard, grafo y chat): `brain-theme`, `brain-lang`, `brain-side-min` (sidebar plegado), `brain-graph-colors` (colores por tipo de nodo, los lee `graph.html` y escucha el evento `storage`), `brain-chat-model`, `brain-chat-current`.
-- **Licencia**: MIT + Commons Clause. No es "open source" según la OSI: en README y landing se dice "source available" / "código a la vista".
+- **Licencia**: MIT + Commons Clause. No es "open source" según la OSI: en README y landing se dice "source available" / "código a la vista". `LICENSE` tiene **solo** el texto MIT (sin agregados: GitHub/licensee exige ~98% de coincidencia para detectarlo) y la condición está en `COMMONS-CLAUSE.md`. No renombrar ese archivo a `LICENSE-*`: licensee lo tomaría como una segunda licencia y mostraría "Other".
+- **Búsqueda híbrida**: cada llamada a `chroma_store.upsert/delete` va acompañada de `keyword_store.upsert/delete` con los mismos argumentos. `server.search_core()` devuelve `(hits, nota, parte caída)` y la usan la tool y el dashboard. El índice por palabra se puede reconstruir siempre desde el vault (`reindex_keyword_core`), así que `data/search.sqlite3` es descartable.
+- **Memoria con fecha**: cada viñeta activa termina en `<!-- since:YYYY-MM-DD -->` y lo superado va a `## Historial` al final del mismo archivo. `memory._load()` devuelve `(meta, [{text, since}], historial)`; `list_all()` sigue devolviendo `items` como strings (solo activos).
+- **Modelo de chat opcional** (`summarize.py`, `entities.py`): `BRAIN_SUMMARY_MODEL` (o llama3.2, o el primer modelo de chat instalado; `off` apaga), `BRAIN_LLM_TIMEOUT` (45 s). Nunca levantan excepción ni frenan una escritura; sin modelo, simplemente no hay `abstract`/`entities`. Las entidades se calculan en los call sites (`server.py`, `connectors.py`, `memory.py`), no en `vault.py`.
+- **Reflect** solo sugiere: no agregar nada que escriba en el vault desde `reflect.py`.
+- **Docs del sitio**: `docs/docs/index.html` tiene cada página como `<section class="page" id="…">` con un bloque `.l-en` y otro `.l-es`. `pages.js` renombra los ids a `page-…` al cargar (el hash nombra la página; si coincidiera con un id, el navegador bajaría hasta ella). Al agregar una página, sumar `data-title-en/es` y `data-group-en/es`. Cada release nuevo va arriba en `docs/changelog/index.html`, con la fecha en que se publica.
 - **Composio tiene dos tipos de key**: `ck_…` (consumer) va directo a `https://connect.composio.dev/mcp` con el header `x-consumer-api-key` y no puede usar la API de desarrollador (`_composio()` la rechaza con `composio_consumer_key` en vez de dejar que responda 401). `ak_…` (proyecto) usa `backend.composio.dev/api/v3.1` con `x-api-key`: auth configs + `POST /mcp/servers`. `composio_configure()` detecta el tipo por el prefijo. Si falla una conexión por URL, `_http_probe()` repite el `initialize` a mano para mostrar el status HTTP real, que el cliente MCP no expone.
