@@ -69,6 +69,10 @@ if [ -n "$OLLAMA" ]; then
     say "Bajando el modelo de embeddings (nomic-embed-text, ~270 MB)…"
     "$OLLAMA" pull nomic-embed-text >/dev/null 2>&1 || warn "No se pudo bajar el modelo; después: ollama pull nomic-embed-text"
   fi
+  # el modelo de chat (Chat, resúmenes de fuentes y entidades del grafo) es opcional y pesa ~2 GB:
+  # no se baja solo, solo se avisa al final si no hay ninguno
+  chat_model=1
+  "$OLLAMA" list 2>/dev/null | awk 'NR>1 {print $1}' | grep -vqi 'embed' || chat_model=0
   if [ -n "$started" ]; then kill "$started" 2>/dev/null || true; fi
 else
   warn "No encontré Ollama. Bajalo de https://ollama.com/download y después corré: ollama pull nomic-embed-text"
@@ -101,3 +105,7 @@ printf "    %sbrain%s            abre el dashboard\n" "$bold" "$reset"
 printf "    %sbrain update%s     actualiza a la última versión\n" "$bold" "$reset"
 printf "    %sbrain help%s       todos los comandos\n\n" "$bold" "$reset"
 printf "  Primer paso: en el dashboard, andá a %sConectar agente%s y conectá Claude o ChatGPT.\n\n" "$bold" "$reset"
+if [ "${chat_model:-1}" = 0 ]; then
+  printf "  Opcional: %sollama pull llama3.2%s (~2 GB) activa el Chat, los resúmenes de fuentes\n" "$bold" "$reset"
+  printf "  y las entidades del grafo. Sin él, todo lo demás funciona igual.\n\n"
+fi

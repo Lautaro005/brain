@@ -26,8 +26,9 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import frontmatter
 import httpx
 
-from . import chroma_store, vault
+from . import chroma_store, entities, keyword_store, vault
 from .chunking import chunk_text
+from .summarize import summarize
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ KINDS = ("stdio", "http", "composio")
 SEP = "__"  # nombre proxeado: <prefijo>__<tool original>
 CALL_TIMEOUT = 120
 MAX_CAPTURE_CHARS = 200_000
+ABSTRACT_MIN_WORDS = 800  # igual que save_url en server.py
 
 
 class ConnectorError(RuntimeError):
@@ -407,18 +409,31 @@ def capture(c: dict, tool: str, arguments: dict, content: list) -> str | None:
     md_path = f"knowledge/{base}/{_toolkit(c, tool)}/{slug}.md"
     chunks = chunk_text(text)
     ids = [f"{base}-{slug}-{i}" for i in range(len(chunks))]
+    metas = [{"url": f"mcp://{c['id']}/{tool}", "source_md_path": md_path, "chunk_index": i} for i in range(len(chunks))]
+    try:  # el índice por palabra no depende de Ollama ni de Chroma
+        keyword_store.upsert(ids, chunks, metas)
+    except Exception as e:
+        log.warning("Captura sin índice por palabra (%s): %s", md_path, e)
     indexed = True
     try:
-        chroma_store.upsert(ids, chunks, [{"url": f"mcp://{c['id']}/{tool}", "source_md_path": md_path, "chunk_index": i}
-                                          for i in range(len(chunks))])
+        chroma_store.upsert(ids, chunks, metas)
     except Exception as e:  # sin Chroma/Ollama el .md igual se guarda
         indexed, ids = False, []
         log.warning("Captura sin indexar (%s): %s", md_path, e)
-    post = frontmatter.Post(
-        text, name=slug, description=f"{c['name']} · {tool}", connection=c["id"], tool=tool,
+    fields = dict(
+        name=slug, description=f"{c['name']} · {tool}", connection=c["id"], tool=tool,
         args=json.dumps(arguments or {}, ensure_ascii=False)[:2000], fetched_at=ts,
         chroma_ids=ids, indexed=indexed,
     )
+    # best-effort (modelo de chat de Ollama): resumen si es largo, entidades para el grafo
+    if len(text.split()) > ABSTRACT_MIN_WORDS:
+        abstract = summarize(text)
+        if abstract:
+            fields["abstract"] = abstract
+    ents = entities.extract(text)
+    if ents:
+        fields["entities"] = ents
+    post = frontmatter.Post(text, **fields)
     vault.write_file(md_path, frontmatter.dumps(post) + "\n")
     return md_path
 

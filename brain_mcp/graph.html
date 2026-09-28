@@ -17,6 +17,7 @@
     --memory-fill: #ffffff; --memory-stroke: #5e5e5e; --project-fill: #0a0a0a; --project-stroke: #0a0a0a;
     --skill-fill: #5e5e5e; --skill-stroke: #5e5e5e; --source-fill: #d6d6d2; --source-stroke: #5e5e5e;
     --note-fill: #9a9a95; --note-stroke: #9a9a95; --folder-fill: #cfcfcc; --folder-stroke: #cfcfcc; --tag-fill: #ffffff; --tag-stroke: #9a9a95;
+    --entity-fill: #ffffff; --entity-stroke: #0a0a0a;
     --shadow: 0 1px 0 rgba(10,10,10,.06), 0 3px 5px -2px rgba(10,10,10,.12);
   }
   @media (prefers-color-scheme: dark) {
@@ -27,6 +28,7 @@
       --memory-fill: #191918; --memory-stroke: #9a9a95; --project-fill: #f2f2f0; --project-stroke: #f2f2f0;
       --skill-fill: #9a9a95; --skill-stroke: #9a9a95; --source-fill: #3a3a38; --source-stroke: #9a9a95;
       --note-fill: #6b6b67; --note-stroke: #6b6b67; --folder-fill: #3a3a38; --folder-stroke: #3a3a38; --tag-fill: #191918; --tag-stroke: #6b6b67;
+      --entity-fill: #191918; --entity-stroke: #f2f2f0;
       --shadow: 0 1px 0 rgba(0,0,0,.4), 0 3px 6px -2px rgba(0,0,0,.5);
     }
   }
@@ -37,6 +39,7 @@
       --memory-fill: #191918; --memory-stroke: #9a9a95; --project-fill: #f2f2f0; --project-stroke: #f2f2f0;
       --skill-fill: #9a9a95; --skill-stroke: #9a9a95; --source-fill: #3a3a38; --source-stroke: #9a9a95;
       --note-fill: #6b6b67; --note-stroke: #6b6b67; --folder-fill: #3a3a38; --folder-stroke: #3a3a38; --tag-fill: #191918; --tag-stroke: #6b6b67;
+      --entity-fill: #191918; --entity-stroke: #f2f2f0;
       --shadow: 0 1px 0 rgba(0,0,0,.4), 0 3px 6px -2px rgba(0,0,0,.5);
   }
   * { box-sizing: border-box; }
@@ -76,11 +79,12 @@
   .node circle { transition: opacity .15s; }
   .node text { font-size: 11.5px; fill: var(--text); paint-order: stroke; stroke: var(--bg);
     stroke-width: 3px; pointer-events: none; transition: opacity .15s; }
-  .node.folder text, .node.tag text { fill: var(--muted); }
+  .node.folder text, .node.tag text, .node.entity text { fill: var(--muted); }
   .node { cursor: pointer; }
   .link { stroke: var(--edge); stroke-width: 1.2px; transition: opacity .15s; }
   .link.folder { stroke-dasharray: 2 3; }
   .link.tag { stroke-dasharray: 1 3; }
+  .link.entity { stroke-dasharray: 4 3; }
   .dim { opacity: .12; }
   .link.hi { stroke: var(--edge-hi); stroke-width: 1.8px; }
   .node.sel circle { stroke: var(--text); stroke-width: 3px; }
@@ -144,16 +148,16 @@ const I18N = {
     connections: "Conexiones", none: "Sin conexiones todavía", cut: "… (recortado, el archivo completo está en el vault)",
     stats: (f, l) => `${f} archivos · ${l} conexiones`,
     zin: "Acercar", zout: "Alejar", zfit: "Volver al centro (tecla 0 o doble click en el fondo)",
-    kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags" },
-    rel: { folder: "carpeta", link: "link", mention: "mención", related: "relacionado", tag: "tag", memory: "memoria" },
+    kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
+    rel: { folder: "carpeta", link: "link", mention: "mención", related: "relacionado", tag: "tag", memory: "memoria", entity: "entidad" },
   },
   en: {
     brand: "· connections", search: "Search…", empty: "Click a node to see its content and connections",
     connections: "Connections", none: "No connections yet", cut: "… (truncated, the full file is in the vault)",
     stats: (f, l) => `${f} files · ${l} connections`,
     zin: "Zoom in", zout: "Zoom out", zfit: "Back to center (key 0 or double-click the background)",
-    kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags" },
-    rel: { folder: "folder", link: "link", mention: "mention", related: "related", tag: "tag", memory: "memory" },
+    kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
+    rel: { folder: "folder", link: "link", mention: "mention", related: "related", tag: "tag", memory: "memory", entity: "entity" },
   },
 }[LANG];
 const KINDS = I18N.kinds, REL = I18N.rel;
@@ -167,7 +171,7 @@ const css = k => getComputedStyle(document.documentElement).getPropertyValue(`--
 // colores elegidos en Ajustes del dashboard (localStorage "brain-graph-colors", mismo origen).
 // Sin elegir, queda el sistema monocromo. Los tipos huecos (perfil, memoria, tags) llevan un relleno
 // suave del color para no perder la diferencia de forma.
-const HOLLOW = new Set(["profile", "memory", "tag"]);
+const HOLLOW = new Set(["profile", "memory", "tag", "entity"]);
 let custom = {};
 function loadColors() {
   try { custom = JSON.parse(localStorage.getItem("brain-graph-colors") || "{}") || {}; } catch (e) { custom = {}; }
@@ -210,6 +214,7 @@ function radius(n) {
   if (n.kind === "profile") return 13;
   if (n.kind === "folder") return 6;
   if (n.kind === "tag") return 5;
+  if (n.kind === "entity") return 5.5;
   return 7 + Math.min(7, Math.sqrt(n.degree || 0) * 2);
 }
 
@@ -254,7 +259,7 @@ function render() {
   }
   sim.nodes(nodes);
   sim.force("link", d3.forceLink(links).id(n => n.id)
-    .distance(l => l.kind === "folder" ? 55 : l.kind === "tag" ? 70 : 110)
+    .distance(l => l.kind === "folder" ? 55 : l.kind === "tag" || l.kind === "entity" ? 70 : 110)
     .strength(l => l.kind === "folder" ? 0.6 : 0.25));
   const first = !old.size;
 
@@ -274,8 +279,8 @@ function render() {
   });
   g.attr("class", n => `node ${n.kind}`);
   g.select("circle").attr("r", radius).attr("fill", n => fill(n.kind)).attr("stroke", n => stroke(n.kind))
-    .attr("stroke-width", n => n.kind === "profile" ? 3 : n.kind === "memory" || n.kind === "tag" ? 1.6 : 1.4)
-    .attr("stroke-dasharray", n => n.kind === "source" ? "2.5 2" : null);
+    .attr("stroke-width", n => n.kind === "profile" ? 3 : n.kind === "memory" || n.kind === "tag" || n.kind === "entity" ? 1.6 : 1.4)
+    .attr("stroke-dasharray", n => n.kind === "source" ? "2.5 2" : n.kind === "entity" ? "1.2 1.8" : null);
   g.select("text").attr("x", n => radius(n) + 5).text(n => n.label);
 
   if (first) {
@@ -288,7 +293,7 @@ function render() {
   }
 
   document.getElementById("stats").textContent =
-    I18N.stats(nodes.filter(n => !["folder", "tag"].includes(n.kind)).length, links.length);
+    I18N.stats(nodes.filter(n => !["folder", "tag", "entity"].includes(n.kind)).length, links.length);
   highlight();
 }
 

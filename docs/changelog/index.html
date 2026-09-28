@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changelog · brain</title>
+<meta name="description" content="Every brain release with its date and what changed.">
+<meta property="og:title" content="brain changelog">
+<meta property="og:description" content="Every brain release with its date and what changed.">
+<meta property="og:url" content="https://lautaro005.github.io/brain/changelog/">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='7' width='26' height='18' rx='2' fill='%23fff' stroke='%230a0a0a' stroke-width='2.4'/%3E%3Cpath d='M3 12.5h26' stroke='%230a0a0a' stroke-width='2.4'/%3E%3Cpath d='M8 17.5h10M8 21h7' stroke='%230a0a0a' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="../assets/pages.css">
+<script>window.PAGE_TITLES = { en: "Changelog · brain", es: "Changelog · brain" };</script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="../" aria-label="brain">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="2" fill="#fff" stroke="#0a0a0a" stroke-width="2.2"/><path d="M3 12.5h26" stroke="#0a0a0a" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="#0a0a0a" stroke-width="1.8"/></svg>
+      <span class="mark-word">brain</span>
+    </a>
+    <nav class="tabs" aria-label="Site">
+      <a href="../"><span class="no">1</span><span class="l-en">Home</span><span class="l-es">Inicio</span></a>
+      <a href="../docs/"><span class="no">2</span><span>Docs</span></a>
+      <a href="./" aria-current="page"><span class="no">3</span><span>Changelog</span></a>
+    </nav>
+    <div class="top-right">
+      <a class="gh-top" href="https://github.com/Lautaro005/brain/releases">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>Releases</span>
+      </a>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="es" aria-pressed="false">ES</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout" style="grid-template-columns:minmax(0,1fr);max-width:1040px">
+<main class="content">
+  <div class="log-head">
+    <div class="crumbs"><span>brain</span><span>changelog</span></div>
+    <h1>Changelog</h1>
+    <p class="lead l-en">Every release, newest first, with the date it was published on GitHub (UTC). Update with <code>brain update</code>.</p>
+    <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <code>brain update</code>.</p>
+  </div>
+
+  <!-- ===================== v0.02.5 ===================== -->
+  <article class="release" id="v0.02.5">
+    <div class="when"><div class="ver">v0.02.5</div><time class="date" datetime="2026-09-28">2026-09-28</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>Memory that ages well</h2>
+        <p>Search that finds exact names, facts with dates, summaries, entities in the graph, and a review that suggests fixes without touching anything.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>Hybrid search.</b> <code>search_knowledge</code> combines semantic search with an exact-keyword index (SQLite FTS5, BM25) merged by reciprocal rank fusion. Proper names, IDs, dates and numbers now show up. If Chroma or Ollama is down, keyword search keeps working.</li>
+          <li><b>Facts over time.</b> Each memory is saved with its date. <code>add_memory(fact, category, supersede=old)</code> moves the old fact to a <code>## Historial</code> section instead of leaving both. New tool <code>memory_history(category)</code>.</li>
+          <li><b>Summaries.</b> Pages over 800 words (and long connection results) get a short <code>abstract</code> from your local chat model; <code>list_sources()</code> returns it.</li>
+          <li><b>Entities in the graph.</b> Sources, captures and memory files get an <code>entities</code> list. Notes that name the same person or project connect through a new <i>Entity</i> node type.</li>
+          <li><b><code>distill_skill(topic)</code>.</b> Gathers everything brain has on a topic so your agent writes a skill from it.</li>
+          <li><b>Reflect</b> (Profile tab). Finds duplicates, likely contradictions and notes without entities, and shows the tool call that would fix each one. It never writes.</li>
+          <li><code>reindex_keyword_search()</code> and a <i>Rebuild keyword index</i> button, for sources saved before this version.</li>
+          <li>Documentation site (<a href="../docs/">Docs</a>) and this changelog.</li>
+          <li><code>SECURITY.md</code> with how to report vulnerabilities privately.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li>The dashboard sidebar header shows just the logo and the name, aligned on one row.</li>
+          <li>The license is split in two files, <code>LICENSE</code> (MIT) and <code>COMMONS-CLAUSE.md</code>, so GitHub detects it. The terms don't change.</li>
+        </ul>
+        <h3>Upgrade notes</h3>
+        <ul>
+          <li>Run <i>Rebuild keyword index</i> once (Knowledge tab) so older sources are found by keyword.</li>
+          <li>Summaries and entities need a chat model: <code>ollama pull llama3.2</code>. Without it they're skipped.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Una memoria que envejece bien</h2>
+        <p>Búsqueda que encuentra nombres exactos, hechos con fecha, resúmenes, entidades en el grafo y una revisión que sugiere arreglos sin tocar nada.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>Búsqueda híbrida.</b> <code>search_knowledge</code> combina la búsqueda semántica con un índice por palabra exacta (SQLite FTS5, BM25), fusionados con reciprocal rank fusion. Ahora aparecen nombres propios, IDs, fechas y números. Si Chroma u Ollama están caídos, la búsqueda por palabra sigue funcionando.</li>
+          <li><b>Hechos en el tiempo.</b> Cada memoria se guarda con su fecha. <code>add_memory(hecho, categoría, supersede=viejo)</code> pasa el hecho viejo a una sección <code>## Historial</code> en vez de dejar los dos. Tool nueva <code>memory_history(category)</code>.</li>
+          <li><b>Resúmenes.</b> Las páginas de más de 800 palabras (y los resultados largos de conexiones) llevan un <code>abstract</code> corto hecho por tu modelo de chat local; <code>list_sources()</code> lo devuelve.</li>
+          <li><b>Entidades en el grafo.</b> Fuentes, capturas y archivos de memoria llevan una lista <code>entities</code>. Las notas que nombran a la misma persona o proyecto se conectan por un nuevo tipo de nodo, <i>Entidad</i>.</li>
+          <li><b><code>distill_skill(topic)</code>.</b> Junta todo lo que brain tiene sobre un tema para que tu agente redacte un skill.</li>
+          <li><b>Reflect</b> (pestaña Perfil). Encuentra duplicados, contradicciones probables y notas sin entidades, y muestra la tool que arreglaría cada una. Nunca escribe.</li>
+          <li><code>reindex_keyword_search()</code> y un botón <i>Reindexar búsqueda por palabra</i>, para las fuentes guardadas antes de esta versión.</li>
+          <li>Sitio de documentación (<a href="../docs/">Docs</a>) y este changelog.</li>
+          <li><code>SECURITY.md</code> con cómo reportar vulnerabilidades en privado.</li>
+        </ul>
+        <h3>Cambios</h3>
+        <ul>
+          <li>El encabezado del sidebar del dashboard muestra solo el logo y el nombre, alineados en una fila.</li>
+          <li>La licencia se separó en dos archivos, <code>LICENSE</code> (MIT) y <code>COMMONS-CLAUSE.md</code>, para que GitHub la detecte. Los términos no cambian.</li>
+        </ul>
+        <h3>Al actualizar</h3>
+        <ul>
+          <li>Corré una vez <i>Reindexar búsqueda por palabra</i> (pestaña Conocimiento) para que las fuentes viejas se encuentren por palabra.</li>
+          <li>Los resúmenes y las entidades necesitan un modelo de chat: <code>ollama pull llama3.2</code>. Sin él se saltean.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ===================== v0.02.1 ===================== -->
+  <article class="release" id="v0.02.1">
+    <div class="when"><div class="ver">v0.02.1</div><time class="date" datetime="2026-09-27">2026-09-27</time></div>
+    <div>
+      <div class="l-en">
+        <h2>Fixes, and tools for any chat model</h2>
+        <h3>Fixed</h3>
+        <ul>
+          <li>The Profile tab failed to load ("list index out of range") when an agent rewrote <code>profile.md</code> without the expected blank line.</li>
+          <li>Notes with invalid YAML frontmatter (an unquoted <code>:</code> in a description) lost their description in the graph without warning. Every write now validates the frontmatter, repairs it when it can, or rejects the write with a clear error; reads never break.</li>
+        </ul>
+        <h3>New</h3>
+        <ul>
+          <li><code>set_frontmatter(path, fields)</code>: change metadata without rewriting the note.</li>
+          <li>Chat tools work with any model: schemas are cleaned up, and models that reject native tools (GGUF from Hugging Face) switch to a text mode with <code>&lt;tool_call&gt;</code> blocks.</li>
+          <li>Every tool call in the chat is listed and expandable, with its arguments and result, also when reopening a chat.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li>Redesigned chat: full-height, floating composer, user bubbles on the right.</li>
+          <li>The collapse button moved next to the logo and name.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Arreglos, y tools para cualquier modelo de chat</h2>
+        <h3>Arreglado</h3>
+        <ul>
+          <li>La pestaña Perfil no cargaba ("list index out of range") cuando un agente reescribía <code>profile.md</code> sin la línea en blanco esperada.</li>
+          <li>Las notas con frontmatter YAML inválido (un <code>:</code> sin comillas en una description) perdían la description en el grafo sin avisar. Ahora cada escritura valida el frontmatter, lo repara si puede o rechaza la escritura con un error claro; las lecturas nunca se rompen.</li>
+        </ul>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><code>set_frontmatter(path, fields)</code>: cambiar metadatos sin reescribir la nota.</li>
+          <li>Las tools del chat andan con cualquier modelo: los esquemas se limpian, y los modelos que rechazan tools nativas (GGUF de Hugging Face) pasan a un modo texto con bloques <code>&lt;tool_call&gt;</code>.</li>
+          <li>Cada tool call del chat aparece listada y se despliega, con sus argumentos y resultado, también al reabrir un chat.</li>
+        </ul>
+        <h3>Cambios</h3>
+        <ul>
+          <li>Chat rediseñado: ocupa todo el alto, compositor flotante, burbujas del usuario a la derecha.</li>
+          <li>El botón de plegar pasó al lado del logo y el nombre.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ===================== v0.02.0 ===================== -->
+  <article class="release" id="v0.02.0">
+    <div class="when"><div class="ver">v0.02.0</div><time class="date" datetime="2026-09-27">2026-09-27</time></div>
+    <div>
+      <div class="l-en">
+        <h2>Chat with your memory</h2>
+        <h3>New</h3>
+        <ul>
+          <li><b>Chat</b>: a local Ollama model with your profile, memory and past chats as context, and the same tools as your agents. History in Chroma, and a floating always-on-top window.</li>
+          <li><b>Settings</b>: a color per graph node type, or back to black and white.</li>
+          <li><b>Collapsible sidebar</b>, remembered between sessions.</li>
+          <li><b>My connections</b> also lists apps added through an "Add MCP server" form, detected from the MCP handshake, and apps you note by hand.</li>
+          <li>Chat widget on the website.</li>
+        </ul>
+        <h3>License</h3>
+        <ul>
+          <li>From MIT to <b>MIT + Commons Clause</b>: free to use, modify and share, including at work, but not to sell. <code>v0.01.0</code> and earlier remain under MIT.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Chateá con tu memoria</h2>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>Chat</b>: un modelo local de Ollama con tu perfil, tu memoria y tus chats anteriores como contexto, y las mismas tools que tus agentes. Historial en Chroma y ventana flotante siempre visible.</li>
+          <li><b>Ajustes</b>: un color por tipo de nodo del grafo, o volver a blanco y negro.</li>
+          <li><b>Sidebar plegable</b>, que se recuerda entre sesiones.</li>
+          <li><b>Mis conexiones</b> también lista las apps agregadas con un formulario "Add MCP server", detectadas por el handshake MCP, y las que anotás a mano.</li>
+          <li>Widget de chat en la web.</li>
+        </ul>
+        <h3>Licencia</h3>
+        <ul>
+          <li>De MIT a <b>MIT + Commons Clause</b>: se puede usar, modificar y compartir gratis, también en el trabajo, pero no vender. <code>v0.01.0</code> y anteriores siguen bajo MIT.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ===================== v0.01.0 ===================== -->
+  <article class="release" id="v0.01.0">
+    <div class="when"><div class="ver">v0.01.0</div><time class="date" datetime="2026-09-27">2026-09-27</time><span class="stamp"><span class="l-en">First</span><span class="l-es">Primera</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>First release</h2>
+        <ul>
+          <li><b>MCP server</b> with a Markdown vault: read, write, append, replace and delete notes; profile and memory; skills.</li>
+          <li><b>Save the web</b>: <code>save_url</code> with trafilatura and a Playwright fallback for JavaScript sites; semantic search with Ollama (<code>nomic-embed-text</code>) and a shared Chroma server.</li>
+          <li><b>Version history</b> in SQLite: <code>file_history</code> and <code>restore_file</code>, safe with several agents writing at once.</li>
+          <li><b>Dashboard</b> (<code>brain</code>): service switches, metrics, system health, profile and memory import, graph, knowledge and logs, in English and Spanish.</li>
+          <li><b>Connect agent</b> in one click: Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI.</li>
+          <li><b>Connections</b>: brain as an MCP client of other servers (local command, URL or Composio, with consumer and project keys), with results captured to memory.</li>
+          <li>One-command installer and website.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Primera versión</h2>
+        <ul>
+          <li><b>Server MCP</b> con un vault en Markdown: leer, escribir, agregar, reemplazar y borrar notas; perfil y memoria; skills.</li>
+          <li><b>Guardar la web</b>: <code>save_url</code> con trafilatura y fallback a Playwright para sitios con JavaScript; búsqueda semántica con Ollama (<code>nomic-embed-text</code>) y un server de Chroma compartido.</li>
+          <li><b>Historial de versiones</b> en SQLite: <code>file_history</code> y <code>restore_file</code>, seguro con varios agentes escribiendo a la vez.</li>
+          <li><b>Dashboard</b> (<code>brain</code>): switches de servicios, métricas, salud del sistema, perfil e importación de memoria, grafo, conocimiento y logs, en español e inglés.</li>
+          <li><b>Conectar agente</b> en un click: Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf y Gemini CLI.</li>
+          <li><b>Conexiones</b>: brain como cliente MCP de otros servers (comando local, URL o Composio, con keys de consumidor y de proyecto), con los resultados capturados en la memoria.</li>
+          <li>Instalador de un comando y sitio web.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+</main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT</a> + <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md">Commons Clause</a> © 2026 Lautaro Silva</span>
+    <span><a href="../">Home</a> · <a href="../docs/">Docs</a> · <a href="./">Changelog</a> · <a href="https://github.com/Lautaro005/brain">GitHub</a></span>
+  </div>
+</footer>
+<script src="../assets/pages.js"></script>
+</body>
+</html>

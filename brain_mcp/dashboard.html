@@ -272,6 +272,11 @@
   .x-btn { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 2px 4px; border-radius: 5px; line-height: 1; font-size: 15px; }
   .x-btn:hover { color: var(--bad); background: var(--bad-soft); }
   .mem-list { max-height: 560px; overflow: auto; }
+  .reflect-list { display: grid; gap: 10px; margin-top: 12px; }
+  .reflect-item { border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; font-size: 13.5px; }
+  .reflect-item .code-label { margin-bottom: 4px; }
+  .reflect-item code { display: block; margin-top: 8px; font: 12px/1.45 "Courier Prime", monospace; white-space: pre-wrap; word-break: break-word; color: var(--text-2); }
+  .kw-tag { font: 700 11px/1.3 "Courier Prime", monospace; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); border: 1px solid var(--line-strong); border-radius: 3px; padding: 1px 6px; }
 
   /* ---------- conectar agente ---------- */
   .agents { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
@@ -395,7 +400,8 @@
   .app { transition: grid-template-columns .18s ease; }
   .logo { position: relative; }
   .collapse-btn { width: 30px; padding: 0; margin-left: auto; flex: none; }
-  .logo-name { min-width: 0; }
+  .logo-name { min-width: 0; line-height: 1; }
+  .logo-mark { display: flex; align-items: center; }
   @media (min-width: 761px) {
     body.side-min .app { grid-template-columns: 64px 1fr; }
     body.side-min nav.side { padding: 16px 8px; align-items: center; }
@@ -429,7 +435,7 @@
   <nav class="side">
     <div class="logo">
       <div class="logo-mark"><svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="2" fill="var(--surface)" stroke="currentColor" stroke-width="2.2"/><path d="M3 12.5h26" stroke="currentColor" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="currentColor" stroke-width="1.8"/></svg></div>
-      <div class="logo-name">brain<small data-i18n="tagline"></small></div>
+      <div class="logo-name">brain</div>
       <button class="icon-btn collapse-btn" id="collapse-btn" type="button"></button>
     </div>
     <button class="nav-item" data-view="panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span data-i18n="nav.panel"></span></button>
@@ -510,6 +516,13 @@
             <div class="card-b">
               <input class="input full" id="mem-filter" style="margin-bottom:8px">
               <div class="mem-list" id="mem-list"></div>
+            </div></div>
+          <div class="card"><div class="card-h"><h2 data-i18n="reflect.title"></h2><span class="sub" data-i18n="reflect.sub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" data-i18n="reflect.hint" style="margin-top:0"></p>
+              <button class="btn" type="button" id="reflect-btn" data-i18n="reflect.run"></button>
+              <div class="result" id="reflect-result"></div>
+              <div id="reflect-list" class="reflect-list"></div>
             </div></div>
         </div>
         <div class="card" style="align-self:start"><div class="card-h"><h2 data-i18n="mem.import"></h2><span class="sub" data-i18n="mem.importSub"></span></div>
@@ -637,6 +650,8 @@
             </form>
             <div class="result" id="search-result"></div>
             <div class="hits" id="hits"></div>
+            <button class="btn" type="button" id="reindex-btn" data-i18n="know.reindex" style="margin-top:12px"></button>
+            <div class="result" id="reindex-result"></div>
           </div></div>
       </div>
       <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="know.sources"></h2><span class="sub" id="sources-sub"></span></div>
@@ -691,7 +706,6 @@ Required format:
 };
 const I18N = {
   es: {
-    tagline: "knowledge server",
     nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
     conn: { title: "Conexiones", sub: "Apps y servicios que brain usa por vos: sus tools aparecen en tus agentes y lo que traen queda en tu memoria",
       yours: "Tus conexiones", count: n => `${n} en total`, formSub: "server MCP", add: "Agregar conexión", edit: n => `Editar ${n}`,
@@ -795,11 +809,21 @@ const I18N = {
       importBtn: n => `Importar ${n}`, nothing: "No encontré memorias en ese texto. Revisá que sea una lista.",
       imported: (n, f) => `Listo: ${n} memorias nuevas en ${f} ${f === 1 ? "archivo" : "archivos"} de memory/. Ya aparecen en el grafo.`,
       noneNew: "Todas esas memorias ya estaban guardadas.", del: "Borrar", delConfirm: "¿Borrar esta memoria?", other: "Otro" },
+    reflect: { title: "Reflect", sub: "solo sugiere", run: "Revisar mi memoria",
+      hint: "Busca duplicados, hechos que se contradicen y notas sin entidades. No cambia nada: cada sugerencia trae la tool para aplicarla (o pedíselo al chat).",
+      working: "Revisando…", none: "Todo en orden: no hay nada para sugerir.", count: n => `${n} ${n === 1 ? "sugerencia" : "sugerencias"}`,
+      noLlm: "Sin modelo de chat en Ollama no se buscan entidades faltantes.", pending: n => `${n} archivos más sin entidades: volvé a correrlo.`,
+      kinds: { posible_duplicado: "Posible duplicado", posible_contradiccion: "Posible contradicción", entidades_faltantes: "Sin entidades" },
+      dup: d => `“${d.a.fact}” (${d.a.category}) y “${d.b.fact}” (${d.b.category}) dicen lo mismo.`,
+      contra: d => `“${d.a.fact}” (${d.a.category}) y “${d.b.fact}” (${d.b.category}) parecen hablar de lo mismo con datos distintos.`,
+      ents: d => `${d.path}: ${d.entities.join(", ")}` },
     chat: { title: "Chat", sub: "Un modelo local de Ollama que conoce tu perfil y tu memoria, y puede consultar y editar tu vault" },
-    graph: { title: "Grafo", sub: "Cómo se conectan perfil, memoria, proyectos, skills, fuentes y tags" },
+    graph: { title: "Grafo", sub: "Cómo se conectan perfil, memoria, proyectos, skills, fuentes, tags y entidades" },
     know: { title: "Conocimiento", sub: "Guardar URLs y buscar en lo scrapeado", save: "Guardar una URL", saveSub: "scrapea, indexa y crea el .md",
       saveBtn: "Guardar", forceJs: "Forzar render con JS (Playwright)", working: "Scrapeando e indexando… (con Playwright puede tardar unos segundos)",
-      search: "Buscar", searchSub: "búsqueda semántica", searchBtn: "Buscar", searchPh: "¿Qué querés encontrar?", searching: "Buscando…",
+      search: "Buscar", searchSub: "semántica + por palabra", searchBtn: "Buscar", searchPh: "¿Qué querés encontrar?", searching: "Buscando…",
+      kw: "por palabra", semDown: "La búsqueda semántica no está disponible (¿Ollama o Chroma apagados?): solo resultados por palabra exacta.",
+      reindex: "Reindexar búsqueda por palabra", reindexing: "Reindexando…", reindexed: r => `Listo: ${r.chunks} chunks de ${r.files} archivos.`,
       noHits: "No hay resultados (¿todavía no guardaste ninguna URL?).", sources: "Fuentes guardadas", total: n => `${n} en total`,
       thTitle: "Título", thDomain: "Dominio", thChunks: "Chunks", thSaved: "Guardada", noSources: "Todavía no guardaste ninguna fuente.",
       saved: r => `${r.updated ? "Actualizado" : "Guardado"}: “${r.title}” → ${r.path} (${r.chunks} chunks${r.rendered_js ? ", renderizado con Playwright" : ""})` },
@@ -813,10 +837,9 @@ const I18N = {
     settings: { title: "Ajustes", graphColors: "Colores del grafo",
       graphHint: "Elegí un color para cada tipo de nodo, así se distinguen de un vistazo. Se aplica al instante y queda guardado en este navegador.",
       vivid: "Usar colores distintos", reset: "Volver a blanco y negro", default: "por defecto",
-      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags" } },
+      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" } },
   },
   en: {
-    tagline: "knowledge server",
     nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
     conn: { title: "Connections", sub: "Apps and services brain uses for you: their tools show up in your agents and what they bring back stays in your memory",
       yours: "Your connections", count: n => `${n} total`, formSub: "MCP server", add: "Add connection", edit: n => `Edit ${n}`,
@@ -920,11 +943,21 @@ const I18N = {
       importBtn: n => `Import ${n}`, nothing: "No memories found in that text. Make sure it's a list.",
       imported: (n, f) => `Done: ${n} new memories in ${f} ${f === 1 ? "file" : "files"} under memory/. They're already in the graph.`,
       noneNew: "All those memories were already saved.", del: "Delete", delConfirm: "Delete this memory?", other: "Other" },
+    reflect: { title: "Reflect", sub: "suggestions only", run: "Review my memory",
+      hint: "Looks for duplicates, facts that contradict each other and notes without entities. It changes nothing: each suggestion shows the tool that applies it (or ask the chat).",
+      working: "Reviewing…", none: "All good: nothing to suggest.", count: n => `${n} ${n === 1 ? "suggestion" : "suggestions"}`,
+      noLlm: "Without a chat model in Ollama, missing entities aren't checked.", pending: n => `${n} more files without entities: run it again.`,
+      kinds: { posible_duplicado: "Possible duplicate", posible_contradiccion: "Possible contradiction", entidades_faltantes: "No entities" },
+      dup: d => `“${d.a.fact}” (${d.a.category}) and “${d.b.fact}” (${d.b.category}) say the same thing.`,
+      contra: d => `“${d.a.fact}” (${d.a.category}) and “${d.b.fact}” (${d.b.category}) seem to be about the same thing with different data.`,
+      ents: d => `${d.path}: ${d.entities.join(", ")}` },
     chat: { title: "Chat", sub: "A local Ollama model that knows your profile and memory, and can look up and edit your vault" },
-    graph: { title: "Graph", sub: "How profile, memory, projects, skills, sources and tags connect" },
+    graph: { title: "Graph", sub: "How profile, memory, projects, skills, sources, tags and entities connect" },
     know: { title: "Knowledge", sub: "Save URLs and search what was scraped", save: "Save a URL", saveSub: "scrapes, indexes and creates the .md",
       saveBtn: "Save", forceJs: "Force JS rendering (Playwright)", working: "Scraping and indexing… (Playwright can take a few seconds)",
-      search: "Search", searchSub: "semantic search", searchBtn: "Search", searchPh: "What are you looking for?", searching: "Searching…",
+      search: "Search", searchSub: "semantic + keyword", searchBtn: "Search", searchPh: "What are you looking for?", searching: "Searching…",
+      kw: "keyword", semDown: "Semantic search isn't available (Ollama or Chroma off?): showing exact-keyword results only.",
+      reindex: "Rebuild keyword index", reindexing: "Rebuilding…", reindexed: r => `Done: ${r.chunks} chunks from ${r.files} files.`,
       noHits: "No results (haven't saved any URL yet?).", sources: "Saved sources", total: n => `${n} total`,
       thTitle: "Title", thDomain: "Domain", thChunks: "Chunks", thSaved: "Saved", noSources: "You haven't saved any source yet.",
       saved: r => `${r.updated ? "Updated" : "Saved"}: “${r.title}” → ${r.path} (${r.chunks} chunks${r.rendered_js ? ", rendered with Playwright" : ""})` },
@@ -938,7 +971,7 @@ const I18N = {
     settings: { title: "Settings", graphColors: "Graph colors",
       graphHint: "Pick a color for each node type so they stand apart at a glance. It applies instantly and is saved in this browser.",
       vivid: "Use distinct colors", reset: "Back to black and white", default: "default",
-      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags" } },
+      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" } },
   },
 };
 let lang = "es";
@@ -1031,9 +1064,9 @@ $("#collapse-btn").onclick = () => {
 
 // ================= ajustes: colores del grafo =================
 // se guardan en localStorage (mismo origen que el grafo): graph.html los lee y escucha el evento storage
-const GRAPH_KINDS = ["hub", "profile", "memory", "project", "skill", "source", "note", "folder", "tag"];
-const GRAPH_MONO = { hub: "#0a0a0a", profile: "#0a0a0a", memory: "#5e5e5e", project: "#0a0a0a", skill: "#5e5e5e", source: "#5e5e5e", note: "#9a9a95", folder: "#cfcfcc", tag: "#9a9a95" };
-const GRAPH_VIVID = { hub: "#e11d48", profile: "#f59e0b", memory: "#8b5cf6", project: "#2563eb", skill: "#059669", source: "#0891b2", note: "#64748b", folder: "#a8a29e", tag: "#65a30d" };
+const GRAPH_KINDS = ["hub", "profile", "memory", "project", "skill", "source", "note", "folder", "tag", "entity"];
+const GRAPH_MONO = { hub: "#0a0a0a", profile: "#0a0a0a", memory: "#5e5e5e", project: "#0a0a0a", skill: "#5e5e5e", source: "#5e5e5e", note: "#9a9a95", folder: "#cfcfcc", tag: "#9a9a95", entity: "#0a0a0a" };
+const GRAPH_VIVID = { hub: "#e11d48", profile: "#f59e0b", memory: "#8b5cf6", project: "#2563eb", skill: "#059669", source: "#0891b2", note: "#64748b", folder: "#a8a29e", tag: "#65a30d", entity: "#db2777" };
 function graphColors() { try { return JSON.parse(localStorage.getItem("brain-graph-colors") || "{}") || {}; } catch (e) { return {}; } }
 function saveGraphColors(c) {
   try { if (Object.keys(c).length) localStorage.setItem("brain-graph-colors", JSON.stringify(c)); else localStorage.removeItem("brain-graph-colors"); }
@@ -1657,13 +1690,41 @@ $("#search-form").onsubmit = async e => {
     if (!r.ok) showResult(out, "err", errText(r));
     else if (!r.hits.length) showResult(out, "info", T.know.noHits);
     else {
-      out.className = "result";
+      if (r.down === "semantic") showResult(out, "info", T.know.semDown); else out.className = "result";
       hits.innerHTML = r.hits.map(h => `<div class="hit"><div class="hit-top">
-        <span class="score"><span class="score-bar"><i style="width:${Math.max(0, Math.min(1, h.score)) * 100}%"></i></span>${(h.score * 100).toFixed(0)}%</span>
+        ${h.score == null ? `<span class="kw-tag">${esc(T.know.kw)}</span>` :
+          `<span class="score"><span class="score-bar"><i style="width:${Math.max(0, Math.min(1, h.score)) * 100}%"></i></span>${(h.score * 100).toFixed(0)}%</span>`}
         <a href="${esc(h.url)}" target="_blank" rel="noopener" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.url)}</a></div>
         <p>${esc(h.text)}</p></div>`).join("");
     }
   } catch (e2) { showResult(out, "err", e2.message); }
+  finally { btn.disabled = false; }
+};
+$("#reindex-btn").onclick = async () => {
+  const btn = $("#reindex-btn"), out = $("#reindex-result");
+  btn.disabled = true; showResult(out, "info", T.know.reindexing, true);
+  try {
+    const r = await api("/api/search/reindex", {});
+    showResult(out, r.ok ? "ok" : "err", r.ok ? T.know.reindexed(r) : errText(r));
+  } catch (e) { showResult(out, "err", e.message); }
+  finally { btn.disabled = false; }
+};
+
+// ================= reflect (solo sugiere) =================
+$("#reflect-btn").onclick = async () => {
+  const btn = $("#reflect-btn"), out = $("#reflect-result"), list = $("#reflect-list");
+  btn.disabled = true; list.innerHTML = ""; showResult(out, "info", T.reflect.working, true);
+  try {
+    const r = await api("/api/reflect", {});
+    const s = r.suggestions || [];
+    const notes = [s.length ? T.reflect.count(s.length) : T.reflect.none];
+    if (!r.llm) notes.push(T.reflect.noLlm);
+    if (r.entities_pending) notes.push(T.reflect.pending(r.entities_pending));
+    showResult(out, s.length ? "info" : "ok", notes.join(" "));
+    const text = x => x.tipo === "posible_duplicado" ? T.reflect.dup(x.data) : x.tipo === "posible_contradiccion" ? T.reflect.contra(x.data) : T.reflect.ents(x.data);
+    list.innerHTML = s.map(x => `<div class="reflect-item"><div class="code-label">${esc(T.reflect.kinds[x.tipo] || x.tipo)}</div>
+      <div>${esc(text(x))}</div><code>${esc(x.accion_sugerida)}</code></div>`).join("");
+  } catch (e) { showResult(out, "err", e.message); }
   finally { btn.disabled = false; }
 };
 

@@ -12,7 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | 
 
 Then type `brain` and the dashboard opens.
 
-**Website:** https://lautaro005.github.io/brain/
+**Website:** https://lautaro005.github.io/brain/ · **Docs:** https://lautaro005.github.io/brain/docs/ · **Changelog:** https://lautaro005.github.io/brain/changelog/
 
 ---
 
@@ -32,6 +32,7 @@ Then type `brain` and the dashboard opens.
 - [Uninstalling](#uninstalling)
 - [Development](#development)
 - [License](#license)
+- [Security](#security)
 
 ---
 
@@ -59,7 +60,7 @@ The installer:
 1. Installs [uv](https://docs.astral.sh/uv/) if you don't have it (it manages Python and the dependencies without touching the system Python).
 2. Downloads brain into `~/.brain`.
 3. Installs the dependencies and the headless Chromium used to scrape JavaScript sites.
-4. Installs [Ollama](https://ollama.com) with Homebrew if needed, and pulls the `nomic-embed-text` embedding model (~270 MB). Without Homebrew, it tells you where to download Ollama.
+4. Installs [Ollama](https://ollama.com) with Homebrew if needed, and pulls the `nomic-embed-text` embedding model (~270 MB). Without Homebrew, it tells you where to download Ollama. The chat model (`llama3.2`, ~2 GB) is **optional** and not pulled automatically: it powers the Chat tab, source summaries (`abstract`) and entity extraction for the graph. Get it with `ollama pull llama3.2` or the *Download llama3.2* button in the Chat tab; without it those three features are skipped and everything else works. Use another model with `BRAIN_SUMMARY_MODEL=<model>`, or turn summaries and entities off with `BRAIN_SUMMARY_MODEL=off`.
 5. Creates the `brain` command in `~/.local/bin` and adds it to your `PATH` if it wasn't there.
 
 Running it again updates the install. To install somewhere else, set `BRAIN_HOME=~/some/folder` before `bash`.
@@ -89,14 +90,14 @@ ollama pull nomic-embed-text
 |---|---|
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
 | **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click). Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
-| **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. |
+| **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. **Reflect** reviews your memory and suggests fixes (duplicates, contradictions, notes without entities) without changing anything. |
 | **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
 | **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. |
-| **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders and tags. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
-| **Knowledge** | Save a URL (optionally forcing JavaScript rendering), semantic search with a relevance score, and the list of saved sources. |
+| **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders, tags and entities. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
+| **Knowledge** | Save a URL (optionally forcing JavaScript rendering), hybrid search (semantic score, or a *keyword* tag for exact matches), a button to rebuild the keyword index, and the list of saved sources. |
 | **Logs** | Live output of every service the dashboard manages. |
 
-The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**) and **Settings**, where you can give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags) its own color, or go back to black and white. The button next to the logo collapses the sidebar into a narrow rail of icons.
+The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**) and **Settings**, where you can give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags, Entities) its own color, or go back to black and white. The button next to the logo collapses the sidebar into a narrow rail of icons.
 
 When you close the dashboard, it only stops what it started. If Ollama was already running (for example the menu-bar app), it shows up as **External** and is left alone.
 
@@ -193,8 +194,17 @@ flowchart LR
 1. [trafilatura](https://trafilatura.readthedocs.io) downloads the page and extracts clean text.
 2. If it gets fewer than 30 words (typical of JavaScript-built sites) or the download fails, it renders the page in headless Chromium with Playwright and extracts again.
 3. It splits the text into ~500-word chunks with a 50-word overlap.
-4. It embeds each chunk with Ollama and stores it in Chroma, with metadata pointing back to the source `.md`.
-5. It writes `knowledge/sources/<slug>.md` with the full text and its chunk ids. Saving the same URL again updates it instead of duplicating it.
+4. It embeds each chunk with Ollama and stores it in Chroma, with metadata pointing back to the source `.md`. The same chunks go into a keyword index (SQLite FTS5, `data/search.sqlite3`), which catches proper names, IDs and exact numbers that embeddings miss.
+5. If a chat model is installed in Ollama, it adds a short `abstract` (pages over 800 words) and the `entities` it names (people, places, organizations, projects) to the frontmatter. Both are optional: without the model the page is saved the same way.
+6. It writes `knowledge/sources/<slug>.md` with the full text and its chunk ids. Saving the same URL again updates it instead of duplicating it.
+
+**Search (`search_knowledge`)** runs the semantic search and the keyword search, and merges both lists with reciprocal rank fusion. If Chroma or Ollama is down, keyword search keeps working and the answer says so.
+
+**Memory over time:** each fact carries the date it was saved (an HTML comment at the end of the bullet, invisible when reading). When a fact changes, `add_memory(new, supersede=old)` moves the old one to a `## Historial` section with the date it stopped being true, so agents only see what's current and the past isn't lost.
+
+**Entities in the graph:** notes in `knowledge/` and `memory/` get an `entities` list. Two notes that name the same person or project end up connected through a shared entity node, even if nobody linked them.
+
+**Reflect** (Profile tab) reviews what's stored and suggests fixes: facts duplicated across categories, facts that probably contradict each other, and recent notes without entities. It never writes anything; each suggestion shows the tool call that would apply it.
 
 **How memory import works:** the dashboard's prompt asks the chatbot for its memory grouped as `## Category` / `- fact`. The parser also accepts plain lists, bold labels, numbered lists and JSON. It deduplicates, strips date prefixes, and when a memory mentions one of your projects by name, links them in the graph.
 
@@ -211,11 +221,14 @@ flowchart LR
 | `delete_file(path)` | Deletes a file (recoverable) |
 | `file_history(path)` | A file's versions |
 | `restore_file(path, version_id)` | Restores a file to an earlier version (also brings back deleted files) |
-| `add_memory(fact, category?)` | Saves a fact about you to your memory, without duplicates |
+| `add_memory(fact, category?, supersede?)` | Saves a fact about you to your memory, without duplicates and with the date it was saved. If it replaces an older fact (you moved, changed jobs…), pass the old one in `supersede`: it isn't deleted, it moves to a `## Historial` section of the same file, dated |
+| `memory_history(category?)` | Facts that were superseded in a memory category |
 | `list_skills()` / `get_skill(name)` | Skills: reusable instructions in `skills/` |
-| `save_url(url, render_js?)` | Scrapes, indexes and saves a URL |
-| `search_knowledge(query, top_k?)` | Semantic search over what you saved |
-| `list_sources()` | Every saved URL |
+| `distill_skill(topic)` | Gathers everything brain has on a topic (search hits, memories, sources) so the agent can write a skill from it with `write_file`. It doesn't write the skill itself |
+| `save_url(url, render_js?)` | Scrapes, indexes and saves a URL (long pages also get a short `abstract`) |
+| `search_knowledge(query, top_k?)` | Hybrid search over what you saved: semantic + exact keyword (names, IDs, dates), merged with reciprocal rank fusion |
+| `reindex_keyword_search()` | Rebuilds the keyword index from the `.md` files in `knowledge/` (for sources saved before hybrid search existed) |
+| `list_sources()` | Every saved URL, with its `abstract` when there is one |
 | `list_connections()` | Your connections, whether they're active, and their tools |
 | `refresh_connectors()` | Re-discovers the tools of every active connection |
 | `<connection>__<tool>` | Any tool from an active connection, proxied (and captured to memory if enabled) |
@@ -251,6 +264,8 @@ To start from scratch: close the dashboard and your agents, and delete `~/.brain
 | Problem | Fix |
 |---|---|
 | "Ollama isn't running" | Turn on the Ollama switch in the Dashboard, or open the Ollama app. |
+| Search finds nothing for a name you know is saved | Sources saved before v0.02.5 aren't in the keyword index yet: click *Rebuild keyword index* in the Knowledge tab (or ask an agent to run `reindex_keyword_search`). |
+| Sources have no `abstract` / the graph has no entities | Those need a chat model in Ollama: `ollama pull llama3.2`. Then run **Reflect** in the Profile tab to see which notes are missing entities. |
 | "The Chroma server isn't running" | Open the dashboard (`brain`); it starts Chroma. Agents need it for `save_url` and `search_knowledge`. |
 | Composio returns `401 Invalid API key` | Check the key type: a consumer key (`ck_…`) only works with *Save and connect*, not with *Choose apps* (that's for project keys `ak_…`). If it's a fresh key, try regenerating it in Composio's dashboard. |
 | An app returns `403` when connecting | You used "Connect to a URL". Use **Run a command** with the values from [Apps with an "Add MCP server" form](#apps-with-an-add-mcp-server-form). |
@@ -284,6 +299,12 @@ The dashboard UI is available in English and Spanish; the internal docs (`CLAUDE
 
 ## License
 
-[MIT with the Commons Clause](LICENSE) © 2026 Lautaro Silva.
+[MIT](LICENSE) with the [Commons Clause](COMMONS-CLAUSE.md) © 2026 Lautaro Silva.
 
-You can use, study, modify and share brain for free, including at work. The Commons Clause adds one restriction: you may not **sell** it, meaning you can't charge third parties for a product or service (hosting, support or consulting included) whose value comes entirely or substantially from brain. Versions released before this change stay under plain MIT.
+You can use, study, modify and share brain for free, including at work. The Commons Clause adds one restriction: you may not **sell** it, meaning you can't charge third parties for a product or service (hosting, support or consulting included) whose value comes entirely or substantially from brain. Versions released before `v0.02.0` stay under plain MIT.
+
+The condition lives in its own file, [`COMMONS-CLAUSE.md`](COMMONS-CLAUSE.md), so GitHub can detect the MIT base license; both files together are brain's license, and redistributions must include both.
+
+## Security
+
+To report a vulnerability, see [`SECURITY.md`](SECURITY.md). Please don't open a public issue for it.
