@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 
-from brain_mcp import chroma_store, clients, connectors, entities, keyword_store, memory, vault  # noqa: E402
+from brain_mcp import chroma_store, clients, connectors, entities, keyword_store, memory, organize, vault  # noqa: E402
 from brain_mcp.summarize import summarize  # noqa: E402
 from brain_mcp.chunking import chunk_text  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
@@ -89,7 +89,9 @@ mcp = BrainServer(
         "Las tools con prefijo (ej. gmail__..., composio__...) vienen de conexiones del usuario: su "
         "resultado se guarda solo en knowledge/ y después se puede buscar con search_knowledge. "
         "Al escribir notas, conectalas: usá [[nombre]] para linkear otros archivos del vault, y en el "
-        "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo."
+        "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
+        "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
+        "(preguntale al usuario antes de mover o borrar)."
     ),
 )
 
@@ -167,6 +169,31 @@ def delete_file(path: str) -> str:
     """Borra un archivo del vault. Recuperable con file_history + restore_file."""
     try:
         return f"OK: borrado {vault.delete_file(path)}"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def move_file(src: str, dst: str) -> str:
+    """Mueve o renombra una nota del vault (ej. move_file("idea.md", "projects/idea.md")). Recuperable
+    con file_history + restore_file. No mueve BRAIN.md, profile.md, memory/ ni knowledge/sources/
+    (los maneja brain). Si otras notas la linkean por path, actualizá esos links."""
+    try:
+        for p in (src, dst):
+            q = p.strip().lstrip("./")
+            if q in organize.FIXED or q.startswith(organize.MANAGED):
+                return f"Error: {p} lo maneja brain y no se mueve (BRAIN.md, profile.md, memory/, knowledge/sources/)."
+        return f"OK: movido {src} → {vault.move_file(src, dst)}"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def vault_overview() -> str:
+    """Panorama del vault para ordenarlo: carpetas, notas sueltas, sin conexiones o sin descripción,
+    tags repetidos o con variantes y nombres parecidos. No cambia nada."""
+    try:
+        return organize.overview_text()
     except Exception as e:
         return _err(e)
 

@@ -455,3 +455,24 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 - `updates.check()` contra GitHub real: con `VERSION` = v0.02.5 da "al día" (el último publicado es v0.02.1); con `VERSION` = v0.02.0 da `update_available: true` con v0.02.1.
 - Playwright (dashboard con un Ollama falso): el engranaje abre `#ajustes`; bajar Panel y ocultar Logs cambia el sidebar y persiste al recargar; elegir `llama3.2` como default hace que el chat lo use al abrir; con v0.02.0, "Buscar actualizaciones" muestra el aviso y pone el engranaje en verde, y sigue verde después de recargar y con el sidebar plegado; textos en EN; a 390 px sin desborde y con Ajustes accesible; sin errores de JS.
 - Landing a 1440, 1000 y 390 px sin desborde; pie con el logo de GitHub bien dibujado.
+
+## 2026-09-29 — v0.02.8: chat configurable, comandos, /organize, diálogos propios y licencia en un archivo
+
+**Qué cambió**
+- **System prompt del usuario** (Ajustes → System prompt, `dashboard.html`): textarea de hasta 4000 caracteres guardado en `localStorage` (`brain-chat-system`). `chat.html` lo manda en cada mensaje y `chat._context()` lo suma como "Instrucciones del usuario" al final, sin reemplazar las reglas de las tools.
+- **Ventanas propias** (`brain_mcp/ui.js`, nuevo, servido en `/ui.js` por `dashboard.py`): `BrainUI.confirm` reemplaza los 6 `confirm()` (borrar memoria, quitar cliente, reiniciar app, borrar conexión, desconectar Composio, borrar chat); lo destructivo va en rojo y con el foco en Cancelar. `BrainUI.select` reemplaza los dos `<select>` (modelo del chat y modelo por defecto) con un dropdown propio con teclado.
+- **Modelo fijo por chat** (`chat.html`): el selector aparece solo en un chat nuevo; al enviar el primer mensaje pasa a una etiqueta con candado. Al reabrir un chat se usa su modelo (ya se guardaba en el meta).
+- **Medidor de contexto** (`chat.py`, `chat.html`): `models()` devuelve `ctx`/`ctx_max` por modelo desde `/api/show`; el chat manda `num_ctx` y emite el evento `usage`; el círculo (una "O" que se llena) a la izquierda de enviar muestra el uso, con tooltip y rojo desde 90%. `BRAIN_CHAT_CTX` (16384) topea la ventana.
+- **Renombrar chats**: lápiz al lado del título → input inline; `POST /api/chat/rename` → `chat.rename_chat()` (actualiza el meta en Chroma).
+- **Comandos** (`/`): lista arriba del compositor con descripción en es/en; `/organize`, `/reflect`, `/new`. `chat.parse_command()`, `COMMANDS`, `CMD_TITLES`, `_command_prompt()`; el comando queda en el meta del chat. `reflect.run(use_llm=False)` para no llamar al modelo local mientras ya hay uno respondiendo.
+- **/organize**: skill integrada `brain_mcp/skills/organize.md`, adaptada de *file-organizer* de davila7/claude-code-templates (MIT, atribución y copyright en su frontmatter) para el vault: preguntar alcance → analizar → plan → ejecutar solo lo aprobado → resumen. `brain_mcp/organize.py` arma el panorama (sueltas, sin conexiones, sin descripción, variantes de tags, nombres parecidos). Tools nuevas `move_file` (`vault.move_file`, historial `move` en origen y destino, borra carpetas vacías) y `vault_overview`.
+- **Sidebar**: Chroma, Ollama e Inspector pasaron a un popover del botón **i** a la izquierda del engranaje (punto rojo si algún servicio falla, link a "Administrar en el Panel").
+- **Licencia**: `LICENSE` vuelve a tener la Commons Clause arriba del MIT; se borró `COMMONS-CLAUSE.md`. README, docs, landing, changelog y CLAUDE.md actualizados.
+- `VERSION` → `v0.02.8`; changelog, docs (Dashboard, Chat, Tools, Configuración) y README.
+
+**Por qué**
+- Pedido del usuario (8 puntos). Sobre la licencia: el usuario vio "MIT" en GitHub y entendió que se había perdido la restricción de venta. Los términos nunca cambiaron, pero el badge "MIT" comunica lo contrario, y eso importa más que el autodetectado de GitHub: ahora aparece "Other" / "View license", que es lo correcto para MIT + Commons Clause.
+- `num_ctx`: sin él Ollama usa su default (2-4k tokens) y el system prompt con memoria + tools lo supera, así que se cortaba en silencio. El tope de 16k evita pedir 128k de caché en una Mac.
+- `/organize` no borra ni mueve sin confirmación y no toca lo que maneja brain (`memory/`, `knowledge/sources/`: moverlas rompería los ids de Chroma/FTS).
+
+**Verificado**: 24 pruebas nuevas de backend (panorama, move_file, restauración, protecciones, reflect sin LLM, ventana de contexto, rename) + las 35 anteriores; 38 chequeos en Chromium con Ollama falso y Chroma real (dropdown con teclado, comandos, organize/system prompt llegan al modelo con `num_ctx`, anillo, modelo fijo al reabrir, renombrar persiste, confirmaciones propias sin `confirm()` nativo, popover de servicios arriba/plegado/celular, 390 px sin scroll horizontal, sin errores JS). No probado con un Ollama real.

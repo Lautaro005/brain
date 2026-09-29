@@ -6,6 +6,7 @@
 <title>Brain Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
+<script src="/ui.js"></script>
 <style>
   :root {
     color-scheme: light;
@@ -16,7 +17,7 @@
     --good: #0a0a0a; --good-soft: #e6e6e3; --warn: #3d3d3d; --warn-soft: #efefec;
     --bad: #b42318; --bad-soft: #fbeae8; --idle: #5e5e5e; --idle-soft: #efefec;
     --shadow: 0 1px 0 rgba(10,10,10,.06), 0 3px 5px -2px rgba(10,10,10,.12);
-    --radius: 4px; --memory: #0a0a0a;
+    --radius: 4px; --memory: #0a0a0a; --bui-radius: 4px; --bui-btn-radius: 3px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -222,9 +223,8 @@
     nav.side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; }
     .logo { padding: 0 8px 0 0; width: 100%; }
     .nav-item { width: auto; }
-    /* en celular solo quedan tema, idioma y Ajustes (Ajustes es una vista y tiene que poder abrirse) */
+    /* en celular el pie queda arriba de la página: tema, idioma, servicios (i) y Ajustes */
     .side-foot { width: 100%; margin: 6px 0 0; padding: 8px 0 0; }
-    #side-svcs { display: none !important; }
     .side-tools { margin-top: 0; }
     main { padding: 20px 16px 40px; }
     .services { grid-template-columns: 1fr; }
@@ -410,11 +410,11 @@
     body.side-min nav.side { padding: 16px 8px; align-items: center; }
     body.side-min .logo { flex-direction: column; gap: 10px; padding: 4px 0 16px; }
     body.side-min .collapse-btn { margin-left: 0; }
-    body.side-min .logo-name, body.side-min .nav-item span, body.side-min #side-svcs { display: none !important; }
+    body.side-min .logo-name, body.side-min .nav-item span { display: none !important; }
     body.side-min .nav-item { width: 42px; height: 38px; justify-content: center; padding: 0; }
     body.side-min .side-foot { padding: 12px 0 0; width: 100%; justify-items: center; }
     body.side-min .side-tools { flex-direction: column; align-items: center; }
-    body.side-min #settings-btn { margin-left: 0 !important; }
+    body.side-min .info-wrap { margin-left: 0 !important; }
     body.side-min #lang-btn { padding: 0 4px; font-size: 10.5px; }
     body.side-min #lang-btn svg { display: none; }
   }
@@ -441,6 +441,19 @@
   #settings-btn.has-update { color: var(--update); border-color: var(--update); background: var(--update-soft); position: relative; }
   #settings-btn.has-update::after { content: ""; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--update); }
   #settings-btn.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  /* servicios: el botón (i) del sidebar abre esta lista hacia arriba */
+  .info-wrap { position: relative; display: inline-flex; }
+  /* fixed y ubicada por JS (toggleInfo): así no la recorta el sidebar, esté plegado o en celular */
+  .info-pop { position: fixed; z-index: 30; width: 220px; background: var(--surface); color: var(--text);
+    border: 1px solid var(--line-strong); border-radius: 4px; box-shadow: 0 12px 32px -12px rgba(10,10,10,.3); padding: 10px 12px; display: grid; gap: 8px; }
+  .info-pop .info-h { font: 700 11px/1.2 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+  .info-pop .side-svc { font-size: 13px; }
+  .info-pop .info-link { border: 0; background: none; padding: 6px 0 0; border-top: 1px solid var(--line); text-align: left; cursor: pointer;
+    font-size: 12.5px; color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
+  .info-pop .info-link:hover { color: var(--text); }
+  #info-btn { position: relative; }
+  #info-btn.has-err::after { content: ""; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+  #info-btn[aria-expanded="true"] { background: var(--text); color: var(--surface); border-color: var(--text); }
   .color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
   .color-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; padding: 4px 0; border-bottom: 1px solid var(--line); }
   .color-row input[type=color] { width: 34px; height: 26px; padding: 0 2px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface); cursor: pointer; flex: none; }
@@ -468,11 +481,14 @@
     <button class="nav-item" data-view="conocimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="nav.knowledge"></span></button>
     <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg><span data-i18n="nav.logs"></span></button>
     <div class="side-foot">
-      <div id="side-svcs" style="display:grid;gap:7px"></div>
       <div class="side-tools">
         <button class="icon-btn" id="theme-btn"></button>
         <button class="icon-btn" id="lang-btn"></button>
-        <button class="icon-btn" id="settings-btn" style="margin-left:auto"></button>
+        <div class="info-wrap" style="margin-left:auto">
+          <button class="icon-btn" id="info-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="side-svcs"></button>
+          <div class="info-pop" id="side-svcs" role="region" hidden></div>
+        </div>
+        <button class="icon-btn" id="settings-btn"></button>
       </div>
     </div>
   </nav>
@@ -710,7 +726,19 @@
               <p class="form-hint" id="default-model-hint"></p>
             </div></div>
         </div>
-        <div class="card" style="align-self:start"><div class="card-h"><h2 data-i18n="settings.graphColors"></h2></div>
+        <div class="grid" style="align-content:start">
+          <div class="card"><div class="card-h"><h2 data-i18n="settings.system"></h2><span class="sub" data-i18n="settings.systemSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.systemHint"></p>
+              <textarea class="input full" id="system-prompt" rows="6" maxlength="4000"></textarea>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="system-save" data-i18n="settings.systemSave"></button>
+                <button class="btn" type="button" id="system-clear" data-i18n="settings.systemClear"></button>
+                <span class="muted mono" id="system-count" style="margin-left:auto;font-size:12px"></span>
+              </div>
+              <div class="result" id="system-result"></div>
+            </div></div>
+        <div class="card"><div class="card-h"><h2 data-i18n="settings.graphColors"></h2></div>
           <div class="card-b">
             <p class="form-hint" style="margin:0 0 12px" data-i18n="settings.graphHint"></p>
             <div class="color-grid" id="color-grid"></div>
@@ -719,6 +747,7 @@
               <button class="btn" type="button" id="colors-reset" data-i18n="settings.reset"></button>
             </div>
           </div></div>
+        </div>
       </div>
     </section>
   </main>
@@ -729,6 +758,8 @@
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// confirmación propia (brain_mcp/ui.js) en vez del confirm() del navegador
+const ask = (text, o = {}) => BrainUI.confirm(text, { cancel: T.dlg.cancel, ok: o.ok || "OK", danger: !!o.danger });
 
 // ================= i18n =================
 const MEM_PROMPT = {
@@ -877,7 +908,7 @@ const I18N = {
     theme: { system: "Tema: sistema", light: "Tema: claro", dark: "Tema: oscuro" },
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
-    settings: { title: "Ajustes", sub: "Versión, sidebar, chat y colores del grafo. Todo queda guardado en este navegador.",
+    settings: { title: "Ajustes", sub: "Versión, sidebar, chat, system prompt y colores del grafo. Todo queda guardado en este navegador.",
       version: "Versión", versionHint: "Busca en GitHub si hay una versión nueva publicada. Solo se conecta cuando tocás el botón.",
       check: "Buscar actualizaciones", checking: "Buscando…", upToDate: v => `Estás al día: ${v} es la última versión.`,
       noReleases: "Todavía no hay versiones publicadas en GitHub.", offline: "No se pudo conectar con GitHub. Revisá tu conexión.",
@@ -886,13 +917,20 @@ const I18N = {
       sidebar: "Sidebar", sidebarSub: "orden y vistas visibles", show: "Visible",
       up: l => `Subir ${l}`, down: l => `Bajar ${l}`, navReset: "Restablecer orden", lastOne: "Tiene que quedar al menos una vista visible.",
       chat: "Chat", chatSub: "al abrir un chat nuevo", defaultModel: "Modelo por defecto", lastUsed: "El último que usé",
-      defaultHint: "Se elige solo al abrir el chat y en cada chat nuevo. Podés cambiarlo en cualquier momento desde el chat.",
+      defaultHint: "Se elige solo al abrir el chat y en cada chat nuevo. Podés elegir otro antes del primer mensaje; después queda fijo para ese chat.",
       noOllama: "Ollama no está corriendo: prendelo para ver tus modelos.", noModels: "No hay modelos de chat instalados. Bajá uno desde el Chat.",
       notInstalled: "Ese modelo no está instalado: el chat va a usar el último que usaste.", saved: "Guardado",
       graphColors: "Colores del grafo",
       graphHint: "Elegí un color para cada tipo de nodo, así se distinguen de un vistazo. Se aplica al instante y queda guardado en este navegador.",
       vivid: "Usar colores distintos", reset: "Volver a blanco y negro", default: "por defecto",
-      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" } },
+      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
+      system: "System prompt", systemSub: "cómo querés que te responda el chat",
+      systemHint: "Se suma a las instrucciones de brain en cada respuesta del chat: tono, formato, idioma, en qué enfocarse. No cambia lo que pueden hacer las tools. Queda en este navegador.",
+      systemPh: "Ej.: Respondeme corto y directo, en viñetas. Tuteame. Si hablo de código, usá Python. Antes de guardar una memoria, preguntame.",
+      systemSave: "Guardar", systemClear: "Borrar", systemSaved: "System prompt guardado: se usa desde el próximo mensaje.",
+      systemCleared: "System prompt borrado.", systemCount: (n, m) => `${n} / ${m}` },
+    dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
+    info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
   },
   en: {
     nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
@@ -1023,7 +1061,7 @@ const I18N = {
     theme: { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" },
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
-    settings: { title: "Settings", sub: "Version, sidebar, chat and graph colors. Everything is saved in this browser.",
+    settings: { title: "Settings", sub: "Version, sidebar, chat, system prompt and graph colors. Everything is saved in this browser.",
       version: "Version", versionHint: "Checks GitHub for a newer published version. It only connects when you click the button.",
       check: "Check for updates", checking: "Checking…", upToDate: v => `You're up to date: ${v} is the latest version.`,
       noReleases: "There are no published versions on GitHub yet.", offline: "Couldn't reach GitHub. Check your connection.",
@@ -1032,13 +1070,20 @@ const I18N = {
       sidebar: "Sidebar", sidebarSub: "order and visible views", show: "Visible",
       up: l => `Move ${l} up`, down: l => `Move ${l} down`, navReset: "Reset order", lastOne: "At least one view has to stay visible.",
       chat: "Chat", chatSub: "when opening a new chat", defaultModel: "Default model", lastUsed: "The last one I used",
-      defaultHint: "It's selected when the chat opens and on every new chat. You can still switch it from the chat anytime.",
+      defaultHint: "It's selected when the chat opens and on every new chat. You can pick another before the first message; then it stays fixed for that chat.",
       noOllama: "Ollama isn't running: turn it on to see your models.", noModels: "No chat models installed. Download one from the Chat.",
       notInstalled: "That model isn't installed: the chat will use the last one you used.", saved: "Saved",
       graphColors: "Graph colors",
       graphHint: "Pick a color for each node type so they stand apart at a glance. It applies instantly and is saved in this browser.",
       vivid: "Use distinct colors", reset: "Back to black and white", default: "default",
-      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" } },
+      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
+      system: "System prompt", systemSub: "how you want the chat to answer",
+      systemHint: "Added to brain's instructions on every chat reply: tone, format, language, what to focus on. It doesn't change what the tools can do. Saved in this browser.",
+      systemPh: "E.g.: Keep answers short and direct, in bullet points. If I talk about code, use Python. Ask me before saving a memory.",
+      systemSave: "Save", systemClear: "Clear", systemSaved: "System prompt saved: it applies from your next message.",
+      systemCleared: "System prompt cleared.", systemCount: (n, m) => `${n} / ${m}` },
+    dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
+    info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
   },
 };
 let lang = "es";
@@ -1090,6 +1135,7 @@ const ICON = {
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   sideClose: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M16 10l-2 2 2 2"/></svg>',
   sideOpen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M14 10l2 2-2 2"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>',
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/></svg>',
 };
 const STATUS_CLS = { running: "st-running", external: "st-external", starting: "st-starting", stopped: "st-stopped", error: "st-error" };
@@ -1112,6 +1158,8 @@ function renderTools() {
   tb.innerHTML = ICON[theme]; tb.title = T.theme[theme]; tb.setAttribute("aria-label", T.theme[theme]);
   lb.innerHTML = `${ICON.globe}${lang.toUpperCase()}`; lb.title = T.langTitle; lb.setAttribute("aria-label", T.langTitle);
   const sb = $("#settings-btn"); sb.innerHTML = ICON.gear; sb.title = T.settings.title; sb.setAttribute("aria-label", T.settings.title);
+  const ib = $("#info-btn"); ib.innerHTML = ICON.info; ib.title = T.info.title; ib.setAttribute("aria-label", T.info.title);
+  try { if (status) renderSideSvcs(); } catch (e) { /* status todavía no existe al arrancar */ }
   const cb = $("#collapse-btn"), t = sideMin ? T.side.expand : T.side.collapse;
   cb.innerHTML = sideMin ? ICON.sideOpen : ICON.sideClose; cb.title = t; cb.setAttribute("aria-label", t); cb.setAttribute("aria-expanded", String(!sideMin));
   document.querySelectorAll(".nav-item").forEach(b => { const l = b.querySelector("span"); if (l) b.title = sideMin ? l.textContent : ""; });
@@ -1151,9 +1199,67 @@ function renderColorGrid() {
   });
 }
 $("#settings-btn").onclick = () => go("ajustes");
+
+// ================= sidebar: servicios en el botón (i) =================
+function renderSideSvcs() {
+  const box = $("#side-svcs");
+  box.innerHTML = `<div class="info-h">${esc(T.info.title)}</div>` + status.services.map(s =>
+    `<div class="side-svc"><span class="dot" style="background:${STATUS_COLOR[s.status]}"></span>${esc(svcLabel(s))}<span class="muted" style="margin-left:auto">${esc(T.st[s.status])}</span></div>`).join("")
+    + `<button class="info-link" type="button" id="info-manage">${esc(T.info.manage)}</button>`;
+  $("#info-manage").onclick = () => { toggleInfo(false); go("panel"); };
+  if (!box.hidden) placeInfo();
+  const err = status.services.some(s => s.status === "error");
+  $("#info-btn").classList.toggle("has-err", err);
+  $("#info-btn").title = err ? `${T.info.title} · ${T.info.err}` : T.info.title;
+}
+function toggleInfo(open) {
+  const pop = $("#side-svcs"), b = $("#info-btn");
+  open = open ?? pop.hidden;
+  pop.hidden = !open;
+  b.setAttribute("aria-expanded", String(open));
+  if (open) placeInfo();
+}
+// arriba del botón y alineada con el sidebar; plegado, a la derecha del botón; en celular, abajo
+function placeInfo() {
+  const pop = $("#side-svcs"), r = $("#info-btn").getBoundingClientRect(), side = $("nav.side").getBoundingClientRect();
+  const mobile = matchMedia("(max-width: 760px)").matches, w = pop.offsetWidth, h = pop.offsetHeight;
+  let left, top;
+  if (mobile) { left = r.right - w; top = r.bottom + 8; }
+  else if (document.body.classList.contains("side-min")) { left = side.right + 8; top = r.bottom - h; }
+  else { left = side.left + 14; top = r.top - h - 8; }
+  pop.style.left = Math.max(8, Math.min(left, innerWidth - w - 8)) + "px";
+  pop.style.top = Math.max(8, top) + "px";
+}
+addEventListener("resize", () => { if (!$("#side-svcs").hidden) placeInfo(); });
+addEventListener("scroll", () => { if (!$("#side-svcs").hidden) toggleInfo(false); }, { passive: true });
+$("#info-btn").onclick = () => toggleInfo();
+document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.target.closest(".info-wrap")) toggleInfo(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); }
+
+// ================= ajustes: system prompt del chat =================
+// localStorage "brain-chat-system": el chat lo manda con cada mensaje y chat.py lo suma al system prompt
+const SYSTEM_MAX = 4000;
+function loadSystemPrompt() {
+  const ta = $("#system-prompt");
+  if (document.activeElement !== ta) { try { ta.value = localStorage.getItem("brain-chat-system") || ""; } catch (e) {} }
+  ta.placeholder = T.settings.systemPh;
+  countSystem();
+}
+function countSystem() { $("#system-count").textContent = T.settings.systemCount($("#system-prompt").value.length, SYSTEM_MAX); }
+$("#system-prompt").oninput = countSystem;
+$("#system-save").onclick = () => {
+  const v = $("#system-prompt").value.trim().slice(0, SYSTEM_MAX);
+  try { v ? localStorage.setItem("brain-chat-system", v) : localStorage.removeItem("brain-chat-system"); } catch (e) { return showResult($("#system-result"), "err", e.message); }
+  showResult($("#system-result"), "ok", v ? T.settings.systemSaved : T.settings.systemCleared);
+};
+$("#system-clear").onclick = () => {
+  $("#system-prompt").value = ""; countSystem();
+  try { localStorage.removeItem("brain-chat-system"); } catch (e) {}
+  showResult($("#system-result"), "ok", T.settings.systemCleared);
+};
 
 // ================= ajustes: sidebar (orden y visibilidad) =================
 // localStorage "brain-nav" = {order: [vistas], hidden: [vistas]}. Una vista oculta sigue accesible
@@ -1221,6 +1327,7 @@ async function loadDefaultModel() {
   hint.textContent = !r.ok ? T.settings.noOllama : !models.length ? T.settings.noModels
     : cur && !models.some(m => m.name === cur) ? T.settings.notInstalled : T.settings.defaultHint;
 }
+BrainUI.select($("#default-model"));
 $("#default-model").onchange = e => {
   try { e.target.value ? localStorage.setItem("brain-chat-default", e.target.value) : localStorage.removeItem("brain-chat-default"); } catch (err) {}
   toast(T.settings.saved);
@@ -1355,8 +1462,7 @@ function renderServices() {
   }).join("");
   box.querySelectorAll("input[data-svc]").forEach(inp => inp.onchange = () => toggleService(inp.dataset.svc, inp.checked));
   box.querySelectorAll("[data-logs]").forEach(b => b.onclick = () => { logSvc = b.dataset.logs; go("logs"); });
-  $("#side-svcs").innerHTML = status.services.map(s =>
-    `<div class="side-svc"><span class="dot" style="background:${STATUS_COLOR[s.status]}"></span>${esc(svcLabel(s))}<span class="muted" style="margin-left:auto">${esc(T.st[s.status])}</span></div>`).join("");
+  renderSideSvcs();
 }
 async function toggleService(key, on) {
   busy.add(key); renderServices();
@@ -1552,7 +1658,7 @@ function renderMemory() {
       <ul class="mem-items">${items.map(i => `<li><span>${esc(i)}</span><button class="x-btn" title="${esc(T.mem.del)}" aria-label="${esc(T.mem.del)}" data-cat="${esc(c.category)}" data-item="${esc(i)}">×</button></li>`).join("")}</ul></div>`;
   }).join("");
   $("#mem-list").querySelectorAll(".x-btn").forEach(b => b.onclick = async () => {
-    if (!confirm(T.mem.delConfirm)) return;
+    if (!(await ask(T.mem.delConfirm, { ok: T.dlg.del, danger: true }))) return;
     try { await api("/api/memory/delete", { category: b.dataset.cat, item: b.dataset.item }); await loadProfile(); statsSig = ""; }
     catch (e) { toast(e.message); }
   });
@@ -1667,7 +1773,7 @@ function renderAgents() {
       <div class="agent-actions"><button class="btn" data-client-rm="${esc(r.id)}">${esc(T.agents.removeFromList)}</button></div></div>`;
   }).join("") : `<div class="empty-chart" style="height:120px">${esc(T.agents.mineEmpty)}</div>`;
   $("#agents-list").querySelectorAll("[data-client-rm]").forEach(b => b.onclick = async () => {
-    if (!confirm(T.agents.removeConfirm)) return;
+    if (!(await ask(T.agents.removeConfirm, { ok: T.dlg.remove }))) return;
     try { await api("/api/clients/remove", { id: b.dataset.clientRm }); } catch (e) { toast(e.message); }
     loadAgents();
   });
@@ -1680,7 +1786,7 @@ function renderAgents() {
 async function agentAction(key, act, btn, restart = false) {
   const a = agentsData.agents.find(x => x.key === key);
   if (act === "connect" && a.app_running && !restart) {
-    if (!confirm(T.agents.restartConfirm(a.name))) return;
+    if (!(await ask(T.agents.restartConfirm(a.name), { ok: T.dlg.restart }))) return;
     restart = true;
   }
   btn.disabled = true;
@@ -1782,7 +1888,7 @@ function renderConnections() {
     });
     card.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => {
       if (b.dataset.act === "edit") return editConnection(c);
-      if (b.dataset.act === "delete" && !confirm(T.conn.delConfirm(c.name))) return;
+      if (b.dataset.act === "delete" && !(await ask(T.conn.delConfirm(c.name), { ok: T.dlg.del, danger: true }))) return;
       b.disabled = true;
       try { const r = await api(`/api/connections/${c.id}/${b.dataset.act}`, {}); if (!r.ok) toast(connErr(r)); } catch (e) { toast(e.message); }
       loadConnections();
@@ -1812,7 +1918,7 @@ $("#cmp-form").onsubmit = async e => {
   } catch (e2) { showResult(out, "err", e2.message); }
 };
 $("#cmp-off").onclick = async () => {
-  if (!confirm(T.conn.cOffConfirm)) return;
+  if (!(await ask(T.conn.cOffConfirm, { ok: T.dlg.disconnect, danger: true }))) return;
   try { await api("/api/composio/disconnect", {}); $("#cmp-user").value = ""; cmpApps = null; $("#cmp-apps").innerHTML = ""; showResult($("#cmp-result"), "ok", T.conn.cOffDone); loadConnections(); }
   catch (e) { showResult($("#cmp-result"), "err", e.message); }
 };

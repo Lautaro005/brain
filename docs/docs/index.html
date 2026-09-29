@@ -536,13 +536,15 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Services</h2>
   <p>Each service has a state: <b>Running</b>, <b>Starting</b>, <b>External</b>, <b>Off</b> or <b>Error</b>. When the dashboard starts it turns on Ollama and Chroma if they're off. If one was already running outside the dashboard (for example the Ollama menu-bar app) it shows as <b>External</b>, its switch is locked and the dashboard never stops it. Ctrl+C stops only what the dashboard started.</p>
   <h2>Sidebar</h2>
-  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>).</p>
+  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language, <b>services</b> (the <b>i</b> button: Chroma, Ollama and the MCP Inspector with their state; it gets a red dot if one fails) and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>).</p>
+  <p>Anything that deletes or disconnects asks first in brain's own dialog, and the dropdowns are brain's too (keyboard: arrows, Enter, Esc).</p>
   <h2>Settings</h2>
-  <p>A full view (<code>#ajustes</code>) with four sections:</p>
+  <p>A full view (<code>#ajustes</code>) with five sections:</p>
   <ul>
     <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release only when you click it. If there's a newer one, Settings shows it with a link to the release notes, and the gear turns green until you update with <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reorder the views with the arrows and hide the ones you don't use. A hidden view is still reachable by its URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: the default model, selected when the chat opens and on every new chat. "The last one I used" keeps the previous behavior.</li>
+    <li><b>System prompt</b>: your own instructions for the chat (tone, format, language, what to focus on, up to 4000 characters). They're added to brain's instructions on every reply; they don't change what the tools can do.</li>
     <li><b>Graph colors</b>: a color per node type, or back to black and white.</li>
   </ul>
 </div>
@@ -564,13 +566,15 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Servicios</h2>
   <p>Cada servicio tiene un estado: <b>Corriendo</b>, <b>Iniciando</b>, <b>Externo</b>, <b>Apagado</b> o <b>Error</b>. Al arrancar, el dashboard prende Ollama y Chroma si están apagados. Si uno ya corría por fuera (por ejemplo la app de Ollama) aparece como <b>Externo</b>, con el switch bloqueado, y el dashboard nunca lo apaga. Ctrl+C apaga solo lo que prendió él.</p>
   <h2>Sidebar</h2>
-  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
+  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma, <b>servicios</b> (el botón <b>i</b>: Chroma, Ollama y el Inspector MCP con su estado; lleva un punto rojo si alguno falla) y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
+  <p>Todo lo que borra o desconecta pregunta antes en una ventana propia de brain, y los desplegables también son propios (teclado: flechas, Enter, Esc).</p>
   <h2>Ajustes</h2>
-  <p>Una vista completa (<code>#ajustes</code>) con cuatro secciones:</p>
+  <p>Una vista completa (<code>#ajustes</code>) con cinco secciones:</p>
   <ul>
     <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release solo cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades y el engranaje se pone en verde hasta que actualices con <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reordená las vistas con las flechas y ocultá las que no uses. Una vista oculta sigue accesible por su URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: el modelo por defecto, que se elige al abrir el chat y en cada chat nuevo. "El último que usé" mantiene el comportamiento de antes.</li>
+    <li><b>System prompt</b>: tus instrucciones para el chat (tono, formato, idioma, en qué enfocarse; hasta 4000 caracteres). Se suman a las de brain en cada respuesta; no cambian lo que pueden hacer las tools.</li>
     <li><b>Colores del grafo</b>: un color por tipo de nodo, o volver a blanco y negro.</li>
   </ul>
 </div>
@@ -588,7 +592,20 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>History and floating window</h2>
   <p>Chats are stored in Chroma (collection <code>chats</code>) with embeddings, so past conversations feed the context of new ones. Without Chroma the chat works but isn't saved. <b>Float</b> opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere).</p>
   <h2>Choosing a model</h2>
-  <p>The selector lists your installed chat models. Without any, click <i>Download llama3.2</i>. Small models sometimes don't follow the tool format; larger ones (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) do better.</p>
+  <p>The selector lists your installed chat models with their size and context window. Without any, click <i>Download llama3.2</i>. Small models sometimes don't follow the tool format; larger ones (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) do better.</p>
+  <p>You pick the model in a new chat, before the first message. From then on it stays fixed for that chat (the selector becomes a tag with a lock) and reopening the chat uses it again. To use another model, start a new chat. If the chat's model was uninstalled, the selector comes back.</p>
+  <h2>Context window</h2>
+  <p>The circle to the left of the send button fills up as the conversation uses the model's context window, and turns red past 90% (the model starts forgetting the beginning: better start a new chat). Hover it to see the tokens. brain asks Ollama for the model's full window, capped at <code>BRAIN_CHAT_CTX</code> (16,384 by default) so it doesn't eat all your RAM; a model with a smaller window uses its own.</p>
+  <h2>Title</h2>
+  <p>A chat takes its title from the first message. The pencil next to the title renames it (Enter saves, Esc cancels).</p>
+  <h2>Commands</h2>
+  <p>Type <code>/</code> in the message box to see the commands, with a short description in your language. Arrows move, Enter or Tab picks.</p>
+  <table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>/organize</code></td><td>Organizes the vault and its graph with a built-in skill (adapted from <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>). It looks at a snapshot of the vault (loose notes, notes with no links, no description, repeated or near-duplicate tags, similar names), asks you a few questions, proposes a plan and only changes what you approve, with <code>move_file</code>, <code>set_frontmatter</code> and friends. It never touches <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> or <code>knowledge/sources/</code>. The chat stays in this mode, so you can just answer its questions. Add text after the command to focus it: <code>/organize only projects/</code>.</td></tr>
+    <tr><td><code>/reflect</code></td><td>Brings <a href="#reflect-skills">Reflect</a>'s suggestions into the chat (duplicates, contradictions, notes without entities) and applies only the ones you confirm.</td></tr>
+    <tr><td><code>/new</code></td><td>Starts a new chat.</td></tr>
+  </table>
 </div>
 <div class="l-es">
   <h1>Chat</h1>
@@ -601,7 +618,20 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Historial y ventana flotante</h2>
   <p>Los chats se guardan en Chroma (colección <code>chats</code>) con embeddings, así las conversaciones anteriores alimentan el contexto de las nuevas. Sin Chroma el chat funciona pero no se guarda. <b>Ventana flotante</b> abre el chat en una ventana siempre visible (Document Picture-in-Picture en Chrome, Edge y Arc; una ventana emergente común en el resto).</p>
   <h2>Elegir un modelo</h2>
-  <p>El selector lista tus modelos de chat instalados. Si no hay ninguno, tocá <i>Descargar llama3.2</i>. Los modelos chicos a veces no siguen el formato de tools; los más grandes (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) andan mejor.</p>
+  <p>El selector lista tus modelos de chat instalados con su tamaño y su ventana de contexto. Si no hay ninguno, tocá <i>Descargar llama3.2</i>. Los modelos chicos a veces no siguen el formato de tools; los más grandes (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) andan mejor.</p>
+  <p>El modelo se elige en un chat nuevo, antes del primer mensaje. Desde ahí queda fijo para ese chat (el selector pasa a ser una etiqueta con candado) y al reabrirlo se usa el mismo. Para usar otro modelo, empezá un chat nuevo. Si desinstalaste el modelo del chat, vuelve el selector.</p>
+  <h2>Ventana de contexto</h2>
+  <p>El círculo a la izquierda del botón de enviar se va llenando a medida que la conversación ocupa la ventana de contexto del modelo, y se pone rojo pasado el 90% (el modelo empieza a olvidar lo primero: conviene un chat nuevo). Pasá el mouse para ver los tokens. brain le pide a Ollama la ventana completa del modelo, con un tope de <code>BRAIN_CHAT_CTX</code> (16.384 por defecto) para no comerse toda la RAM; un modelo con una ventana más chica usa la suya.</p>
+  <h2>Título</h2>
+  <p>Un chat toma el título del primer mensaje. El lápiz al lado del título lo cambia (Enter guarda, Esc cancela).</p>
+  <h2>Comandos</h2>
+  <p>Escribí <code>/</code> en la caja de mensaje para ver los comandos, con una descripción corta en tu idioma. Flechas para moverte, Enter o Tab para elegir.</p>
+  <table>
+    <tr><th>Comando</th><th>Qué hace</th></tr>
+    <tr><td><code>/organize</code></td><td>Ordena el vault y su grafo con una skill integrada (adaptada de <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>). Mira un panorama del vault (notas sueltas, sin conexiones, sin descripción, tags repetidos o con variantes, nombres parecidos), te hace unas preguntas, propone un plan y cambia solo lo que apruebes, con <code>move_file</code>, <code>set_frontmatter</code> y compañía. Nunca toca <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> ni <code>knowledge/sources/</code>. El chat queda en ese modo, así que alcanza con responderle. Podés sumar texto para enfocarlo: <code>/organize solo projects/</code>.</td></tr>
+    <tr><td><code>/reflect</code></td><td>Trae al chat las sugerencias de <a href="#reflect-skills">Reflect</a> (duplicados, contradicciones, notas sin entidades) y aplica solo las que confirmes.</td></tr>
+    <tr><td><code>/new</code></td><td>Empieza un chat nuevo.</td></tr>
+  </table>
 </div>
 </section>
 
@@ -771,6 +801,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>delete_file(path)</code></td><td>Deletes a file (recoverable).</td></tr>
     <tr><td><code>file_history(path)</code></td><td>A file's versions, newest first.</td></tr>
     <tr><td><code>restore_file(path, version_id)</code></td><td>Restores a version (also brings back deleted files).</td></tr>
+    <tr><td><code>move_file(src, dst)</code></td><td>Moves or renames a note (recoverable). Not for <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> or <code>knowledge/sources/</code>.</td></tr>
+    <tr><td><code>vault_overview()</code></td><td>What's messy in the vault: loose notes, no links, no description, tag variants, similar names. Read-only.</td></tr>
   </table>
   <h2>Memory</h2>
   <table>
@@ -816,6 +848,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>delete_file(path)</code></td><td>Borra un archivo (recuperable).</td></tr>
     <tr><td><code>file_history(path)</code></td><td>Versiones de un archivo, la más nueva primero.</td></tr>
     <tr><td><code>restore_file(path, version_id)</code></td><td>Restaura una versión (también recupera archivos borrados).</td></tr>
+    <tr><td><code>move_file(src, dst)</code></td><td>Mueve o renombra una nota (recuperable). No aplica a <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> ni <code>knowledge/sources/</code>.</td></tr>
+    <tr><td><code>vault_overview()</code></td><td>Lo desordenado del vault: notas sueltas, sin conexiones, sin descripción, variantes de tags, nombres parecidos. Solo lee.</td></tr>
   </table>
   <h2>Memoria</h2>
   <table>
@@ -895,6 +929,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>BRAIN_CHROMA_PORT</code></td><td><code>8055</code></td><td>Port of the Chroma server (read by the scripts and the server).</td></tr>
     <tr><td><code>BRAIN_SUMMARY_MODEL</code></td><td><code>llama3.2</code> if installed, otherwise the first chat model</td><td>Ollama chat model used for <code>abstract</code> and <code>entities</code>. <code>off</code> disables both.</td></tr>
     <tr><td><code>BRAIN_LLM_TIMEOUT</code></td><td><code>45</code></td><td>Seconds to wait for a summary or entity list before giving up (the note is saved anyway).</td></tr>
+    <tr><td><code>BRAIN_CHAT_CTX</code></td><td><code>16384</code></td><td>Maximum context window (tokens) the chat asks Ollama for. Models with a smaller window use theirs. Raise it if you have RAM to spare.</td></tr>
   </table>
   <h2>Ports</h2>
   <table>
@@ -926,6 +961,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>BRAIN_CHROMA_PORT</code></td><td><code>8055</code></td><td>Puerto del server de Chroma (lo leen los scripts y el server).</td></tr>
     <tr><td><code>BRAIN_SUMMARY_MODEL</code></td><td><code>llama3.2</code> si está instalado, si no el primer modelo de chat</td><td>Modelo de chat de Ollama para <code>abstract</code> y <code>entities</code>. <code>off</code> apaga los dos.</td></tr>
     <tr><td><code>BRAIN_LLM_TIMEOUT</code></td><td><code>45</code></td><td>Segundos de espera para un resumen o una lista de entidades antes de abandonar (la nota se guarda igual).</td></tr>
+    <tr><td><code>BRAIN_CHAT_CTX</code></td><td><code>16384</code></td><td>Ventana de contexto máxima (tokens) que el chat le pide a Ollama. Los modelos con una ventana más chica usan la suya. Subilo si te sobra RAM.</td></tr>
   </table>
   <h2>Puertos</h2>
   <table>
@@ -1083,7 +1119,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <h2>What you can't do</h2>
   <p>Sell it: charge third parties for a product or service (hosting, support or consulting included) whose value comes entirely or substantially from brain.</p>
   <h2>Files</h2>
-  <p><a href="https://github.com/Lautaro005/brain/blob/main/LICENSE"><code>LICENSE</code></a> has the MIT text and <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md"><code>COMMONS-CLAUSE.md</code></a> the condition. They're separate so GitHub can detect the base license; together they're brain's license. Because of the Commons Clause, brain isn't "open source" under the OSI definition. Versions before <code>v0.02.0</code> remain under plain MIT.</p>
+  <p><a href="https://github.com/Lautaro005/brain/blob/main/LICENSE"><code>LICENSE</code></a> has both parts: the Commons Clause condition first, then the MIT text. That's why GitHub shows it as "Other" and not "MIT": plain MIT would allow selling it. Because of the Commons Clause, brain isn't "open source" under the OSI definition. Versions before <code>v0.02.0</code> remain under plain MIT.</p>
 </div>
 <div class="l-es">
   <h1>Licencia</h1>
@@ -1097,7 +1133,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <h2>Qué no podés hacer</h2>
   <p>Venderlo: cobrarle a terceros por un producto o servicio (incluidos hosting, soporte o consultoría) cuyo valor venga entera o sustancialmente de brain.</p>
   <h2>Archivos</h2>
-  <p><a href="https://github.com/Lautaro005/brain/blob/main/LICENSE"><code>LICENSE</code></a> tiene el texto MIT y <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md"><code>COMMONS-CLAUSE.md</code></a> la condición. Están separados para que GitHub detecte la licencia base; juntos son la licencia de brain. Por la Commons Clause, brain no es "open source" según la definición de la OSI. Las versiones anteriores a <code>v0.02.0</code> siguen bajo MIT puro.</p>
+  <p><a href="https://github.com/Lautaro005/brain/blob/main/LICENSE"><code>LICENSE</code></a> tiene las dos partes: primero la condición de la Commons Clause y después el texto MIT. Por eso GitHub la muestra como "Other" y no como "MIT": el MIT solo permitiría venderla. Por la Commons Clause, brain no es "open source" según la definición de la OSI. Las versiones anteriores a <code>v0.02.0</code> siguen bajo MIT puro.</p>
 </div>
 </section>
 
@@ -1110,7 +1146,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
 
 <footer>
   <div class="wrap">
-    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT</a> + <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md">Commons Clause</a> © 2026 Lautaro Silva</span>
+    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT + Commons Clause</a> © 2026 Lautaro Silva</span>
     <span><a href="../">Home</a> · <a href="./">Docs</a> · <a href="../changelog/">Changelog</a> · <a href="https://github.com/Lautaro005/brain">GitHub</a></span>
   </div>
 </footer>

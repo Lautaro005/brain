@@ -241,6 +241,33 @@ def delete_file(path: str) -> str:
     return _rel(p)
 
 
+def move_file(src: str, dst: str) -> str:
+    """Mueve o renombra un archivo. Queda en el historial como un borrado en src y un alta en dst,
+    así cualquiera de los dos se puede restaurar."""
+    a, b = _resolve(src), _resolve(dst)
+    if a == b:
+        raise VaultError("El origen y el destino son el mismo archivo.")
+    if a.suffix != b.suffix:
+        raise VaultError(f"El destino tiene que tener la misma extensión ({a.suffix}).")
+    with _lock():
+        if not a.is_file():
+            raise VaultError(f"No existe: {src}")
+        if b.exists():
+            raise VaultError(f"Ya existe: {dst}. Elegí otro nombre o unilos a mano.")
+        text = a.read_text(encoding="utf-8")
+        b.parent.mkdir(parents=True, exist_ok=True)
+        b.write_text(text, encoding="utf-8")
+        history.record("move", _rel(b), None, text)
+        a.unlink()
+        history.record("move", _rel(a), text, None)
+        # carpeta vacía que quedó atrás (nunca la raíz del vault)
+        parent = a.parent
+        while parent != VAULT and parent.is_dir() and not any(parent.iterdir()):
+            parent.rmdir()
+            parent = parent.parent
+    return _rel(b)
+
+
 def file_history(path: str, limit: int = 30) -> list[dict]:
     return history.list_changes(path=_rel(_resolve(path)), limit=limit)
 

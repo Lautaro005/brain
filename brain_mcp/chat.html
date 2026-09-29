@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="/ui.js"></script>
 <style>
   /* Chat: mismo sistema monocromo que el dashboard (DESIGN.md), en versión conversación.
      Una sola superficie, sin paneles grises; los bloques se separan con aire y líneas finas.
@@ -17,6 +18,7 @@
     --bg: #ffffff; --soft: #f3f3f1; --softer: #f8f8f6; --line: #e6e6e3; --line-strong: #cfcfcc;
     --text: #0a0a0a; --text-2: #3d3d3d; --text-3: #6b6b67; --bad: #b42318; --bad-soft: #fbeae8;
     --shadow: 0 1px 2px rgba(10,10,10,.05), 0 8px 28px -12px rgba(10,10,10,.18);
+    --bui-radius: 14px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -78,9 +80,18 @@
   .pill.dark:hover { opacity: .88; }
   .pill.icon { width: 34px; padding: 0; justify-content: center; }
   .pill svg { width: 16px; height: 16px; }
-  select.pill { font: 400 12.5px/1 "Courier Prime", monospace; max-width: 230px; padding: 0 30px 0 14px; appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b6b67' stroke-width='1.6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 12px center; }
+  .pill.bui-dd-btn, .model-tag { font: 400 12.5px/1 "Courier Prime", monospace; max-width: 230px; }
+  .model-tag { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--soft);
+    color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .model-tag svg { width: 13px; height: 13px; color: var(--text-3); }
+  /* título del chat, editable con el lápiz */
+  .title-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+  .bar .title-wrap .title { flex: 0 1 auto; }
+  .ghost { border-color: transparent; background: none; color: var(--text-3); width: 30px; height: 30px; }
+  .ghost:hover { color: var(--text); border-color: var(--line); }
+  .ghost svg { width: 14px; height: 14px; }
+  .title-input { flex: 1; min-width: 0; height: 34px; border: 1px solid var(--text-3); border-radius: 999px; padding: 0 14px; background: var(--bg);
+    font-weight: 650; font-size: 15px; outline: none; }
 
   /* ---------- mensajes ---------- */
   .msgs { flex: 1; overflow: auto; padding: 8px 20px 24px; scroll-behavior: smooth; }
@@ -150,6 +161,28 @@
   .send:hover { opacity: .85; } .send:active { transform: scale(.96); }
   .send:disabled { opacity: .3; cursor: default; }
   .send svg { width: 18px; height: 18px; }
+  /* uso de la ventana de contexto: una "O" que se va llenando */
+  .ctx { position: relative; width: 40px; height: 40px; border: 0; background: none; padding: 0; display: grid; place-items: center; flex: none; cursor: help; color: var(--text); }
+  .ctx svg { width: 22px; height: 22px; transform: rotate(-90deg); }
+  .ctx .track { stroke: var(--line-strong); }
+  .ctx .fill { stroke: currentColor; transition: stroke-dashoffset .35s ease; }
+  .ctx.full { color: var(--bad); }
+  .ctx .tipbox { white-space: pre-line; position: absolute; bottom: calc(100% + 10px); right: -6px; width: max-content; max-width: 260px; background: var(--text); color: var(--bg);
+    font: 400 12px/1.45 "Courier Prime", monospace; padding: 8px 10px; border-radius: 10px; text-align: left; pointer-events: none;
+    opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s; z-index: 4; }
+  .ctx:hover .tipbox, .ctx:focus-visible .tipbox, .ctx.show .tipbox { opacity: 1; transform: none; }
+  /* comandos: al escribir "/" aparece la lista arriba del compositor */
+  form.composer { position: relative; }
+  .cmds { position: absolute; left: 20px; right: 20px; bottom: calc(100% - 6px); max-width: 740px; margin: 0 auto; list-style: none; padding: 6px;
+    background: var(--bg); border: 1px solid var(--line-strong); border-radius: 18px; box-shadow: var(--shadow); z-index: 3; }
+  .cmds li { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; align-items: baseline; padding: 9px 12px; border-radius: 12px; cursor: pointer; }
+  .cmds li.on { background: var(--soft); }
+  .cmds b { font: 700 13.5px/1.3 "Courier Prime", monospace; }
+  .cmds span { font-size: 13.5px; color: var(--text-2); }
+  .cmds .cmds-h { display: block; padding: 4px 12px 6px; font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); cursor: default; }
+  .pop .cmds, .narrow .cmds { left: 10px; right: 10px; }
+  .narrow .cmds li, .pop .cmds li { grid-template-columns: 1fr; }
+  .cmd-chip { display: inline-block; font: 700 12px/1.6 "Courier Prime", monospace; background: var(--text); color: var(--bg); border-radius: 999px; padding: 0 8px; margin-right: 6px; }
   .hint { max-width: 740px; margin: 8px auto 0; font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); text-align: center; }
 
   /* ventana flotante y pantallas angostas: el historial se abre como panel */
@@ -177,16 +210,19 @@
   <section class="main">
     <div class="bar">
       <button class="pill icon" id="hist-btn" type="button"></button>
-      <div class="title" id="title"></div>
+      <div class="title-wrap"><div class="title" id="title"></div><button class="pill icon ghost" id="rename-btn" type="button" hidden></button></div>
       <select class="pill" id="model"></select>
+      <span class="model-tag" id="model-tag" hidden></span>
       <button class="pill icon" id="new-btn-2" type="button"></button>
       <button class="pill" id="pop-btn" type="button"></button>
     </div>
     <div id="banner"></div>
     <div class="msgs" id="msgs" aria-live="polite"><div class="col" id="col"></div></div>
     <form class="composer" id="composer">
+      <ul class="cmds" id="cmds" role="listbox" hidden></ul>
       <div class="comp">
-        <textarea id="text" rows="1"></textarea>
+        <textarea id="text" rows="1" aria-autocomplete="list" aria-controls="cmds"></textarea>
+        <button class="ctx" id="ctx" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="track" cx="12" cy="12" r="9" fill="none" stroke-width="2.6"/><circle class="fill" cx="12" cy="12" r="9" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="56.55" stroke-dashoffset="56.55"/></svg><span class="tipbox" id="ctx-tip"></span></button>
         <button class="send" id="send" type="submit"></button>
       </div>
       <div class="hint" id="hint"></div>
@@ -204,7 +240,7 @@ const I18N = {
   es: {
     chats: "Chats", newTitle: "Chat nuevo", search: "Buscar chats", noChats: "Todavía no hay chats guardados.",
     brain: "brain", send: "Enviar", stop: "Parar", ph: "Preguntá, pedí que guarde algo o que edite una nota", phShort: "Escribí un mensaje",
-    hint: "Enter envía · Shift+Enter salto de línea",
+    hint: "Enter envía · Shift+Enter salto de línea · / comandos",
     pop: "Flotante", popTitle: "Abrir el chat en una ventana flotante, siempre visible", hist: "Historial",
     emptyT: "Hablá con tu memoria", emptyP: "Corre en tu máquina con Ollama. Conoce tu perfil y tu memoria, y puede buscar, guardar y editar notas del vault por vos.",
     sugs: ["¿Qué sabés de mí?", "Resumí mis proyectos", "Guardá que prefiero respuestas cortas", "¿Qué fuentes guardé últimamente?"],
@@ -218,11 +254,20 @@ const I18N = {
     err: { ollama: "Ollama no está corriendo. Prendelo desde el Panel.", no_model: "Elegí un modelo instalado.", empty: "Escribí un mensaje.",
       chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("es", { numeric: "auto" }).format(-n, u), model: "Modelo",
+    cancel: "Cancelar", delOk: "Borrar", rename: "Cambiar el título", renameErr: "No se pudo cambiar el título",
+    modelLocked: m => `Este chat usa ${m}. Para otro modelo, empezá un chat nuevo.`,
+    modelMissing: m => `${m} ya no está instalado: elegí otro modelo para seguir este chat.`,
+    ctxTip: (u, c, mx) => `Contexto: ${num(u)} de ${num(c)} tokens (${Math.round(u / c * 100)}%)` + (mx > c ? `\nEl modelo soporta ${num(mx)}; brain usa ${num(c)}.` : ""),
+    ctxFull: "Casi lleno: el modelo empieza a olvidar lo primero del chat. Conviene uno nuevo.",
+    ctxNone: "Contexto: se calcula al enviar el primer mensaje.",
+    cmdsTitle: "Comandos",
+    cmds: { organize: "Ordenar el vault y el grafo (carpetas, tags, relaciones, duplicados). Pregunta antes de mover nada.",
+      reflect: "Revisar la memoria: duplicados, contradicciones y notas sin entidades.", new: "Empezar un chat nuevo." },
   },
   en: {
     chats: "Chats", newTitle: "New chat", search: "Search chats", noChats: "No saved chats yet.",
     brain: "brain", send: "Send", stop: "Stop", ph: "Ask, or have it save something or edit a note", phShort: "Write a message",
-    hint: "Enter sends · Shift+Enter new line",
+    hint: "Enter sends · Shift+Enter new line · / commands",
     pop: "Float", popTitle: "Open the chat in a floating window that stays on top", hist: "History",
     emptyT: "Talk to your memory", emptyP: "Runs on your machine with Ollama. It knows your profile and memory, and can search, save and edit vault notes for you.",
     sugs: ["What do you know about me?", "Summarize my projects", "Remember that I prefer short answers", "What sources did I save lately?"],
@@ -236,8 +281,18 @@ const I18N = {
     err: { ollama: "Ollama isn't running. Turn it on from the Dashboard.", no_model: "Pick an installed model.", empty: "Write a message.",
       chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-n, u), model: "Model",
+    cancel: "Cancel", delOk: "Delete", rename: "Rename chat", renameErr: "Couldn't rename the chat",
+    modelLocked: m => `This chat uses ${m}. For another model, start a new chat.`,
+    modelMissing: m => `${m} isn't installed anymore: pick another model to continue this chat.`,
+    ctxTip: (u, c, mx) => `Context: ${num(u)} of ${num(c)} tokens (${Math.round(u / c * 100)}%)` + (mx > c ? `\nThe model supports ${num(mx)}; brain uses ${num(c)}.` : ""),
+    ctxFull: "Almost full: the model starts forgetting the beginning of the chat. Better start a new one.",
+    ctxNone: "Context: measured when you send the first message.",
+    cmdsTitle: "Commands",
+    cmds: { organize: "Organize the vault and graph (folders, tags, links, duplicates). Asks before moving anything.",
+      reflect: "Review your memory: duplicates, contradictions and notes without entities.", new: "Start a new chat." },
   },
 };
+const num = n => Number(n || 0).toLocaleString(lang === "en" ? "en-US" : "es-AR");
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
                 set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 let lang = store.get("brain-lang") === "en" ? "en" : "es", T = I18N[lang];
@@ -258,11 +313,16 @@ const ICON = {
   up: I('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4),
   stop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>',
   chev: I('<path d="m9 6 6 6-6 6"/>', 2.4),
+  pencil: I('<path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/>'),
+  lock: I('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   mark: '<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="4" stroke="currentColor" stroke-width="2.2"/><path d="M3 12.5h26" stroke="currentColor" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="currentColor" stroke-width="1.8"/></svg>',
 };
 
 // ================= estado =================
 let chats = [], current = null, messages = [], busy = false, controller = null, historyOk = true, models = [];
+let chatModel = "";                 // modelo con el que arrancó el chat abierto (queda fijo)
+let usage = { tokens: 0, ctx: 0, max: 0 };  // ventana de contexto del chat abierto
+const COMMANDS = ["organize", "reflect", "new"];
 
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify(body) };
@@ -297,7 +357,8 @@ function applyStatic() {
   $("#text").placeholder = shortPh ? T.phShort : T.ph; $("#text").setAttribute("aria-label", T.ph);
   $("#hint").textContent = T.hint;
   $("#model").title = T.model; $("#model").setAttribute("aria-label", T.model);
-  renderSend(); renderList(); renderMessages();
+  $("#rename-btn").innerHTML = ICON.pencil; $("#rename-btn").title = T.rename; $("#rename-btn").setAttribute("aria-label", T.rename);
+  renderSend(); renderList(); renderMessages(); renderModelBox(); renderCtx();
 }
 function renderSend() {
   const b = $("#send");
@@ -329,10 +390,49 @@ async function loadModels() {
   const has = n => n && models.some(m => m.name === n);
   const def = store.get("brain-chat-default"), saved = store.get("brain-chat-model");
   const pick = has(def) ? def : has(saved) ? saved : (models.find(m => /^(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
-  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""}>${esc(m.name.replace(/:latest$/, "").replace(/^hf\.co\/[^/]+\//, ""))}${m.params ? ` · ${esc(m.params)}` : ""}</option>`).join("");
+  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""} data-sub="${esc([m.params, kTok(m.ctx)].filter(Boolean).join(" · "))}">${esc(shortName(m.name))}</option>`).join("");
+  BrainUI.sync(sel);
   banner(historyOk ? "" : T.noHistory);
+  renderModelBox(); renderCtx();
 }
-$("#model").onchange = () => store.set("brain-chat-model", $("#model").value);
+const shortName = n => String(n || "").replace(/:latest$/, "").replace(/^hf\.co\/[^/]+\//, "");
+const kTok = n => !n ? "" : n >= 1024 ? `${Math.round(n / 1024)}k` : String(n);
+const modelInfo = n => models.find(m => m.name === n);
+$("#model").onchange = () => { store.set("brain-chat-model", $("#model").value); renderCtx(); };
+BrainUI.select($("#model"));
+
+// El modelo se elige solo en un chat nuevo; después de enviar el primer mensaje queda fijo para ese chat
+// (se muestra como etiqueta). Si el modelo del chat ya no está instalado, vuelve el selector.
+const locked = () => !!(current || messages.length) && !!chatModel && !!modelInfo(chatModel);
+function renderModelBox() {
+  const tag = $("#model-tag"), sel = $("#model");
+  if (!models.length) { tag.hidden = true; return; }
+  const lock = locked();
+  sel.hidden = lock;
+  tag.hidden = !lock;
+  if (lock) {
+    tag.innerHTML = `${ICON.lock}<span>${esc(shortName(chatModel))}</span>`;
+    tag.title = T.modelLocked(shortName(chatModel));
+  } else if ((current || messages.length) && chatModel && !modelInfo(chatModel)) {
+    sel.title = T.modelMissing(shortName(chatModel));
+  } else sel.title = T.model;
+}
+function activeModel() { return locked() ? chatModel : $("#model").value; }
+
+// ================= ventana de contexto =================
+function renderCtx() {
+  const b = $("#ctx"), info = modelInfo(activeModel()) || {};
+  const ctx = usage.ctx || info.ctx || 0, mx = usage.max || info.ctx_max || ctx;
+  const pct = ctx ? Math.min(1, usage.tokens / ctx) : 0;
+  const C = 2 * Math.PI * 9;
+  b.querySelector(".fill").setAttribute("stroke-dashoffset", String(C * (1 - pct)));
+  b.classList.toggle("full", pct >= 0.9);
+  b.hidden = !ctx && !usage.tokens;
+  const tip = !usage.tokens || !ctx ? T.ctxNone : T.ctxTip(usage.tokens, ctx, mx) + (pct >= 0.9 ? `\n${T.ctxFull}` : "");
+  $("#ctx-tip").textContent = tip.trim();
+  b.setAttribute("aria-label", tip.trim());
+}
+$("#ctx").onclick = () => { const b = $("#ctx"); b.classList.toggle("show"); setTimeout(() => b.classList.remove("show"), 3500); };
 function banner(text, err = false) { $("#banner").innerHTML = text ? `<div class="banner ${err ? "err" : ""}">${esc(text)}</div>` : ""; }
 
 // ================= historial =================
@@ -354,7 +454,7 @@ function renderList() {
     : `<li class="hist-empty">${esc(historyOk ? T.noChats : T.noHistory)}</li>`;
   $("#hist-list").querySelectorAll("button.open").forEach(b => b.onclick = () => { openChat(b.dataset.id); document.body.classList.remove("hist-open"); });
   $("#hist-list").querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
-    if (!confirm(T.delConfirm)) return;
+    if (!(await BrainUI.confirm(T.delConfirm, { ok: T.delOk, cancel: T.cancel, danger: true }))) return;
     try { await api("/api/chat/delete", { id: b.dataset.del }); } catch (e) { banner(e.message, true); }
     if (b.dataset.del === current) newChat();
     loadChats();
@@ -367,17 +467,20 @@ async function openChat(id) {
     const r = await api(`/api/chat/get?id=${encodeURIComponent(id)}`);
     if (!r.ok) { banner(errText(r), true); if (r.code === "not_found") newChat(); return; }
     current = id; messages = r.chat.messages.map(m => ({ role: m.role, content: m.content, tools: m.tools || [] }));
+    chatModel = r.chat.model || "";
+    const info = modelInfo(chatModel) || {};
+    usage = { tokens: r.chat.tokens || 0, ctx: r.chat.ctx || info.ctx || 0, max: info.ctx_max || 0 };
     store.set("brain-chat-current", id);
-    renderList(); renderMessages(true);
+    renderList(); renderMessages(true); renderModelBox(); renderCtx();
   } catch (e) { banner(e.message, true); }
 }
 function newChat() {
   if (busy) stop();
-  current = null; messages = [];
+  current = null; messages = []; chatModel = ""; usage = { tokens: 0, ctx: 0, max: 0 };
   store.set("brain-chat-current", "");
   const def = store.get("brain-chat-default");
-  if (def && models.some(m => m.name === def)) { $("#model").value = def; store.set("brain-chat-model", def); }
-  renderList(); renderMessages(); $("#text").focus();
+  if (def && models.some(m => m.name === def)) { $("#model").value = def; BrainUI.sync($("#model")); store.set("brain-chat-model", def); }
+  renderList(); renderMessages(); renderModelBox(); renderCtx(); $("#text").focus();
 }
 $("#new-btn").onclick = newChat; $("#new-btn-2").onclick = newChat;
 $("#hist-btn").onclick = () => document.body.classList.toggle("hist-open");
@@ -396,7 +499,10 @@ function callHtml(t, i, open) {
     <span class="k">${esc(T.result)}</span><pre>${esc(result)}</pre></div></details>`;
 }
 function msgHtml(m, i, open = new Set()) {
-  if (m.role === "user") return `<div class="msg user">${esc(m.content)}</div>`;
+  if (m.role === "user") {
+    const c = /^\/([a-z]+)\b\s*([\s\S]*)$/.exec(m.content || "");
+    return c && COMMANDS.includes(c[1]) ? `<div class="msg user"><span class="cmd-chip">/${esc(c[1])}</span>${esc(c[2])}</div>` : `<div class="msg user">${esc(m.content)}</div>`;
+  }
   const tools = m.tools || [];
   const trace = tools.length ? `<div class="trace"><div class="trace-h">${esc(T.actions(tools.length))}</div>${tools.map((t, j) => callHtml(t, j, open)).join("")}</div>` : "";
   const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("");
@@ -405,7 +511,8 @@ function msgHtml(m, i, open = new Set()) {
 }
 function renderMessages(scroll = true) {
   const col = $("#col"), box = $("#msgs");
-  $("#title").textContent = current ? (chats.find(c => c.id === current) || {}).title || messages[0]?.content.slice(0, 60) || "" : T.newTitle;
+  if (!$("#title-input")) $("#title").textContent = currentTitle();
+  $("#rename-btn").hidden = !current || !historyOk || !!$("#title-input");
   if (!messages.length) {
     col.innerHTML = `<div class="empty"><h1>${esc(T.emptyT)}</h1><p>${esc(T.emptyP)}</p>
       <div class="sugs">${T.sugs.map(s => `<button class="pill" type="button" data-sug="${esc(s)}">${esc(s)}</button>`).join("")}</div></div>`;
@@ -434,17 +541,20 @@ function updateLive() {
 async function send() {
   const text = $("#text").value.trim();
   if (!text || busy) return;
-  const model = $("#model").value;
+  if (text === "/new") { $("#text").value = ""; autosize(); hideCmds(); newChat(); return; }
+  const model = activeModel();
   if (!model) { banner(T.err.no_model, true); return; }
+  if (!chatModel || !modelInfo(chatModel)) chatModel = model;
+  hideCmds();
   $("#text").value = ""; autosize();
   messages.push({ role: "user", content: text });
   const reply = { role: "assistant", content: "", tools: [], notes: [], live: true };
   messages.push(reply);
-  busy = true; renderSend(); renderMessages();
+  busy = true; renderSend(); renderMessages(); renderModelBox();
   controller = new AbortController();
   try {
     const r = await fetch("/api/chat/send", { method: "POST", signal: controller.signal,
-      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang }) });
+      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang, system: store.get("brain-chat-system") || "" }) });
     if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = "";
@@ -467,7 +577,8 @@ async function send() {
   }
 }
 function handle(ev, reply) {
-  if (ev.type === "start") { current = ev.chat_id; store.set("brain-chat-current", current); if (!chats.some(c => c.id === current)) chats.unshift({ id: current, title: ev.title }); renderList(); $("#title").textContent = ev.title; }
+  if (ev.type === "start") { current = ev.chat_id; store.set("brain-chat-current", current); if (!chats.some(c => c.id === current)) chats.unshift({ id: current, title: ev.title }); renderList(); renderMessages(false); }
+  else if (ev.type === "usage") { usage = { tokens: ev.tokens, ctx: ev.ctx, max: ev.max }; renderCtx(); return; }
   else if (ev.type === "token") reply.content += ev.text;
   else if (ev.type === "rewrite") reply.content = ev.text;
   else if (ev.type === "tool") reply.tools[ev.i ?? reply.tools.length] = { name: ev.name, args: ev.args };
@@ -483,10 +594,72 @@ function handle(ev, reply) {
 function stop() { if (controller) controller.abort(); }
 $("#composer").onsubmit = e => { e.preventDefault(); busy ? stop() : send(); };
 $("#text").addEventListener("keydown", e => {
+  if (!$("#cmds").hidden && cmdList.length) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); cmdOn = (cmdOn + (e.key === "ArrowDown" ? 1 : -1) + cmdList.length) % cmdList.length; renderCmds(); return; }
+    if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") { e.preventDefault(); pickCmd(cmdList[cmdOn]); return; }
+    if (e.key === "Escape") { e.preventDefault(); cmdDismissed = $("#text").value; hideCmds(); return; }
+  }
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) send(); }
 });
 function autosize() { const t = $("#text"); t.style.height = "auto"; t.style.height = Math.min(200, t.scrollHeight) + "px"; renderSend(); }
-$("#text").addEventListener("input", autosize);
+$("#text").addEventListener("input", () => { autosize(); updateCmds(); });
+
+// ================= comandos (/) =================
+let cmdList = [], cmdOn = 0, cmdDismissed = null;
+function updateCmds() {
+  const v = $("#text").value, m = /^\/([a-z]*)$/.exec(v);
+  if (!m || v === cmdDismissed) return hideCmds();
+  cmdList = COMMANDS.filter(c => c.startsWith(m[1]));
+  if (!cmdList.length) return hideCmds();
+  cmdOn = Math.min(cmdOn, cmdList.length - 1);
+  renderCmds();
+}
+function renderCmds() {
+  const box = $("#cmds");
+  box.innerHTML = `<li class="cmds-h" role="presentation">${esc(T.cmdsTitle)}</li>` + cmdList.map((c, i) =>
+    `<li role="option" id="cmd-${c}" data-cmd="${c}" class="${i === cmdOn ? "on" : ""}" aria-selected="${i === cmdOn}"><b>/${c}</b><span>${esc(T.cmds[c])}</span></li>`).join("");
+  box.hidden = false;
+  $("#text").setAttribute("aria-activedescendant", `cmd-${cmdList[cmdOn]}`);
+  box.querySelectorAll("[data-cmd]").forEach(li => {
+    li.onmousedown = e => e.preventDefault();
+    li.onclick = () => pickCmd(li.dataset.cmd);
+  });
+}
+function hideCmds() { $("#cmds").hidden = true; cmdList = []; $("#text").removeAttribute("aria-activedescendant"); }
+function pickCmd(c) {
+  hideCmds();
+  if (c === "new") { $("#text").value = ""; autosize(); newChat(); return; }
+  $("#text").value = `/${c} `; cmdDismissed = null; autosize(); $("#text").focus();
+}
+
+// ================= título editable =================
+function currentTitle() {
+  return current ? (chats.find(c => c.id === current) || {}).title || messages[0]?.content.slice(0, 60) || "" : T.newTitle;
+}
+$("#rename-btn").onclick = () => {
+  if (!current) return;
+  const old = currentTitle(), t = $("#title");
+  t.hidden = true; $("#rename-btn").hidden = true;
+  const inp = document.createElement("input");
+  inp.className = "title-input"; inp.id = "title-input"; inp.value = old; inp.maxLength = 80; inp.setAttribute("aria-label", T.rename);
+  t.after(inp); inp.focus(); inp.select();
+  let done = false;
+  const finish = async save => {
+    if (done) return; done = true;
+    const v = inp.value.trim().replace(/\s+/g, " ");
+    inp.remove(); t.hidden = false;
+    if (save && v && v !== old) {
+      const c = chats.find(x => x.id === current); if (c) c.title = v;
+      t.textContent = v; renderList();
+      try { const r = await api("/api/chat/rename", { id: current, title: v }); if (!r.ok) throw new Error(errText(r)); }
+      catch (e) { banner(`${T.renameErr}: ${e.message}`, true); if (c) c.title = old; }
+      loadChats();
+    }
+    renderMessages(false);
+  };
+  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); finish(true); } else if (e.key === "Escape") { e.preventDefault(); finish(false); } };
+  inp.onblur = () => finish(true);
+};
 
 // ================= ventana flotante =================
 // Document Picture-in-Picture (Chrome/Edge/Arc): una ventana que queda arriba de todas las apps.

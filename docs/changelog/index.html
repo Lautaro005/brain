@@ -51,9 +51,62 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.02.8 ===================== -->
+  <article class="release" id="v0.02.8">
+    <div class="when"><div class="ver">v0.02.8</div><time class="date" datetime="2026-09-29">2026-09-29</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>A chat you can shape</h2>
+        <p>Your own system prompt, a model that stays with each chat, a context meter, editable titles and commands, starting with <code>/organize</code> to tidy up the vault.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>System prompt</b> in Settings: tell the chat how to answer (tone, format, language, focus). It's added to brain's instructions on every reply.</li>
+          <li><b>Commands.</b> Type <code>/</code> in the chat to see them with a short description in your language. <code>/organize</code> tidies the vault and its graph with a built-in skill (adapted from <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>): it asks you how you want it organized, proposes a plan and changes only what you approve. <code>/reflect</code> brings Reflect's suggestions into the chat. <code>/new</code> starts a new chat.</li>
+          <li><b>Context meter.</b> A circle next to the send button fills up as the chat uses the model's context window, and turns red near the limit. The chat now asks Ollama for the model's real window (up to <code>BRAIN_CHAT_CTX</code>, 16k by default) instead of Ollama's small default, so your memory isn't cut off silently.</li>
+          <li><b>Rename chats</b> with the pencil next to the title.</li>
+          <li>New tools <code>move_file(src, dst)</code> and <code>vault_overview()</code>.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li>The model is chosen when a chat starts and then stays fixed for that chat; reopening it uses the same model. The selector only shows in a new chat.</li>
+          <li>Confirmations (delete, disconnect…) use brain's own dialog instead of the browser's, and dropdowns are custom too.</li>
+          <li>Chroma, Ollama and the MCP Inspector moved from the sidebar into an <b>i</b> button next to Settings that opens the list.</li>
+          <li>The license is back in a single <code>LICENSE</code> file with the Commons Clause on top of MIT, so the restriction on selling is in the file GitHub shows. GitHub now labels it "Other" instead of "MIT". The terms are the same as in v0.02.0.</li>
+        </ul>
+        <h3>Upgrade notes</h3>
+        <ul>
+          <li>The chat uses a bigger context window than before, which needs more RAM. If replies get slow, lower it: <code>BRAIN_CHAT_CTX=8192 brain</code>.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Un chat a tu medida</h2>
+        <p>Tu propio system prompt, un modelo que se queda con cada chat, un medidor de contexto, títulos editables y comandos, empezando por <code>/organize</code> para ordenar el vault.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>System prompt</b> en Ajustes: decile al chat cómo responderte (tono, formato, idioma, enfoque). Se suma a las instrucciones de brain en cada respuesta.</li>
+          <li><b>Comandos.</b> Escribí <code>/</code> en el chat para verlos con una descripción corta en tu idioma. <code>/organize</code> ordena el vault y su grafo con una skill integrada (adaptada de <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>): te pregunta cómo querés ordenarlo, propone un plan y cambia solo lo que apruebes. <code>/reflect</code> trae al chat las sugerencias de Reflect. <code>/new</code> empieza un chat nuevo.</li>
+          <li><b>Medidor de contexto.</b> Un círculo al lado del botón de enviar se va llenando a medida que el chat ocupa la ventana de contexto del modelo, y se pone rojo cerca del límite. Ahora el chat le pide a Ollama la ventana real del modelo (hasta <code>BRAIN_CHAT_CTX</code>, 16k por defecto) en vez del default chico de Ollama, así tu memoria no se corta sin aviso.</li>
+          <li><b>Renombrar chats</b> con el lápiz al lado del título.</li>
+          <li>Tools nuevas <code>move_file(src, dst)</code> y <code>vault_overview()</code>.</li>
+        </ul>
+        <h3>Cambios</h3>
+        <ul>
+          <li>El modelo se elige al empezar un chat y después queda fijo para ese chat; al reabrirlo se usa el mismo. El selector aparece solo en un chat nuevo.</li>
+          <li>Las confirmaciones (borrar, desconectar…) usan una ventana propia de brain en vez de la del navegador, y los desplegables también son propios.</li>
+          <li>Chroma, Ollama y el Inspector MCP salieron del sidebar a un botón <b>i</b> al lado de Ajustes que abre la lista.</li>
+          <li>La licencia vuelve a estar en un solo archivo <code>LICENSE</code>, con la Commons Clause arriba del MIT, así la restricción de venta está en el archivo que muestra GitHub. GitHub ahora la marca como "Other" en vez de "MIT". Los términos son los mismos que desde v0.02.0.</li>
+        </ul>
+        <h3>Al actualizar</h3>
+        <ul>
+          <li>El chat usa una ventana de contexto más grande que antes, que pide más RAM. Si las respuestas se ponen lentas, bajala: <code>BRAIN_CHAT_CTX=8192 brain</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.02.5 ===================== -->
   <article class="release" id="v0.02.5">
-    <div class="when"><div class="ver">v0.02.5</div><time class="date" datetime="2026-09-28">2026-09-28</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.02.5</div><time class="date" datetime="2026-09-28">2026-09-28</time></div>
     <div>
       <div class="l-en">
         <h2>Memory that ages well</h2>
@@ -231,7 +284,7 @@
 
 <footer>
   <div class="wrap">
-    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT</a> + <a href="https://github.com/Lautaro005/brain/blob/main/COMMONS-CLAUSE.md">Commons Clause</a> © 2026 Lautaro Silva</span>
+    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT + Commons Clause</a> © 2026 Lautaro Silva</span>
     <span><a href="../">Home</a> · <a href="../docs/">Docs</a> · <a href="./">Changelog</a> · <a href="https://github.com/Lautaro005/brain">GitHub</a></span>
   </div>
 </footer>
