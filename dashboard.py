@@ -79,11 +79,24 @@ def _chat_get(path: str, q: dict) -> dict:
             return {"ok": True, "chats": chat.list_chats()}
         if path == "/api/chat/get":
             return {"ok": True, "chat": chat.get_chat(q.get("id", [""])[0])}
+        if path == "/api/chat/context":
+            return _chat_context()
     except chat.ChatError as e:
         return {"ok": False, "code": e.code, "detail": e.detail}
     except Exception as e:
         return {"ok": False, "code": _error_code(e), "detail": str(e)}
     return {"ok": False, "code": "unknown_action"}
+
+
+def _chat_context() -> dict:
+    """Ajustes → Contexto: la regla guardada y cada modelo con su máximo y lo que usa."""
+    settings = chat.ctx_settings()
+    try:
+        models, ollama = chat.models(), True
+    except chat.ChatError:
+        models, ollama = [], False
+    return {"ok": True, "settings": settings, "models": models, "ollama": ollama, "default_cap": chat.CHAT_CTX,
+            "min": chat.MIN_CTX, "max": chat.MAX_CTX_SETTING}
 
 
 def _connections_post(rest: list[str], body: dict) -> dict:
@@ -243,6 +256,12 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": True})
                 except Exception as e:
                     self._json({"ok": False, "code": _error_code(e), "detail": str(e)})
+            elif u.path == "/api/chat/context":
+                try:
+                    chat.save_ctx_settings(body)
+                    self._json(_chat_context())
+                except chat.ChatError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/chat/rename":
                 try:
                     self._json({"ok": True, "title": chat.rename_chat(str(body.get("id", "")), str(body.get("title", "")))})

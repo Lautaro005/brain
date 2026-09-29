@@ -182,6 +182,8 @@
   .cmds .cmds-h { display: block; padding: 4px 12px 6px; font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); cursor: default; }
   .pop .cmds, .narrow .cmds { left: 10px; right: 10px; }
   .narrow .cmds li, .pop .cmds li { grid-template-columns: 1fr; }
+  .msg.compact { border: 1px dashed var(--line-strong); border-radius: 16px; padding: 12px 16px; background: var(--softer); }
+  .compact-h { font: 700 11px/1.3 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
   .cmd-chip { display: inline-block; font: 700 12px/1.6 "Courier Prime", monospace; background: var(--text); color: var(--bg); border-radius: 999px; padding: 0 8px; margin-right: 6px; }
   .hint { max-width: 740px; margin: 8px auto 0; font: 400 11.5px/1.3 "Courier Prime", monospace; color: var(--text-3); text-align: center; }
 
@@ -252,7 +254,7 @@ const I18N = {
     maxRounds: "Se cortó después de varias acciones seguidas.", delConfirm: "¿Borrar este chat del historial?", del: "Borrar chat",
     actions: n => n === 1 ? "1 acción" : `${n} acciones`, args: "Argumentos", result: "Resultado", running: "ejecutando…",
     err: { ollama: "Ollama no está corriendo. Prendelo desde el Panel.", no_model: "Elegí un modelo instalado.", empty: "Escribí un mensaje.",
-      chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", other: "Error" },
+      chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", nothing_to_compact: "Todavía no hay nada que compactar en este chat.", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("es", { numeric: "auto" }).format(-n, u), model: "Modelo",
     cancel: "Cancelar", delOk: "Borrar", rename: "Cambiar el título", renameErr: "No se pudo cambiar el título",
     modelLocked: m => `Este chat usa ${m}. Para otro modelo, empezá un chat nuevo.`,
@@ -262,7 +264,9 @@ const I18N = {
     ctxNone: "Contexto: se calcula al enviar el primer mensaje.",
     cmdsTitle: "Comandos",
     cmds: { organize: "Ordenar el vault y el grafo (carpetas, tags, relaciones, duplicados). Pregunta antes de mover nada.",
-      reflect: "Revisar la memoria: duplicados, contradicciones y notas sin entidades.", new: "Empezar un chat nuevo." },
+      reflect: "Revisar la memoria: duplicados, contradicciones y notas sin entidades.", new: "Empezar un chat nuevo.",
+      compact: "Compactar la sesión: resume lo hablado para liberar contexto y seguir en este chat." },
+    compacted: "Conversación compactada · el modelo sigue desde este resumen", nothingToCompact: "Todavía no hay nada que compactar en este chat.",
   },
   en: {
     chats: "Chats", newTitle: "New chat", search: "Search chats", noChats: "No saved chats yet.",
@@ -279,7 +283,7 @@ const I18N = {
     maxRounds: "Stopped after several actions in a row.", delConfirm: "Delete this chat from history?", del: "Delete chat",
     actions: n => n === 1 ? "1 action" : `${n} actions`, args: "Arguments", result: "Result", running: "running…",
     err: { ollama: "Ollama isn't running. Turn it on from the Dashboard.", no_model: "Pick an installed model.", empty: "Write a message.",
-      chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", other: "Error" },
+      chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", nothing_to_compact: "There's nothing to compact in this chat yet.", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-n, u), model: "Model",
     cancel: "Cancel", delOk: "Delete", rename: "Rename chat", renameErr: "Couldn't rename the chat",
     modelLocked: m => `This chat uses ${m}. For another model, start a new chat.`,
@@ -289,7 +293,9 @@ const I18N = {
     ctxNone: "Context: measured when you send the first message.",
     cmdsTitle: "Commands",
     cmds: { organize: "Organize the vault and graph (folders, tags, links, duplicates). Asks before moving anything.",
-      reflect: "Review your memory: duplicates, contradictions and notes without entities.", new: "Start a new chat." },
+      reflect: "Review your memory: duplicates, contradictions and notes without entities.", new: "Start a new chat.",
+      compact: "Compact the session: summarize the conversation to free up context and keep going in this chat." },
+    compacted: "Conversation compacted · the model continues from this summary", nothingToCompact: "There's nothing to compact in this chat yet.",
   },
 };
 const num = n => Number(n || 0).toLocaleString(lang === "en" ? "en-US" : "es-AR");
@@ -322,7 +328,7 @@ const ICON = {
 let chats = [], current = null, messages = [], busy = false, controller = null, historyOk = true, models = [];
 let chatModel = "";                 // modelo con el que arrancó el chat abierto (queda fijo)
 let usage = { tokens: 0, ctx: 0, max: 0 };  // ventana de contexto del chat abierto
-const COMMANDS = ["organize", "reflect", "new"];
+const COMMANDS = ["organize", "compact", "reflect", "new"];
 
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify(body) };
@@ -466,7 +472,7 @@ async function openChat(id) {
   try {
     const r = await api(`/api/chat/get?id=${encodeURIComponent(id)}`);
     if (!r.ok) { banner(errText(r), true); if (r.code === "not_found") newChat(); return; }
-    current = id; messages = r.chat.messages.map(m => ({ role: m.role, content: m.content, tools: m.tools || [] }));
+    current = id; messages = r.chat.messages.map(m => ({ role: m.role, content: m.content, tools: m.tools || [], compact: !!m.compact }));
     chatModel = r.chat.model || "";
     const info = modelInfo(chatModel) || {};
     usage = { tokens: r.chat.tokens || 0, ctx: r.chat.ctx || info.ctx || 0, max: info.ctx_max || 0 };
@@ -507,6 +513,7 @@ function msgHtml(m, i, open = new Set()) {
   const trace = tools.length ? `<div class="trace"><div class="trace-h">${esc(T.actions(tools.length))}</div>${tools.map((t, j) => callHtml(t, j, open)).join("")}</div>` : "";
   const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("");
   const body = m.content || !m.live ? `<div class="body ${m.live ? "cursor" : ""}">${md(m.content)}</div>` : `<div class="body cursor"></div>`;
+  if (m.compact) return `<div class="msg assistant compact" data-i="${i}"><div class="compact-h">${esc(T.compacted)}</div>${body}${notes}</div>`;
   return `<div class="msg assistant" data-i="${i}"><div class="who">${ICON.mark}${esc(T.brain)}</div>${trace}${body}${notes}</div>`;
 }
 function renderMessages(scroll = true) {
@@ -542,13 +549,15 @@ async function send() {
   const text = $("#text").value.trim();
   if (!text || busy) return;
   if (text === "/new") { $("#text").value = ""; autosize(); hideCmds(); newChat(); return; }
+  const compacting = /^\/compact\b/.test(text);
+  if (compacting && !messages.some(m => m.role === "assistant" && !m.compact)) { hideCmds(); banner(T.nothingToCompact, true); return; }
   const model = activeModel();
   if (!model) { banner(T.err.no_model, true); return; }
   if (!chatModel || !modelInfo(chatModel)) chatModel = model;
   hideCmds();
   $("#text").value = ""; autosize();
   messages.push({ role: "user", content: text });
-  const reply = { role: "assistant", content: "", tools: [], notes: [], live: true };
+  const reply = { role: "assistant", content: "", tools: [], notes: [], live: true, compact: compacting };
   messages.push(reply);
   busy = true; renderSend(); renderMessages(); renderModelBox();
   controller = new AbortController();

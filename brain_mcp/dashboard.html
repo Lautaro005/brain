@@ -441,6 +441,19 @@
   #settings-btn.has-update { color: var(--update); border-color: var(--update); background: var(--update-soft); position: relative; }
   #settings-btn.has-update::after { content: ""; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--update); }
   #settings-btn.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  /* ajustes: contexto por modelo */
+  .ctx-modes { display: grid; gap: 8px; margin: 4px 0 14px; }
+  .ctx-cap-row { display: flex; align-items: center; gap: 8px; padding-left: 26px; }
+  .ctx-cap-row .input { width: 130px; flex: none; min-width: 0; padding: 6px 10px; }
+  .ctx-cap-row .input:disabled { opacity: .45; }
+  .ctx-wrap { overflow-x: auto; }
+  .ctx-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .ctx-table th { text-align: left; font: 700 11px/1.2 "Courier Prime", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3);
+    padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+  .ctx-table td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .ctx-table td.mono { font-size: 12.5px; overflow-wrap: anywhere; }
+  .ctx-table .input { width: 110px; min-width: 0; flex: none; padding: 5px 8px; font-family: "Courier Prime", monospace; font-size: 12.5px; }
+  .ctx-table .eff { font: 700 12.5px/1 "Courier Prime", monospace; white-space: nowrap; }
   /* servicios: el botón (i) del sidebar abre esta lista hacia arriba */
   .info-wrap { position: relative; display: inline-flex; }
   /* fixed y ubicada por JS (toggleInfo): así no la recorta el sidebar, esté plegado o en celular */
@@ -725,6 +738,22 @@
               <select class="input full" id="default-model" style="margin-top:6px"></select>
               <p class="form-hint" id="default-model-hint"></p>
             </div></div>
+          <div class="card" id="ctx-card"><div class="card-h"><h2 data-i18n="settings.ctx"></h2><span class="sub" data-i18n="settings.ctxSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.ctxHint"></p>
+              <div class="ctx-modes" role="radiogroup">
+                <label class="check"><input type="radio" name="ctx-mode" value="cap"> <span data-i18n="settings.ctxCap"></span></label>
+                <span class="ctx-cap-row"><input class="input mono" id="ctx-cap" type="number" step="1024"> <span class="muted mono" id="ctx-cap-k"></span></span>
+                <label class="check"><input type="radio" name="ctx-mode" value="max"> <span data-i18n="settings.ctxMax"></span></label>
+              </div>
+              <div class="ctx-wrap"><table class="ctx-table" id="ctx-table"></table></div>
+              <p class="form-hint" id="ctx-note"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="ctx-save" data-i18n="settings.ctxSave"></button>
+                <button class="btn" type="button" id="ctx-reset" data-i18n="settings.ctxReset"></button>
+              </div>
+              <div class="result" id="ctx-result"></div>
+            </div></div>
         </div>
         <div class="grid" style="align-content:start">
           <div class="card"><div class="card-h"><h2 data-i18n="settings.system"></h2><span class="sub" data-i18n="settings.systemSub"></span></div>
@@ -909,7 +938,7 @@ const I18N = {
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
     settings: { title: "Ajustes", sub: "Versión, sidebar, chat, system prompt y colores del grafo. Todo queda guardado en este navegador.",
-      version: "Versión", versionHint: "Busca en GitHub si hay una versión nueva publicada. Solo se conecta cuando tocás el botón.",
+      version: "Versión", versionHint: "brain se fija en GitHub si hay una versión nueva al abrirse y cada 3 horas mientras está abierto (solo pide el número del último release). El botón chequea ahora.",
       check: "Buscar actualizaciones", checking: "Buscando…", upToDate: v => `Estás al día: ${v} es la última versión.`,
       noReleases: "Todavía no hay versiones publicadas en GitHub.", offline: "No se pudo conectar con GitHub. Revisá tu conexión.",
       available: v => `Hay una versión nueva: ${v}`, howTo: "Para instalarla, corré en la terminal", notes: "Ver novedades",
@@ -928,7 +957,14 @@ const I18N = {
       systemHint: "Se suma a las instrucciones de brain en cada respuesta del chat: tono, formato, idioma, en qué enfocarse. No cambia lo que pueden hacer las tools. Queda en este navegador.",
       systemPh: "Ej.: Respondeme corto y directo, en viñetas. Tuteame. Si hablo de código, usá Python. Antes de guardar una memoria, preguntame.",
       systemSave: "Guardar", systemClear: "Borrar", systemSaved: "System prompt guardado: se usa desde el próximo mensaje.",
-      systemCleared: "System prompt borrado.", systemCount: (n, m) => `${n} / ${m}` },
+      systemCleared: "System prompt borrado.", systemCount: (n, m) => `${n} / ${m}`,
+      ctx: "Contexto", ctxSub: "cuánto recuerda el chat de cada modelo",
+      ctxHint: "La ventana de contexto es cuánto texto ve el modelo a la vez (tu memoria, el chat y las tools). Más contexto usa más RAM y responde más lento: si el chat se pone lento, bajalo.",
+      ctxCap: "El máximo de cada modelo, con un tope para todos:", ctxMax: "El máximo que soporta cada modelo, sin tope",
+      ctxModel: "Modelo", ctxModelMax: "Soporta", ctxUses: "Usa", ctxOwn: "Propio", ctxOwnPh: "general",
+      ctxSave: "Guardar", ctxReset: "Volver a 16k para todos", ctxSaved: "Guardado: se usa desde el próximo mensaje.",
+      ctxBad: (a, b) => `Los valores van de ${a} a ${b} tokens.`, ctxNoOllama: "Ollama no está corriendo: prendelo para ver tus modelos. La regla general se puede guardar igual.",
+      ctxNoModels: "No hay modelos de chat instalados.", ctxRam: "Ojo: más de 32k tokens puede no entrar en la RAM de una Mac con 8-16 GB." },
     dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
   },
@@ -1062,7 +1098,7 @@ const I18N = {
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
     settings: { title: "Settings", sub: "Version, sidebar, chat, system prompt and graph colors. Everything is saved in this browser.",
-      version: "Version", versionHint: "Checks GitHub for a newer published version. It only connects when you click the button.",
+      version: "Version", versionHint: "brain checks GitHub for a newer version when it opens and every 3 hours while it's open (it only asks for the latest release number). The button checks now.",
       check: "Check for updates", checking: "Checking…", upToDate: v => `You're up to date: ${v} is the latest version.`,
       noReleases: "There are no published versions on GitHub yet.", offline: "Couldn't reach GitHub. Check your connection.",
       available: v => `A new version is available: ${v}`, howTo: "To install it, run in the terminal", notes: "See what's new",
@@ -1081,7 +1117,14 @@ const I18N = {
       systemHint: "Added to brain's instructions on every chat reply: tone, format, language, what to focus on. It doesn't change what the tools can do. Saved in this browser.",
       systemPh: "E.g.: Keep answers short and direct, in bullet points. If I talk about code, use Python. Ask me before saving a memory.",
       systemSave: "Save", systemClear: "Clear", systemSaved: "System prompt saved: it applies from your next message.",
-      systemCleared: "System prompt cleared.", systemCount: (n, m) => `${n} / ${m}` },
+      systemCleared: "System prompt cleared.", systemCount: (n, m) => `${n} / ${m}`,
+      ctx: "Context", ctxSub: "how much each model's chat remembers",
+      ctxHint: "The context window is how much text the model sees at once (your memory, the chat and the tools). More context uses more RAM and answers slower: if the chat gets slow, lower it.",
+      ctxCap: "Each model's maximum, with a cap for all of them:", ctxMax: "The most each model supports, no cap",
+      ctxModel: "Model", ctxModelMax: "Supports", ctxUses: "Uses", ctxOwn: "Own", ctxOwnPh: "general",
+      ctxSave: "Save", ctxReset: "Back to 16k for all", ctxSaved: "Saved: applies from your next message.",
+      ctxBad: (a, b) => `Values go from ${a} to ${b} tokens.`, ctxNoOllama: "Ollama isn't running: turn it on to see your models. You can still save the general rule.",
+      ctxNoModels: "No chat models installed.", ctxRam: "Careful: more than 32k tokens may not fit in the RAM of an 8-16 GB Mac." },
     dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
   },
@@ -1237,7 +1280,62 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); }
+
+// ================= ajustes: contexto por modelo =================
+// Se guarda en el server (data/chat_settings.json) porque lo usa chat.py al pedirle num_ctx a Ollama.
+let ctxData = null;
+const kTok = n => !n ? "—" : n >= 1024 ? `${Math.round(n / 1024)}k` : String(n);
+async function loadContext() {
+  let r; try { r = await api("/api/chat/context"); } catch (e) { r = { ok: false, detail: e.message }; }
+  if (!r.ok) return showResult($("#ctx-result"), "err", r.detail || T.err.other);
+  ctxData = r; renderContext();
+}
+function renderContext() {
+  const st = ctxData.settings, S = T.settings;
+  document.querySelectorAll('input[name="ctx-mode"]').forEach(x => x.checked = x.value === st.mode);
+  const cap = $("#ctx-cap"); cap.value = st.cap; cap.min = ctxData.min; cap.max = ctxData.max;
+  cap.setAttribute("aria-label", S.ctxCap);
+  $("#ctx-table").innerHTML = ctxData.models.length ? `<tr><th>${esc(S.ctxModel)}</th><th>${esc(S.ctxModelMax)}</th><th>${esc(S.ctxUses)}</th><th>${esc(S.ctxOwn)}</th></tr>` +
+    ctxData.models.map(m => `<tr><td class="mono">${esc(m.name.replace(/:latest$/, ""))}</td><td class="mono">${esc(kTok(m.ctx_max))}</td>
+      <td class="eff" data-eff="${esc(m.name)}"></td>
+      <td><input class="input ctx-own" type="number" step="1024" min="${ctxData.min}" max="${ctxData.max}" data-model="${esc(m.name)}"
+        value="${st.models[m.name] || ""}" placeholder="${esc(S.ctxOwnPh)}" aria-label="${esc(S.ctxOwn)} · ${esc(m.name)}"></td></tr>`).join("") : "";
+  $("#ctx-note").textContent = !ctxData.ollama ? S.ctxNoOllama : !ctxData.models.length ? S.ctxNoModels : "";
+  updateCtx();
+}
+function readCtx() {
+  const mode = (document.querySelector('input[name="ctx-mode"]:checked') || {}).value || "cap";
+  const models = { ...(ctxData ? ctxData.settings.models : {}) };  // conserva los de modelos que hoy no están instalados
+  document.querySelectorAll(".ctx-own").forEach(i => { const v = parseInt(i.value, 10); if (v > 0) models[i.dataset.model] = v; else delete models[i.dataset.model]; });
+  return { mode, cap: parseInt($("#ctx-cap").value, 10) || 0, models };
+}
+function effCtx(m, f) {
+  const mx = m.ctx_max || 0, own = f.models[m.name];
+  if (own) return mx ? Math.min(own, mx) : own;
+  return f.mode === "max" ? (mx || 4096) : Math.min(mx || 4096, f.cap || 4096);
+}
+function updateCtx() {
+  if (!ctxData) return;
+  const f = readCtx();
+  $("#ctx-cap").disabled = f.mode === "max";
+  $("#ctx-cap-k").textContent = f.cap ? `= ${kTok(f.cap)}` : "";
+  let big = false;
+  ctxData.models.forEach(m => { const e = effCtx(m, f); big = big || e > 32768; const td = document.querySelector(`[data-eff="${CSS.escape(m.name)}"]`); if (td) td.textContent = kTok(e); });
+  if (ctxData.ollama && ctxData.models.length) $("#ctx-note").textContent = big ? T.settings.ctxRam : "";
+}
+$("#ctx-card").addEventListener("input", updateCtx);
+$("#ctx-card").addEventListener("change", updateCtx);
+async function saveCtx(body) {
+  const out = $("#ctx-result");
+  try {
+    const r = await api("/api/chat/context", body);
+    if (!r.ok) return showResult(out, "err", r.code === "bad_ctx" ? T.settings.ctxBad(ctxData.min, ctxData.max) : (r.detail || T.err.other));
+    ctxData = r; renderContext(); showResult(out, "ok", T.settings.ctxSaved);
+  } catch (e) { showResult(out, "err", e.message); }
+}
+$("#ctx-save").onclick = () => saveCtx(readCtx());
+$("#ctx-reset").onclick = () => saveCtx({ mode: "cap", cap: ctxData ? ctxData.default_cap : 16384, models: {} });
 
 // ================= ajustes: system prompt del chat =================
 // localStorage "brain-chat-system": el chat lo manda con cada mensaje y chat.py lo suma al system prompt
@@ -1362,15 +1460,31 @@ $("#update-btn").onclick = async () => {
   try {
     const r = await api("/api/version/check", {});
     if (!r.ok) { showResult(out, "err", r.code === "offline" ? T.settings.offline : `${T.err.other} ${r.detail || ""}`); return; }
-    appVersion = r.current;
-    try { r.update_available ? localStorage.setItem("brain-update", JSON.stringify({ latest: r.latest, url: r.url })) : localStorage.removeItem("brain-update"); } catch (e) {}
-    renderUpdateBadge();
+    saveCheck(r);
     if (r.update_available) out.className = "result";
     else showResult(out, "ok", r.latest ? T.settings.upToDate(r.current) : T.settings.noReleases);
   } catch (e) { showResult(out, "err", e.message); }
   finally { btn.disabled = false; }
 };
-loadVersion();
+function saveCheck(r) {
+  appVersion = r.current;
+  try {
+    r.update_available ? localStorage.setItem("brain-update", JSON.stringify({ latest: r.latest, url: r.url })) : localStorage.removeItem("brain-update");
+    localStorage.setItem("brain-update-checked", String(Date.now()));
+  } catch (e) {}
+  renderUpdateBadge();
+}
+// Chequeo automático: al abrir el dashboard y cada 3 horas mientras está abierto. Si otra pestaña (o una
+// recarga) ya chequeó hace menos de 10 minutos, se saltea, así no se gasta el límite de la API de GitHub.
+const UPDATE_EVERY = 3 * 3600 * 1000, UPDATE_MIN_GAP = 10 * 60 * 1000;
+async function autoCheck() {
+  let last = 0; try { last = +localStorage.getItem("brain-update-checked") || 0; } catch (e) {}
+  if (Date.now() - last < UPDATE_MIN_GAP) return;
+  try { const r = await api("/api/version/check", {}); if (r.ok) saveCheck(r); } catch (e) { /* sin internet: se reintenta en el próximo ciclo */ }
+}
+loadVersion().then(autoCheck);
+setInterval(autoCheck, UPDATE_EVERY);
+addEventListener("storage", e => { if (e.key === "brain-update") renderUpdateBadge(); });
 $("#theme-btn").onclick = () => {
   theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; applyTheme(theme); renderTools();
   if (stats) renderStats();
