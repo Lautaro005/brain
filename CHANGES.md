@@ -476,3 +476,18 @@ Registro de todos los cambios del proyecto, del más viejo al más nuevo. **Cada
 - `/organize` no borra ni mueve sin confirmación y no toca lo que maneja brain (`memory/`, `knowledge/sources/`: moverlas rompería los ids de Chroma/FTS).
 
 **Verificado**: 24 pruebas nuevas de backend (panorama, move_file, restauración, protecciones, reflect sin LLM, ventana de contexto, rename) + las 35 anteriores; 38 chequeos en Chromium con Ollama falso y Chroma real (dropdown con teclado, comandos, organize/system prompt llegan al modelo con `num_ctx`, anillo, modelo fijo al reabrir, renombrar persiste, confirmaciones propias sin `confirm()` nativo, popover de servicios arriba/plegado/celular, 390 px sin scroll horizontal, sin errores JS). No probado con un Ollama real.
+
+## 2026-09-29 — v0.02.8.1: contexto configurable, /compact, licencia sin excepción para versiones viejas
+
+**Qué cambió**
+- **Ajustes → Contexto** (`dashboard.html`, `chat.py`, `dashboard.py`): tabla con los modelos detectados, cuánto soporta cada uno y cuánto va a usar (se recalcula al tocar los controles). Regla general: el máximo de cada modelo con un tope para todos (16k por defecto) o todo lo que soporta cada uno; valor propio por modelo opcional. Se guarda en `data/chat_settings.json` (`ctx_settings`/`save_ctx_settings`, valida 2048 a 1.048.576 tokens) y lo usa `context_window()`; ya no se lee el `num_ctx` del Modelfile. `GET/POST /api/chat/context`. Aviso de RAM si algún modelo pasa de 32k.
+- **/compact** (`chat.py`, `chat.html`): resume la conversación con el mismo modelo (sin tools, con streaming) y guarda el resumen como mensaje `compact`; desde ahí el modelo recibe el resumen en el system prompt más los mensajes posteriores. En el chat se ve como un bloque punteado "Conversación compactada". Chat sin respuestas: aviso sin llamar al modelo.
+- **Licencia**: se sacó de `LICENSE` el párrafo que dejaba las versiones anteriores a v0.02.0 bajo MIT, y las menciones equivalentes en README, docs y changelog. La Commons Clause aplica a todas las versiones.
+- **SECURITY.md**: versión soportada `v0.02.8.1`; alcance con `move_file`, el render del chat y `ui.js`, y los ajustes locales del chat.
+- `VERSION` → `v0.02.8.1`; changelog, docs (Ajustes, Chat, Configuración), README y CLAUDE.md.
+
+**Por qué**
+- Pedido del usuario. El contexto pasa a `data/` y no a localStorage porque lo necesita el server al armar cada pedido a Ollama.
+- Licencia: GitHub (licensee) solo reconoce plantillas estándar; MIT + Commons Clause no es una, así que no hay forma de que la detecte sin quitar la condición. Se dejó así a propósito. Quitar la excepción cambia el texto de acá en adelante; las copias de v0.01.0 que alguien ya bajó con el MIT de ese momento conservan esa licencia (una licencia otorgada no se puede revocar hacia atrás).
+
+**Verificado**: 35 pruebas de backend (incluye ajustes de contexto y validación, `_split_compact`, `_transcript`) + 35 anteriores; 18 chequeos nuevos en Chromium (tabla y reglas de contexto, rango inválido, `num_ctx` que llega a Ollama, `/compact` sin tools con la transcripción, pedido siguiente con solo system + mensaje nuevo, persistencia, chat vacío, 390 px sin scroll) y los 38 de v0.02.8 siguen pasando. No probado con un Ollama real.
