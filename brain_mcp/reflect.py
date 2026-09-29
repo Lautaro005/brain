@@ -76,9 +76,10 @@ def _memory_pairs() -> list[dict]:
     return out
 
 
-def run() -> dict:
-    """Sugerencias [{tipo, descripcion, accion_sugerida, data}]. No escribe nada."""
-    use_llm = llm_model() is not None
+def run(use_llm: bool | None = None) -> dict:
+    """Sugerencias [{tipo, descripcion, accion_sugerida, data}]. No escribe nada.
+    use_llm=False no llama al modelo local (el chat lo usa así: ya hay un modelo generando)."""
+    use_llm = llm_model() is not None if use_llm is None else use_llm
     ents, pending = _missing_entities(use_llm)
     suggestions = _memory_pairs() + ents
     return {"suggestions": suggestions, "llm": use_llm, "entities_pending": pending}

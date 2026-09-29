@@ -132,6 +132,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path in PAGES:
                 self._send(200, (HERE / PAGES[u.path]).read_bytes(), "text/html; charset=utf-8")
+            elif u.path == "/ui.js":
+                self._send(200, (HERE / "ui.js").read_bytes(), "text/javascript; charset=utf-8")
             elif u.path == "/api/status":
                 self._json(_status())
             elif u.path == "/api/stats":
@@ -241,6 +243,13 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": True})
                 except Exception as e:
                     self._json({"ok": False, "code": _error_code(e), "detail": str(e)})
+            elif u.path == "/api/chat/rename":
+                try:
+                    self._json({"ok": True, "title": chat.rename_chat(str(body.get("id", "")), str(body.get("title", "")))})
+                except chat.ChatError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
+                except Exception as e:
+                    self._json({"ok": False, "code": _error_code(e), "detail": str(e)})
             elif u.path == "/api/chat/pull":
                 try:
                     chat.pull(str(body.get("model") or chat.SUGGESTED_MODEL))
@@ -290,7 +299,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         gen = chat.run(str(body.get("text", "")), str(body.get("model", "")),
-                       str(body.get("chat_id") or "") or None, "en" if body.get("lang") == "en" else "es")
+                       str(body.get("chat_id") or "") or None, "en" if body.get("lang") == "en" else "es",
+                       str(body.get("system") or ""))
         try:
             for ev in gen:
                 self.wfile.write((json.dumps(ev, ensure_ascii=False, default=str) + "\n").encode())

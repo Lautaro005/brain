@@ -16,6 +16,7 @@ sin ellas y el chat queda en modo solo lectura del contexto.
 import asyncio
 import json
 import logging
+import os
 import re
 import secrets
 import time
@@ -23,7 +24,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from . import chroma_store, memory, vault
+from . import chroma_store, memory, organize, reflect, vault
 from .embeddings import OllamaUnavailable, embed
 
 log = logging.getLogger(__name__)
@@ -36,6 +37,22 @@ MAX_HISTORY = 24         # mensajes previos del chat que se mandan al modelo
 MAX_TOOL_RESULT = 8000   # caracteres de cada resultado de tool que ve el modelo
 MAX_MEMORY_CHARS = 12000
 EMBED_CHARS = 4000       # nomic-embed-text: alcanza con el principio del mensaje
+MAX_SYSTEM_USER = 4000   # instrucciones propias del usuario (Ajustes → Chat)
+MAX_TITLE = 80
+# Ventana de contexto que se le pide a Ollama (num_ctx). Sin esto Ollama usa su default (2-4k tokens) y
+# corta en silencio el system prompt con la memoria. Se usa el máximo del modelo, con este tope para no
+# pedir más RAM de la que tiene una Mac común (el caché de 128k tokens de un modelo grande no entra).
+CHAT_CTX = int(os.environ.get("BRAIN_CHAT_CTX", "16384"))
+DEFAULT_CTX = 4096       # si Ollama no dice el máximo del modelo
+
+# Comandos del chat (/organize…): agregan instrucciones al system prompt de ese chat y se recuerdan
+# en el chat (meta "command"), así las respuestas del usuario a las preguntas siguen en el mismo modo.
+COMMANDS = {
+    "organize": "Ayudame a ordenar mi vault y su grafo.",
+    "reflect": "Revisá mi memoria y lo que guardé: duplicados, contradicciones y notas sin entidades.",
+}
+CMD_TITLES = {"es": {"organize": "Ordenar el vault", "reflect": "Revisar la memoria"},
+              "en": {"organize": "Organize the vault", "reflect": "Review my memory"}}
 
 
 class ChatError(RuntimeError):
@@ -64,9 +81,40 @@ def models() -> list[dict]:
         raise ChatError("ollama") from e
     except requests.RequestException as e:
         raise ChatError("ollama", str(e)) from e
-    out = [{"name": m["name"], "size": m.get("size", 0), "params": (m.get("details") or {}).get("parameter_size", "")}
-           for m in r.json().get("models", []) if not _is_embedding(m)]
+    out = []
+    for m in r.json().get("models", []):
+        if _is_embedding(m):
+            continue
+        ctx = context_window(m["name"], m.get("digest", ""))
+        out.append({"name": m["name"], "size": m.get("size", 0), "params": (m.get("details") or {}).get("parameter_size", ""),
+                    "ctx": ctx["ctx"], "ctx_max": ctx["max"]})
     return sorted(out, key=lambda m: m["name"])
+
+
+_CTX: dict[str, dict] = {}  # "modelo@digest" → {"ctx", "max"}
+
+
+def context_window(model: str, digest: str = "") -> dict:
+    """Ventana de contexto de un modelo: {"max": lo que soporta, "ctx": lo que usa brain (num_ctx)}.
+    Sale de /api/show (model_info.<arch>.context_length y el num_ctx del Modelfile, si lo tiene)."""
+    key = f"{model}@{digest}"
+    if key in _CTX:
+        return _CTX[key]
+    mx, fixed = 0, 0
+    try:
+        r = requests.post(f"{OLLAMA}/api/show", json={"model": model}, timeout=5)
+        if r.ok:
+            j = r.json()
+            mx = next((int(v) for k, v in (j.get("model_info") or {}).items() if k.endswith(".context_length") and v), 0)
+            m = re.search(r"^num_ctx\s+(\d+)", j.get("parameters") or "", re.M)
+            fixed = int(m.group(1)) if m else 0
+    except (requests.RequestException, ValueError):
+        pass
+    ctx = fixed or min(mx or DEFAULT_CTX, CHAT_CTX)
+    out = {"max": mx or ctx, "ctx": min(ctx, mx) if mx else ctx}
+    if mx:  # sin respuesta de Ollama no se cachea: se vuelve a preguntar
+        _CTX[key] = out
+    return out
 
 
 def pull(model: str) -> None:
@@ -92,7 +140,8 @@ def _emb(texts: list[str]) -> list[list[float]]:
 def list_chats() -> list[dict]:
     res = _call(lambda c: c.get(where={"kind": "chat"}, include=["metadatas"]))
     out = [{"id": m["chat_id"], "title": m.get("title") or "…", "updated_at": m.get("updated_at"),
-            "created_at": m.get("created_at"), "count": m.get("count", 0), "model": m.get("model", "")}
+            "created_at": m.get("created_at"), "count": m.get("count", 0), "model": m.get("model", ""),
+            "command": m.get("command", "")}
            for m in res["metadatas"]]
     return sorted(out, key=lambda c: c["updated_at"] or "", reverse=True)
 
@@ -111,14 +160,30 @@ def get_chat(chat_id: str) -> dict:
         raise ChatError("not_found", chat_id)
     msgs.sort(key=lambda x: x["idx"])
     return {"id": chat_id, "title": meta.get("title"), "model": meta.get("model", ""),
-            "created_at": meta.get("created_at"), "messages": msgs}
+            "created_at": meta.get("created_at"), "messages": msgs, "command": meta.get("command", ""),
+            "tokens": meta.get("tokens", 0), "ctx": meta.get("ctx", 0)}
+
+
+def rename_chat(chat_id: str, title: str) -> str:
+    """Cambia el título de un chat (el que se ve en el historial)."""
+    title = " ".join((title or "").split())[:MAX_TITLE]
+    if not title:
+        raise ChatError("empty_title")
+    res = _call(lambda c: c.get(ids=[f"{chat_id}:meta"], include=["metadatas"]))
+    if not res["ids"]:
+        raise ChatError("not_found", chat_id)
+    meta = {**res["metadatas"][0], "title": title, "renamed": True}
+    embs = _emb([title])
+    _call(lambda c: c.update(ids=[f"{chat_id}:meta"], documents=[title], embeddings=embs, metadatas=[meta]))
+    return title
 
 
 def delete_chat(chat_id: str) -> None:
     _call(lambda c: c.delete(where={"chat_id": chat_id}))
 
 
-def _save(chat_id: str, title: str, model: str, created_at: str, new: list[dict], start_idx: int) -> None:
+def _save(chat_id: str, title: str, model: str, created_at: str, new: list[dict], start_idx: int,
+          extra: dict | None = None) -> None:
     """Guarda los mensajes nuevos y actualiza el registro del chat."""
     ids, docs, metas = [], [], []
     for i, m in enumerate(new):
@@ -130,7 +195,7 @@ def _save(chat_id: str, title: str, model: str, created_at: str, new: list[dict]
     ids.append(f"{chat_id}:meta")
     docs.append(title)
     metas.append({"kind": "chat", "chat_id": chat_id, "title": title, "model": model, "created_at": created_at,
-                  "updated_at": _now(), "count": start_idx + len(new)})
+                  "updated_at": _now(), "count": start_idx + len(new), **(extra or {})})
     embs = _emb(docs)
     _call(lambda c: c.upsert(ids=ids, documents=docs, embeddings=embs, metadatas=metas))
 
@@ -157,7 +222,31 @@ def _related_past(text: str, chat_id: str, k: int = 4) -> list[str]:
 
 # ---------- contexto ----------
 
-def _context(text: str, chat_id: str, lang: str) -> str:
+def parse_command(text: str) -> tuple[str, str]:
+    """"/organize y los proyectos" → ("organize", "y los proyectos"). Sin comando: ("", text)."""
+    m = re.match(r"^/([a-z]+)\b\s*(.*)$", text.strip(), re.S)
+    if m and m.group(1) in COMMANDS:
+        return m.group(1), m.group(2).strip()
+    return "", text
+
+
+def _command_prompt(cmd: str) -> str:
+    if cmd == "organize":
+        return organize.skill() + "\n\n" + organize.overview_text()
+    if cmd == "reflect":
+        r = reflect.run(use_llm=False)
+        items = "\n".join(f"- [{s['tipo']}] {s['descripcion']} → {s['accion_sugerida']}" for s in r["suggestions"]) or "- (no hay sugerencias)"
+        return (
+            "# Modo /reflect\nEl usuario pidió revisar lo que tiene guardado. Abajo están las sugerencias de Reflect "
+            "(solo sugerencias: nada se aplicó). Presentalas agrupadas y en lenguaje simple, preguntá cuáles quiere "
+            "aplicar y aplicá SOLO las que confirme, con la tool indicada. Si no hay sugerencias, decilo. "
+            + (f"Hay {r['entities_pending']} notas sin entidades: se completan desde Perfil → Reflect. " if r["entities_pending"] else "")
+            + "\n\n## Sugerencias\n" + items
+        )
+    return ""
+
+
+def _context(text: str, chat_id: str, lang: str, user_system: str = "", command: str = "") -> str:
     p = memory.get_profile()
     mem_lines, used = [], 0
     for c in memory.list_all():
@@ -194,6 +283,15 @@ def _context(text: str, chat_id: str, lang: str) -> str:
         parts.append("# Índice del vault (BRAIN.md)\n" + index)
     if past:
         parts.append("# De chats anteriores (pueden servir de contexto)\n" + "\n".join(past))
+    if user_system.strip():
+        parts.append("# Instrucciones del usuario para el chat (Ajustes)\nRespetalas en el tono, el formato y el "
+                     "enfoque de cada respuesta; no reemplazan las reglas de arriba sobre las tools.\n"
+                     + user_system.strip()[:MAX_SYSTEM_USER])
+    if command:
+        try:
+            parts.append(_command_prompt(command))
+        except Exception as e:
+            log.warning("comando /%s: %s", command, e)
     parts.append(f"Fecha de hoy: {datetime.now().strftime('%Y-%m-%d')}")
     return "\n\n".join(parts)
 
@@ -303,9 +401,11 @@ def _run_tool(name: str, args: dict, valid: set[str]) -> tuple[str, bool]:
 
 # ---------- conversación ----------
 
-def _stream(model: str, messages: list[dict], tools: list[dict] | None):
+def _stream(model: str, messages: list[dict], tools: list[dict] | None, num_ctx: int = 0):
     """Llama a /api/chat con stream. Devuelve un iterador de chunks (dicts)."""
     body = {"model": model, "messages": messages, "stream": True}
+    if num_ctx:
+        body["options"] = {"num_ctx": num_ctx}
     if tools:
         body["tools"] = tools
     try:
@@ -369,9 +469,9 @@ class _TagFilter:
         return rest
 
 
-def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
+def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", user_system: str = ""):
     """Genera los eventos de una respuesta (para mandar como NDJSON):
-    start · token · rewrite · tool · tool_result · notice · done · error."""
+    start · token · rewrite · tool · tool_result · usage · notice · done · error."""
     text = (text or "").strip()
     if not text:
         yield {"type": "error", "code": "empty"}
@@ -380,26 +480,33 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
         yield {"type": "error", "code": "no_model"}
         return
 
-    history, title, created, saved_ok = [], text.splitlines()[0][:60], _now(), True
+    cmd, rest = parse_command(text)
+    title = (CMD_TITLES[lang if lang in ("es", "en") else "es"].get(cmd) if cmd else None) or text.splitlines()[0][:60]
+    history, created, saved_ok, command = [], _now(), True, cmd
     if chat_id:
         try:
             prev = get_chat(chat_id)
             history, title = prev["messages"], prev["title"] or title
             created = prev.get("created_at") or created
+            command = cmd or prev.get("command") or ""
         except ChatError:
             pass  # id desconocido: se arranca un chat nuevo con ese id
         except Exception as e:
             log.info("no se pudo leer el chat %s: %s", chat_id, e)
             saved_ok = False
     chat_id = chat_id or _new_id()
-    yield {"type": "start", "chat_id": chat_id, "title": title}
+    yield {"type": "start", "chat_id": chat_id, "title": title, "command": command}
 
     user_msg = {"role": "user", "content": text, "ts": _now()}
+    # lo que ve el modelo: un comando solo ("/organize") se traduce a un pedido en palabras
+    to_model = (COMMANDS[cmd] + (f" {rest}" if rest else "")) if cmd else text
     try:
-        system = _context(text, chat_id, lang)
+        system = _context(text, chat_id, lang, user_system, command)
     except Exception as e:
         log.exception("contexto del chat")
         system = f"(no se pudo cargar la memoria del usuario: {e})"
+    win = context_window(model)
+    num_ctx = win["ctx"]
 
     try:
         mcp_tools = _mcp_tools()
@@ -412,9 +519,19 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
     def build(mode: str) -> list[dict]:
         sys_ = system + ("\n\n" + _text_tools_prompt(mcp_tools) if mode == "text" else "")
         ms = [{"role": "system", "content": sys_}]
-        ms += [{"role": m["role"], "content": m["content"]} for m in history[-MAX_HISTORY:]]
-        ms.append({"role": "user", "content": user_msg["content"]})
+        ms += [{"role": m["role"], "content": (COMMANDS[parse_command(m["content"])[0]] if m["role"] == "user"
+                                               and parse_command(m["content"])[0] else m["content"])}
+               for m in history[-MAX_HISTORY:]]
+        ms.append({"role": "user", "content": to_model})
         return ms
+
+    tokens = 0
+
+    def estimate(msgs: list[dict], native: list | None) -> int:
+        # ~4 caracteres por token: alcanza para el indicador y cubre el caso en que Ollama reusa el caché
+        # y reporta menos tokens de los que ocupa la conversación
+        chars = sum(len(str(m.get("content") or "")) for m in msgs) + (len(json.dumps(native)) if native else 0)
+        return chars // 4
 
     msgs = build(mode)
     answer, used, failed = "", [], False
@@ -425,7 +542,11 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
             content, calls, flt, round_start = "", [], _TagFilter(), len(answer)
             native = _native_tools(mcp_tools) if mode == "native" else None
             try:
-                for chunk in _stream(model, msgs, native):
+                for chunk in _stream(model, msgs, native, num_ctx):
+                    if chunk.get("done"):
+                        used_now = int(chunk.get("prompt_eval_count") or 0) + int(chunk.get("eval_count") or 0)
+                        tokens = max(used_now, estimate(msgs, native) + len(content) // 4)
+                        yield {"type": "usage", "tokens": tokens, "ctx": num_ctx, "max": win["max"]}
                     m = chunk.get("message") or {}
                     if m.get("content"):
                         content += m["content"]
@@ -508,7 +629,8 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es"):
             if failed and len(new) == 1:
                 saved_ok = None  # no hubo respuesta: no se guarda un mensaje suelto
             elif saved_ok:
-                _save(chat_id, title, model, created, new, len(history))
+                _save(chat_id, title, model, created, new, len(history),
+                      {"command": command, "tokens": tokens, "ctx": num_ctx})
             else:
                 raise RuntimeError("historial no disponible")
         except Exception as e:
