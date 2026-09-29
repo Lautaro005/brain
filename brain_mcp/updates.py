@@ -1,7 +1,8 @@
 """Versión instalada y chequeo de actualizaciones contra los releases de GitHub.
 
-El chequeo solo corre cuando el usuario toca "Buscar actualizaciones" en Ajustes: brain no sale a
-internet solo. Compara el archivo VERSION de la instalación con el último release publicado.
+El dashboard chequea al abrirse, cada 3 horas mientras está abierto y cuando el usuario toca "Buscar
+actualizaciones" en Ajustes. Es lo único que brain pide a internet por su cuenta, y no manda datos del
+usuario: solo lee el último release. Compara el archivo VERSION de la instalación con ese release.
 """
 import re
 from pathlib import Path

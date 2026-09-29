@@ -541,7 +541,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Settings</h2>
   <p>A full view (<code>#ajustes</code>) with six sections:</p>
   <ul>
-    <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release only when you click it. If there's a newer one, Settings shows it with a link to the release notes, and the gear turns green until you update with <code>brain update</code>.</li>
+    <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click it. If there's a newer one, Settings shows it with a link to the release notes, and the gear turns green until you update with <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reorder the views with the arrows and hide the ones you don't use. A hidden view is still reachable by its URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: the default model, selected when the chat opens and on every new chat. "The last one I used" keeps the previous behavior.</li>
     <li><b>Context</b>: how much of each model's context window the chat uses. Either each model's maximum with a cap for all of them (16k by default), or everything each model supports, plus an optional value per model. The table lists the detected models, what they support and what they'll use. Saved in <code>data/chat_settings.json</code>.</li>
@@ -572,7 +572,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Ajustes</h2>
   <p>Una vista completa (<code>#ajustes</code>) con seis secciones:</p>
   <ul>
-    <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release solo cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades y el engranaje se pone en verde hasta que actualices con <code>brain update</code>.</li>
+    <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release al abrir el dashboard, cada 3 horas mientras está abierto y cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades y el engranaje se pone en verde hasta que actualices con <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reordená las vistas con las flechas y ocultá las que no uses. Una vista oculta sigue accesible por su URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: el modelo por defecto, que se elige al abrir el chat y en cada chat nuevo. "El último que usé" mantiene el comportamiento de antes.</li>
     <li><b>Contexto</b>: cuánto de la ventana de contexto de cada modelo usa el chat. El máximo de cada modelo con un tope para todos (16k por defecto), o todo lo que soporta cada uno, más un valor propio opcional por modelo. La tabla lista los modelos detectados, cuánto soportan y cuánto van a usar. Se guarda en <code>data/chat_settings.json</code>.</li>

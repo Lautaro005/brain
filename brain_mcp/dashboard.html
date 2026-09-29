@@ -938,7 +938,7 @@ const I18N = {
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
     settings: { title: "Ajustes", sub: "Versión, sidebar, chat, system prompt y colores del grafo. Todo queda guardado en este navegador.",
-      version: "Versión", versionHint: "Busca en GitHub si hay una versión nueva publicada. Solo se conecta cuando tocás el botón.",
+      version: "Versión", versionHint: "brain se fija en GitHub si hay una versión nueva al abrirse y cada 3 horas mientras está abierto (solo pide el número del último release). El botón chequea ahora.",
       check: "Buscar actualizaciones", checking: "Buscando…", upToDate: v => `Estás al día: ${v} es la última versión.`,
       noReleases: "Todavía no hay versiones publicadas en GitHub.", offline: "No se pudo conectar con GitHub. Revisá tu conexión.",
       available: v => `Hay una versión nueva: ${v}`, howTo: "Para instalarla, corré en la terminal", notes: "Ver novedades",
@@ -1098,7 +1098,7 @@ const I18N = {
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
     settings: { title: "Settings", sub: "Version, sidebar, chat, system prompt and graph colors. Everything is saved in this browser.",
-      version: "Version", versionHint: "Checks GitHub for a newer published version. It only connects when you click the button.",
+      version: "Version", versionHint: "brain checks GitHub for a newer version when it opens and every 3 hours while it's open (it only asks for the latest release number). The button checks now.",
       check: "Check for updates", checking: "Checking…", upToDate: v => `You're up to date: ${v} is the latest version.`,
       noReleases: "There are no published versions on GitHub yet.", offline: "Couldn't reach GitHub. Check your connection.",
       available: v => `A new version is available: ${v}`, howTo: "To install it, run in the terminal", notes: "See what's new",
@@ -1460,15 +1460,31 @@ $("#update-btn").onclick = async () => {
   try {
     const r = await api("/api/version/check", {});
     if (!r.ok) { showResult(out, "err", r.code === "offline" ? T.settings.offline : `${T.err.other} ${r.detail || ""}`); return; }
-    appVersion = r.current;
-    try { r.update_available ? localStorage.setItem("brain-update", JSON.stringify({ latest: r.latest, url: r.url })) : localStorage.removeItem("brain-update"); } catch (e) {}
-    renderUpdateBadge();
+    saveCheck(r);
     if (r.update_available) out.className = "result";
     else showResult(out, "ok", r.latest ? T.settings.upToDate(r.current) : T.settings.noReleases);
   } catch (e) { showResult(out, "err", e.message); }
   finally { btn.disabled = false; }
 };
-loadVersion();
+function saveCheck(r) {
+  appVersion = r.current;
+  try {
+    r.update_available ? localStorage.setItem("brain-update", JSON.stringify({ latest: r.latest, url: r.url })) : localStorage.removeItem("brain-update");
+    localStorage.setItem("brain-update-checked", String(Date.now()));
+  } catch (e) {}
+  renderUpdateBadge();
+}
+// Chequeo automático: al abrir el dashboard y cada 3 horas mientras está abierto. Si otra pestaña (o una
+// recarga) ya chequeó hace menos de 10 minutos, se saltea, así no se gasta el límite de la API de GitHub.
+const UPDATE_EVERY = 3 * 3600 * 1000, UPDATE_MIN_GAP = 10 * 60 * 1000;
+async function autoCheck() {
+  let last = 0; try { last = +localStorage.getItem("brain-update-checked") || 0; } catch (e) {}
+  if (Date.now() - last < UPDATE_MIN_GAP) return;
+  try { const r = await api("/api/version/check", {}); if (r.ok) saveCheck(r); } catch (e) { /* sin internet: se reintenta en el próximo ciclo */ }
+}
+loadVersion().then(autoCheck);
+setInterval(autoCheck, UPDATE_EVERY);
+addEventListener("storage", e => { if (e.key === "brain-update") renderUpdateBadge(); });
 $("#theme-btn").onclick = () => {
   theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; applyTheme(theme); renderTools();
   if (stats) renderStats();

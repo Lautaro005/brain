@@ -45,7 +45,7 @@ Then type `brain` and the dashboard opens.
 - **See how everything connects.** An interactive graph shows your profile, memories, projects, skills, sources and tags, and how they relate.
 - **Undo anything.** Every write goes into a version history. If an agent deletes or overwrites something, you get it back.
 - **Bring your apps along.** Plug other MCP servers into brain (GitHub, Notion, Gmail…, or hundreds of apps through Composio): their tools show up in every agent you connected, and whatever they fetch is saved to your memory automatically.
-- **Private by design.** Embeddings are computed on your machine with [Ollama](https://ollama.com), and nothing leaves your computer.
+- **Private by design.** Embeddings are computed on your machine with [Ollama](https://ollama.com), and your data never leaves your computer (the only request brain makes on its own is checking GitHub for a new version).
 
 ## Installation
 
@@ -99,7 +99,7 @@ ollama pull nomic-embed-text
 
 The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**), an **i** button that lists the services (Chroma, Ollama, MCP Inspector) and their state, and **Settings** (the gear), a full view where you can:
 
-- see the installed **version** and **check for updates**: brain asks GitHub for the latest release only when you click the button. If there's a newer one, Settings shows it with a link to the release notes (update with `brain update`) and the gear turns green until you update;
+- see the installed **version** and **check for updates**: brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click the button. If there's a newer one, Settings shows it with a link to the release notes (update with `brain update`) and the gear turns green until you update;
 - reorder the **sidebar** and hide the views you don't use (a hidden view is still reachable by its URL, e.g. `#logs`);
 - pick the **default chat model**, used when the chat opens and on every new chat;
 - set the chat's **context window**: each model's maximum with a cap for all (16k by default), everything each model supports, or a value per model, with a table of the detected models and what they support;
