@@ -1,0 +1,111 @@
+# CI de brain: corre en cada commit a main (a la par del deploy de la landing en GitHub Pages) y en
+# cada PR. Prueba el núcleo en macOS, Linux y Windows, los instaladores de los tres sistemas y la
+# landing/docs/changelog (links, estructura y que la versión coincida con el changelog y SECURITY.md).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Dependencias
+        run: uv sync --locked
+      - name: Pruebas
+        run: uv run pytest -q tests
+      - name: Server MCP por stdio
+        run: uv run python scripts/smoke_mcp.py
+
+  install-unix:
+    name: Instalador (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rama local para clonar desde este checkout
+        run: git checkout -b ci-install
+      - name: install.sh
+        env:
+          BRAIN_REPO: file://${{ github.workspace }}
+          BRAIN_BRANCH: ci-install
+          BRAIN_HOME: ${{ runner.temp }}/brain
+          BRAIN_BIN: ${{ runner.temp }}/bin
+          BRAIN_SKIP_OLLAMA: "1"
+          BRAIN_SKIP_CHROMIUM: "1"
+        run: bash install.sh
+      - name: Comando brain
+        run: |
+          "$RUNNER_TEMP/bin/brain" help
+          test "$("$RUNNER_TEMP/bin/brain" path)" = "$RUNNER_TEMP/brain"
+      - name: Segunda corrida (actualiza sin romper)
+        env:
+          BRAIN_REPO: file://${{ github.workspace }}
+          BRAIN_BRANCH: ci-install
+          BRAIN_HOME: ${{ runner.temp }}/brain
+          BRAIN_BIN: ${{ runner.temp }}/bin
+          BRAIN_SKIP_OLLAMA: "1"
+          BRAIN_SKIP_CHROMIUM: "1"
+        run: bash install.sh
+
+  install-windows:
+    name: Instalador (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rama local para clonar desde este checkout
+        run: git checkout -b ci-install
+      - name: install.ps1
+        shell: pwsh
+        env:
+          BRAIN_REPO: ${{ github.workspace }}
+          BRAIN_BRANCH: ci-install
+          BRAIN_HOME: ${{ runner.temp }}\brain
+          BRAIN_BIN: ${{ runner.temp }}\bin
+          BRAIN_SKIP_OLLAMA: "1"
+          BRAIN_SKIP_CHROMIUM: "1"
+        run: ./install.ps1
+      - name: Comando brain
+        shell: cmd
+        run: |
+          "%RUNNER_TEMP%\bin\brain.cmd" help
+          "%RUNNER_TEMP%\bin\brain.cmd" path
+      - name: Armar brain-setup.exe (para ver que compila)
+        shell: pwsh
+        run: |
+          pip install pyinstaller
+          pyinstaller --onefile --name brain-setup --add-data "install.ps1;." installers/windows/brain_setup.py
+          Test-Path dist/brain-setup.exe
+
+  site:
+    name: Landing, docs y changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Chequeos del sitio
+        run: python scripts/check_site.py

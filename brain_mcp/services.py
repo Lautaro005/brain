@@ -44,8 +44,9 @@ def _port_open(port: int, host: str = "127.0.0.1") -> bool:
 
 
 def _find_ollama() -> str | None:
-    for c in (shutil.which("ollama"), "/usr/local/bin/ollama", "/opt/homebrew/bin/ollama",
-              "/Applications/Ollama.app/Contents/Resources/ollama"):
+    for c in (shutil.which("ollama"), "/usr/local/bin/ollama", "/opt/homebrew/bin/ollama", "/usr/bin/ollama",
+              "/Applications/Ollama.app/Contents/Resources/ollama",
+              os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Ollama", "ollama.exe")):
         if c and os.path.exists(c):
             return c
     return None
@@ -79,7 +80,7 @@ class Service:
             self.last_exit = self.proc.returncode
         if self.healthy():
             return "external"
-        return "error" if self.last_exit not in (None, 0, -signal.SIGTERM, -signal.SIGKILL) else "stopped"
+        return "error" if self.last_exit not in (None, 0, *_STOP_CODES) else "stopped"
 
     def info(self) -> dict:
         st = self.status()
@@ -98,13 +99,15 @@ class Service:
                 return
             if self.healthy():
                 raise RuntimeError(f"{self.label} ya está corriendo por fuera del dashboard.")
-            cmd = self._cmd() if callable(self._cmd) else self._cmd
+            cmd = list(self._cmd() if callable(self._cmd) else self._cmd)
+            # path completo del ejecutable: en Windows "npx" es npx.cmd y "uv" puede no estar en el PATH del proceso
+            cmd[0] = shutil.which(cmd[0]) or cmd[0]
             self.logs.append(f"$ {' '.join(cmd)}")
             self.last_exit = None
             self.proc = subprocess.Popen(
                 cmd, cwd=ROOT, env={**os.environ, **self._env},
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                text=True, bufsize=1, start_new_session=True,
+                text=True, bufsize=1, **_GROUP,
             )
             self.started_at = time.time()
             threading.Thread(target=self._pump, args=(self.proc,), daemon=True).start()
@@ -123,14 +126,32 @@ class Service:
             if proc is None or proc.poll() is not None:
                 return
             try:
-                os.killpg(proc.pid, signal.SIGTERM)
+                _terminate(proc, force=False)
                 proc.wait(timeout=6)
             except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL)
+                _terminate(proc, force=True)
                 proc.wait(timeout=3)
             except ProcessLookupError:
                 pass
-            self.last_exit = proc.returncode
+            # lo cerró el dashboard: no es un error aunque el código de salida no sea 0 (en Windows,
+            # terminate() deja 1; en macOS/Linux, -SIGTERM)
+            self.last_exit = 0
+
+
+# Cada servicio corre en su propio grupo de procesos para poder cerrarlo con sus hijos.
+# Windows no tiene grupos POSIX: se usa un process group nuevo y terminate()/kill().
+if os.name == "nt":  # pragma: no cover - se prueba en el CI de Windows
+    _GROUP = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    _STOP_CODES: tuple[int, ...] = ()  # Windows no tiene SIGKILL: solo cuenta el cierre hecho por stop()
+
+    def _terminate(proc: subprocess.Popen, force: bool) -> None:
+        proc.kill() if force else proc.terminate()
+else:
+    _GROUP = {"start_new_session": True}
+    _STOP_CODES = (-signal.SIGTERM, -signal.SIGKILL)  # cerrado por una señal: no es un error
+
+    def _terminate(proc: subprocess.Popen, force: bool) -> None:
+        os.killpg(proc.pid, signal.SIGKILL if force else signal.SIGTERM)
 
 
 class Chroma(Service):
@@ -155,7 +176,7 @@ class Inspector(Service):
 def _ollama_cmd() -> list[str]:
     exe = _find_ollama()
     if not exe:
-        raise RuntimeError("No encontré el binario de Ollama (brew install ollama).")
+        raise RuntimeError("No encontré Ollama. Instalalo desde https://ollama.com/download.")
     return [exe, "serve"]
 
 

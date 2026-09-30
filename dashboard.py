@@ -7,11 +7,13 @@ import argparse
 import atexit
 import json
 import logging
+import shutil
 import signal
 import sys
 import threading
 import time
 import webbrowser
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -23,7 +25,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, chat, clients, connectors, history, memory, reflect, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, backup, chat, clients, connectors, history, memory, oauth, reflect, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -34,7 +36,9 @@ log = logging.getLogger("dashboard")
 HERE = Path(__file__).resolve().parent / "brain_mcp"
 PAGES = {"/": "dashboard.html", "/index.html": "dashboard.html", "/graph": "graph.html", "/chat": "chat.html"}
 ALLOWED_HOSTS: set[str] = set()
+PORT = 8765  # se pisa en main(); lo usa OAuth para la redirect URI
 MAX_BODY = 5 * 1024 * 1024  # 5 MB alcanza para cualquier export de memoria en texto
+MAX_BACKUP = 8 * 1024 ** 3  # subida de un backup para restaurar
 
 
 def _error_code(e: Exception) -> str:
@@ -99,9 +103,76 @@ def _chat_context() -> dict:
             "min": chat.MIN_CTX, "max": chat.MAX_CTX_SETTING}
 
 
+def _backup_post(action: str, body: dict) -> dict:
+    """/api/backup/create · restore · delete · rebuild"""
+    try:
+        if action == "create":
+            return {"ok": True, **backup.create(include_secrets=bool(body.get("include_secrets")))}
+        if action == "restore":
+            r = backup.restore(backup.path_of(str(body.get("name", ""))), include_secrets=bool(body.get("include_secrets", True)))
+            _chunks_cache["at"] = 0.0
+            return {"ok": True, **r}
+        if action == "delete":
+            backup.delete(str(body.get("name", "")))
+            return {"ok": True}
+        if action == "rebuild":
+            _chunks_cache["at"] = 0.0
+            return {"ok": True, **backup.rebuild_indexes()}
+    except backup.BackupError as e:
+        return {"ok": False, "code": e.code, "detail": e.detail}
+    return {"ok": False, "code": "unknown_action"}
+
+
+# "Actualizar todas" las fuentes: corre en un thread (puede tardar minutos) y el dashboard consulta
+# el avance con GET /api/sources/refresh_status.
+_REFRESH = {"running": False, "done": 0, "total": 0, "updated": 0, "unchanged": 0, "errors": []}
+_REFRESH_LOCK = threading.Lock()
+
+
+def _refresh_all_start() -> dict:
+    with _REFRESH_LOCK:
+        if _REFRESH["running"]:
+            return dict(_REFRESH)
+        paths = [f["path"] for f in vault.list_files(mcp_tools.SOURCES_DIR)]
+        _REFRESH.update(running=True, done=0, total=len(paths), updated=0, unchanged=0, errors=[])
+
+    def run():
+        for p in paths:
+            r = mcp_tools.refresh_source_core(p)
+            with _REFRESH_LOCK:
+                _REFRESH["done"] += 1
+                if r["status"] == "error":
+                    _REFRESH["errors"].append({"path": p, "error": r["error"]})
+                else:
+                    _REFRESH[r["status"]] += 1
+        _chunks_cache["at"] = 0.0
+        with _REFRESH_LOCK:
+            _REFRESH["running"] = False
+
+    threading.Thread(target=run, daemon=True, name="refresh-sources").start()
+    return dict(_REFRESH)
+
+
+def _oauth_page(ok: bool, who: str) -> str:
+    """Página que ve el usuario al volver del login del servicio (en la pestaña que se abrió)."""
+    import html
+
+    title = "Listo, brain quedó conectado" if ok else "No se pudo conectar"
+    sub = ("Podés cerrar esta pestaña y volver al dashboard." if ok else
+           f"El servicio no autorizó la conexión ({html.escape(who)}). Volvé al dashboard e intentá de nuevo.")
+    return (f"<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+            f"<title>brain</title><body style='font:16px/1.5 system-ui,sans-serif;display:grid;place-items:center;"
+            f"min-height:90vh;margin:0;background:#f5f5f3;color:#0a0a0a'><div style='max-width:420px;padding:24px'>"
+            f"<h1 style='font-size:22px;margin:0 0 8px'>{title}</h1><p style='margin:0;color:#3d3d3d'>{sub}</p></div>"
+            f"<script>{'setTimeout(()=>window.close(),1500)' if ok else ''}</script>")
+
+
 def _connections_post(rest: list[str], body: dict) -> dict:
     """/api/connections (alta) · /<id> (editar) · /<id>/toggle · /<id>/refresh · /<id>/delete"""
     try:
+        if rest[:1] == ["proposals"] and len(rest) == 3 and rest[2] in ("approve", "reject"):
+            conn = connectors.resolve_proposal(rest[1], rest[2] == "approve")
+            return {"ok": True, "connection": asyncio.run(connectors.discover(conn["id"])) if conn else None}
         if not rest:
             conn = connectors.upsert(body)
             return {"ok": True, "connection": asyncio.run(connectors.discover(conn["id"]))}
@@ -116,6 +187,14 @@ def _connections_post(rest: list[str], body: dict) -> dict:
         if action == "delete":
             connectors.delete(cid)
             return {"ok": True}
+        if action == "authorize":  # login OAuth: devuelve la URL del servicio para abrir en otra pestaña
+            connectors.get(cid)
+            return {"ok": True, **oauth.start(cid, PORT)}
+        if action == "auth_status":
+            return {"ok": True, **oauth.status(cid), "connection": connectors.public(connectors.get(cid))}
+        if action == "signout":
+            oauth.forget(cid)
+            return {"ok": True, "connection": asyncio.run(connectors.discover(cid))}
         return {"ok": False, "code": "unknown_action"}
     except connectors.ConnectorError as e:
         return {"ok": False, "code": e.code, "detail": e.detail}
@@ -145,6 +224,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path in PAGES:
                 self._send(200, (HERE / PAGES[u.path]).read_bytes(), "text/html; charset=utf-8")
+            elif u.path == oauth.CALLBACK_PATH:
+                ok, who = oauth.callback(u.query)
+                self._send(200, _oauth_page(ok, who).encode(), "text/html; charset=utf-8")
             elif u.path == "/ui.js":
                 self._send(200, (HERE / "ui.js").read_bytes(), "text/javascript; charset=utf-8")
             elif u.path == "/api/status":
@@ -160,6 +242,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"profile": memory.get_profile(), "memory": memory.list_all()})
             elif u.path == "/api/connections":
                 self._json({"connections": [connectors.public(c) for c in connectors.load()],
+                            "proposals": connectors.proposals(),
                             "composio": connectors.composio_status()})
             elif u.path == "/api/composio/auth_configs":
                 try:
@@ -171,6 +254,24 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/agents":
                 st = agents.all_status()
                 self._json({"agents": st, "manual": agents.manual_snippets(), "mine": clients.listing(st)})
+            elif u.path == "/api/backup/list":
+                self._json({"ok": True, "backups": backup.listing()})
+            elif u.path == "/api/backup/download":
+                try:
+                    p = backup.path_of(q.get("name", [""])[0])
+                except backup.BackupError as e:
+                    return self._json({"ok": False, "code": e.code}, 404)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Length", str(p.stat().st_size))
+                self.send_header("Content-Disposition", f'attachment; filename="{p.name}"')
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                with open(p, "rb") as f:
+                    shutil.copyfileobj(f, self.wfile)
+            elif u.path == "/api/sources/refresh_status":
+                with _REFRESH_LOCK:
+                    self._json(dict(_REFRESH))
             elif u.path == "/api/version":
                 self._json({"current": updates.current(), "releases": updates.RELEASES_URL})
             elif u.path == "/api/history":
@@ -192,6 +293,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self._host_ok() or self.headers.get("X-Brain") != "1":
             return self._send(403, b"forbidden", "text/plain")
         u = urlparse(self.path)
+        if u.path == "/api/backup/upload":  # un .zip crudo, puede pesar GB: se escribe a disco en partes
+            return self._backup_upload()
         try:
             size = int(self.headers.get("Content-Length") or 0)
             if size > MAX_BODY:
@@ -215,6 +318,17 @@ class Handler(BaseHTTPRequestHandler):
                 finally:
                     _chunks_cache["at"] = 0.0
                 self._json({"ok": True, **r})
+            elif u.path == "/api/sources/refresh":
+                path = str(body.get("path", ""))
+                if not path.startswith(mcp_tools.SOURCES_DIR + "/"):
+                    return self._json({"ok": False, "code": "bad_path"})
+                r = mcp_tools.refresh_source_core(path)
+                _chunks_cache["at"] = 0.0
+                self._json({"ok": r["status"] != "error", **r})
+            elif parts[:2] == ["api", "backup"] and len(parts) == 3:
+                self._json(_backup_post(parts[2], body))
+            elif u.path == "/api/sources/refresh_all":
+                self._json({"ok": True, **_refresh_all_start()})
             elif u.path == "/api/search":
                 try:
                     hits, _, down = mcp_tools.search_core(str(body.get("query", "")), max(1, min(int(body.get("top_k", 5)), 20)))
@@ -310,6 +424,28 @@ class Handler(BaseHTTPRequestHandler):
             log.exception("POST %s", u.path)
             self._json({"error": str(e)}, 500)
 
+    def _backup_upload(self) -> None:
+        size = int(self.headers.get("Content-Length") or 0)
+        if not 0 < size <= MAX_BACKUP:
+            return self._json({"ok": False, "code": "too_large" if size else "empty"}, 413 if size else 400)
+        dest = backup.backups_dir() / f"brain-backup-uploaded-{time.strftime('%Y%m%d-%H%M%S')}.zip"
+        left = size
+        with open(dest, "wb") as f:
+            while left:
+                chunk = self.rfile.read(min(left, 1 << 20))
+                if not chunk:
+                    break
+                f.write(chunk)
+                left -= len(chunk)
+        try:
+            with zipfile.ZipFile(dest) as z:
+                man = backup._check(z)
+        except (zipfile.BadZipFile, backup.BackupError) as e:
+            dest.unlink(missing_ok=True)
+            code = e.code if isinstance(e, backup.BackupError) else "not_a_backup"
+            return self._json({"ok": False, "code": code, "detail": str(e)})
+        self._json({"ok": True, "name": dest.name, "manifest": man})
+
     def _stream_chat(self, body: dict) -> None:
         """Respuesta del chat como NDJSON: una línea por evento, a medida que el modelo escribe."""
         self.send_response(200)
@@ -342,6 +478,8 @@ def main() -> None:
     args = ap.parse_args()
 
     ALLOWED_HOSTS.update({f"127.0.0.1:{args.port}", f"localhost:{args.port}"})
+    global PORT
+    PORT = args.port
     vault.ensure_vault()
     try:
         srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)

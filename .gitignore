@@ -14,3 +14,8 @@ __pycache__/
 .impeccable/review/
 .impeccable/build/
 .impeccable/mocks/
+
+# armado del instalador de Windows (PyInstaller)
+build/
+dist/
+*.spec

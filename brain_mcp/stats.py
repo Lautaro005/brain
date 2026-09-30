@@ -42,6 +42,8 @@ def vault_stats() -> dict:
             "url": url,
             "domain": urlparse(url).netloc.removeprefix("www.") if url else "—",
             "scraped_at": str(meta.get("scraped_at") or ""),
+            "checked_at": str(meta.get("checked_at") or meta.get("scraped_at") or ""),
+            "refresh_error": meta.get("refresh_error"),
             "chunks": len(meta.get("chroma_ids") or []),
         })
     sources.sort(key=lambda s: s["scraped_at"], reverse=True)

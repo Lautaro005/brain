@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 import tomllib
 from pathlib import Path
@@ -24,6 +25,20 @@ SERVER = "brain"
 # hook para tests: permite apuntar a un HOME falso sin tocar las configs reales
 HOME = Path(os.environ.get("BRAIN_AGENTS_HOME") or Path.home())
 APPS = Path(os.environ.get("BRAIN_AGENTS_APPS") or "/Applications")
+IS_WIN, IS_MAC = os.name == "nt", sys.platform == "darwin"
+
+
+def _app_data() -> Path:
+    """Carpeta de config de las apps de escritorio: macOS ~/Library/Application Support,
+    Windows %APPDATA% y Linux ~/.config (o $XDG_CONFIG_HOME)."""
+    if IS_MAC:
+        return HOME / "Library/Application Support"
+    if IS_WIN:
+        return Path(os.environ["APPDATA"]) if os.environ.get("APPDATA") and not os.environ.get("BRAIN_AGENTS_HOME") \
+            else HOME / "AppData/Roaming"
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    return Path(xdg) if xdg and not os.environ.get("BRAIN_AGENTS_HOME") else HOME / ".config"
+
 
 
 class AgentError(RuntimeError):
@@ -34,7 +49,8 @@ class AgentError(RuntimeError):
 
 def _uv() -> str:
     # path absoluto: las apps de escritorio no heredan el PATH del shell
-    for c in (shutil.which("uv"), str(Path.home() / ".local/bin/uv"), "/opt/homebrew/bin/uv", "/usr/local/bin/uv"):
+    for c in (shutil.which("uv"), str(Path.home() / ".local/bin/uv"), str(Path.home() / ".local/bin/uv.exe"),
+              str(Path.home() / ".cargo/bin/uv.exe"), "/opt/homebrew/bin/uv", "/usr/local/bin/uv"):
         if c and os.path.exists(c):
             return c
     return "uv"
@@ -49,7 +65,7 @@ def server_spec() -> dict:
 CLIENTS = {
     "claude_desktop": {
         "group": "desktop", "name": "Claude Desktop", "kind": "json",
-        "path": HOME / "Library/Application Support/Claude/claude_desktop_config.json", "key": "mcpServers",
+        "path": _app_data() / "Claude/claude_desktop_config.json", "key": "mcpServers",
         "app": "Claude.app", "process": "Claude",
     },
     "chatgpt": {
@@ -70,7 +86,7 @@ CLIENTS = {
     },
     "vscode": {
         "group": "other", "name": "VS Code (Copilot)", "kind": "json",
-        "path": HOME / "Library/Application Support/Code/User/mcp.json", "key": "servers", "typed": True,
+        "path": _app_data() / "Code/User/mcp.json", "key": "servers", "typed": True,
         "app": "Visual Studio Code.app",
     },
     "windsurf": {
@@ -118,7 +134,15 @@ def _entry(c: dict) -> dict | None:
 
 
 def _app_running(c: dict) -> bool:
-    return bool(c.get("process")) and subprocess.run(["pgrep", "-xq", c["process"]]).returncode == 0
+    if not c.get("process"):
+        return False
+    try:
+        if IS_WIN:
+            r = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {c['process']}.exe", "/NH"], capture_output=True, text=True)
+            return f"{c['process'].lower()}.exe" in r.stdout.lower()
+        return subprocess.run(["pgrep", "-x", c["process"]], capture_output=True).returncode == 0
+    except FileNotFoundError:  # sin pgrep/tasklist: se asume cerrada
+        return False
 
 
 def status(key: str) -> dict:
@@ -223,13 +247,34 @@ def _cli(c: dict, add: bool) -> None:
 
 
 def _quit_app(c: dict) -> None:
-    subprocess.run(["osascript", "-e", f'tell application "{c["process"]}" to quit'], capture_output=True)
+    if IS_MAC:
+        subprocess.run(["osascript", "-e", f'tell application "{c["process"]}" to quit'], capture_output=True)
+    elif IS_WIN:  # sin /F: le pide que cierre, así guarda su config
+        subprocess.run(["taskkill", "/IM", f"{c['process']}.exe"], capture_output=True)
+    else:
+        subprocess.run(["pkill", "-x", c["process"]], capture_output=True)
     for _ in range(40):
         if not _app_running(c):
             time.sleep(0.5)  # margen para que termine de escribir su config al salir
             return
         time.sleep(0.5)
     raise AgentError("app_still_running", c["name"])
+
+
+def _open_app(c: dict) -> None:
+    """Vuelve a abrir la app después de escribir su config (best effort fuera de macOS)."""
+    try:
+        if IS_MAC:
+            subprocess.run(["open", "-a", c["process"]], capture_output=True)
+        elif IS_WIN:
+            exe = Path(os.environ.get("LOCALAPPDATA", "")) / "AnthropicClaude" / "claude.exe"
+            if exe.exists():
+                subprocess.Popen([str(exe)], creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
+        elif shutil.which(c["process"].lower()):
+            subprocess.Popen([c["process"].lower()], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
 
 
 def set_connected(key: str, connected: bool, restart_app: bool = False) -> dict:
@@ -251,7 +296,7 @@ def set_connected(key: str, connected: bool, restart_app: bool = False) -> dict:
     else:
         _cli(c, connected)
     if reopen:
-        subprocess.run(["open", "-a", c["process"]], capture_output=True)
+        _open_app(c)
     return status(key)
 
 

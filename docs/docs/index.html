@@ -111,17 +111,24 @@
 <section class="page" id="installation" data-group-en="Getting started" data-group-es="Primeros pasos" data-title-en="Installation" data-title-es="Instalación">
 <div class="l-en">
   <h1>Installation</h1>
-  <p class="lead">One command on macOS (Apple Silicon or Intel). You need git (<code>xcode-select --install</code>); the installer handles the rest.</p>
+  <p class="lead">One command on macOS, Linux or Windows. You need git; the installer handles the rest.</p>
+  <h2>macOS and Linux</h2>
   <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</pre>
+  <p>Missing git? macOS: <code>xcode-select --install</code>. Linux: your distro's package manager (<code>sudo apt install git</code>). On Linux you can also download <code>brain-install-linux.sh</code> from the <a href="https://github.com/Lautaro005/brain/releases/latest">latest release</a> and run it with <code>bash</code>.</p>
+  <h2>Windows</h2>
+  <p>In PowerShell:</p>
+  <pre>irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex</pre>
+  <p>Or download <code>brain-setup.exe</code> from the <a href="https://github.com/Lautaro005/brain/releases/latest">latest release</a>: it runs the same script. It isn't code-signed yet, so SmartScreen may ask you to confirm (<i>More info → Run anyway</i>). The command is <code>brain</code> too (a <code>brain.cmd</code> in <code>%USERPROFILE%\.local\bin</code>, added to your user <code>PATH</code>).</p>
   <h2>What the installer does</h2>
   <ol>
     <li>Installs <a href="https://docs.astral.sh/uv/">uv</a> if it's missing. uv manages Python and the dependencies without touching the system Python.</li>
     <li>Clones brain into <code>~/.brain</code> (or runs <code>git pull</code> if it's already there).</li>
     <li>Runs <code>uv sync</code> and installs the headless Chromium used to scrape JavaScript sites.</li>
-    <li>Installs <a href="https://ollama.com">Ollama</a> with Homebrew if needed and pulls <code>nomic-embed-text</code> (~270 MB). Without Homebrew it tells you where to download Ollama.</li>
+    <li>Installs <a href="https://ollama.com">Ollama</a> if needed (Homebrew on macOS, <code>winget</code> on Windows, the official script on Linux when <code>sudo</code> doesn't need a password) and pulls <code>nomic-embed-text</code> (~270 MB). Otherwise it tells you the command to run.</li>
     <li>Creates the <code>brain</code> command in <code>~/.local/bin</code> and adds it to your <code>PATH</code>.</li>
   </ol>
-  <p>It's idempotent: running it again updates the install. It never asks for input, because it runs through <code>curl | bash</code>.</p>
+  <p>It's idempotent: running it again updates the install. It never asks for input, because it runs through <code>curl | bash</code>. On Linux, if Chromium is missing system libraries it prints the one command to add them (<code>sudo uv run playwright install-deps chromium</code>).</p>
+  <p>Every commit to <code>main</code> runs the tests and the installers on macOS, Linux and Windows in GitHub Actions, together with the checks of this site.</p>
   <h2>Optional: a chat model</h2>
   <p>The Chat tab, source summaries (<code>abstract</code>) and entity extraction for the graph use a <b>chat</b> model in Ollama. <code>nomic-embed-text</code> only computes embeddings and can't write text. The installer doesn't pull a chat model (it's ~2 GB); get one when you want those features:</p>
   <pre>ollama pull llama3.2</pre>
@@ -133,6 +140,7 @@
     <tr><td><code>BRAIN_BIN</code></td><td><code>~/.local/bin</code></td><td>Where the <code>brain</code> command goes</td></tr>
     <tr><td><code>BRAIN_REPO</code></td><td>GitHub repo</td><td>Where to clone from (useful for testing a local clone)</td></tr>
     <tr><td><code>BRAIN_BRANCH</code></td><td><code>main</code></td><td>Branch to install</td></tr>
+    <tr><td><code>BRAIN_SKIP_OLLAMA</code>, <code>BRAIN_SKIP_CHROMIUM</code></td><td>unset</td><td>Set to <code>1</code> to skip installing Ollama or Chromium</td></tr>
   </table>
   <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | BRAIN_HOME=~/tools/brain bash</pre>
   <h2>Manual installation</h2>
@@ -144,17 +152,24 @@ ollama pull nomic-embed-text
 </div>
 <div class="l-es">
   <h1>Instalación</h1>
-  <p class="lead">Un comando en macOS (Apple Silicon o Intel). Hace falta git (<code>xcode-select --install</code>); el instalador se ocupa del resto.</p>
+  <p class="lead">Un comando en macOS, Linux o Windows. Hace falta git; el instalador se ocupa del resto.</p>
+  <h2>macOS y Linux</h2>
   <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</pre>
+  <p>¿Falta git? macOS: <code>xcode-select --install</code>. Linux: el gestor de paquetes de tu distro (<code>sudo apt install git</code>). En Linux también podés bajar <code>brain-install-linux.sh</code> del <a href="https://github.com/Lautaro005/brain/releases/latest">último release</a> y correrlo con <code>bash</code>.</p>
+  <h2>Windows</h2>
+  <p>En PowerShell:</p>
+  <pre>irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex</pre>
+  <p>O bajá <code>brain-setup.exe</code> del <a href="https://github.com/Lautaro005/brain/releases/latest">último release</a>: corre el mismo script. Todavía no está firmado, así que SmartScreen puede pedir confirmación (<i>Más información → Ejecutar de todas formas</i>). El comando también es <code>brain</code> (un <code>brain.cmd</code> en <code>%USERPROFILE%\.local\bin</code>, que se agrega a tu <code>PATH</code> de usuario).</p>
   <h2>Qué hace el instalador</h2>
   <ol>
     <li>Instala <a href="https://docs.astral.sh/uv/">uv</a> si falta. uv maneja Python y las dependencias sin tocar el Python del sistema.</li>
     <li>Clona brain en <code>~/.brain</code> (o hace <code>git pull</code> si ya estaba).</li>
     <li>Corre <code>uv sync</code> e instala el Chromium headless que se usa para scrapear sitios con JavaScript.</li>
-    <li>Instala <a href="https://ollama.com">Ollama</a> con Homebrew si hace falta y baja <code>nomic-embed-text</code> (~270 MB). Sin Homebrew, te dice de dónde bajar Ollama.</li>
+    <li>Instala <a href="https://ollama.com">Ollama</a> si hace falta (Homebrew en macOS, <code>winget</code> en Windows, el script oficial en Linux cuando <code>sudo</code> no pide contraseña) y baja <code>nomic-embed-text</code> (~270 MB). Si no puede, te dice qué comando correr.</li>
     <li>Crea el comando <code>brain</code> en <code>~/.local/bin</code> y lo agrega a tu <code>PATH</code>.</li>
   </ol>
-  <p>Es idempotente: correrlo de nuevo actualiza la instalación. Nunca pide nada, porque se ejecuta con <code>curl | bash</code>.</p>
+  <p>Es idempotente: correrlo de nuevo actualiza la instalación. Nunca pide nada, porque se ejecuta con <code>curl | bash</code>. En Linux, si a Chromium le faltan librerías del sistema, te muestra el comando para agregarlas (<code>sudo uv run playwright install-deps chromium</code>).</p>
+  <p>Cada commit a <code>main</code> corre las pruebas y los instaladores en macOS, Linux y Windows en GitHub Actions, junto con los chequeos de este sitio.</p>
   <h2>Opcional: un modelo de chat</h2>
   <p>La pestaña Chat, los resúmenes de fuentes (<code>abstract</code>) y la extracción de entidades para el grafo usan un modelo de <b>chat</b> en Ollama. <code>nomic-embed-text</code> solo calcula embeddings y no puede escribir texto. El instalador no baja un modelo de chat (pesa ~2 GB); bajalo cuando quieras esas funciones:</p>
   <pre>ollama pull llama3.2</pre>
@@ -166,6 +181,7 @@ ollama pull nomic-embed-text
     <tr><td><code>BRAIN_BIN</code></td><td><code>~/.local/bin</code></td><td>Dónde va el comando <code>brain</code></td></tr>
     <tr><td><code>BRAIN_REPO</code></td><td>el repo de GitHub</td><td>De dónde clonar (sirve para probar un clon local)</td></tr>
     <tr><td><code>BRAIN_BRANCH</code></td><td><code>main</code></td><td>Rama a instalar</td></tr>
+    <tr><td><code>BRAIN_SKIP_OLLAMA</code>, <code>BRAIN_SKIP_CHROMIUM</code></td><td>sin definir</td><td>En <code>1</code>, no instala Ollama o Chromium</td></tr>
   </table>
   <pre>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | BRAIN_HOME=~/tools/brain bash</pre>
   <h2>Instalación manual</h2>
@@ -400,6 +416,8 @@ entities: [Palermo, Next.js]
   <p>Sources saved before v0.02.5 aren't in the keyword index. Run <code>reindex_keyword_search()</code> (or <i>Rebuild keyword index</i> in the Knowledge tab): it rebuilds the index from the <code>.md</code> files in <code>knowledge/</code> without scraping or embedding anything again.</p>
   <h2>Summaries</h2>
   <p><code>list_sources()</code> returns each source's <code>abstract</code>, so an agent can decide whether a long page is worth reading in full. Summaries are best-effort: if Ollama doesn't answer, the source is saved without one.</p>
+  <h2>Keeping sources fresh</h2>
+  <p>Each source records when its content was downloaded (<code>scraped_at</code>) and when it was last checked (<code>checked_at</code>). The Knowledge tab shows both, marking content older than 30 days. <i>Refresh</i> (per source) or <i>Refresh all</i> downloads the page again: if it didn't change, only <code>checked_at</code> moves; if it did, the note and both indexes are updated. If the download or the indexing fails, the previous copy stays exactly as it was and the error is saved in <code>refresh_error</code> and shown in red. Agents can do the same with <code>refresh_sources</code>.</p>
 </div>
 <div class="l-es">
   <h1>Guardar y buscar</h1>
@@ -429,6 +447,8 @@ entities: [Palermo, Next.js]
   <p>Las fuentes guardadas antes de v0.02.5 no están en el índice por palabra. Corré <code>reindex_keyword_search()</code> (o <i>Reindexar búsqueda por palabra</i> en Conocimiento): reconstruye el índice desde los <code>.md</code> de <code>knowledge/</code> sin volver a scrapear ni embeber nada.</p>
   <h2>Resúmenes</h2>
   <p><code>list_sources()</code> devuelve el <code>abstract</code> de cada fuente, así un agente decide si vale la pena leer entera una página larga. Los resúmenes son best-effort: si Ollama no responde, la fuente se guarda sin él.</p>
+  <h2>Fuentes al día</h2>
+  <p>Cada fuente anota cuándo se bajó su contenido (<code>scraped_at</code>) y cuándo se revisó por última vez (<code>checked_at</code>). La pestaña Conocimiento muestra las dos cosas y marca el contenido de más de 30 días. <i>Actualizar</i> (por fuente) o <i>Actualizar todas</i> vuelve a bajar la página: si no cambió, solo se mueve <code>checked_at</code>; si cambió, se actualizan la nota y los dos índices. Si falla la descarga o el indexado, la copia anterior queda tal cual y el error se guarda en <code>refresh_error</code> y se muestra en rojo. Los agentes pueden hacer lo mismo con <code>refresh_sources</code>.</p>
 </div>
 </section>
 
@@ -528,9 +548,9 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Chat</td><td>A local Ollama model with your memory as context and the same tools as your agents. See <a href="#chat">Chat</a>.</td></tr>
     <tr><td>Profile</td><td>Your profile, your memory (filterable, delete per item), the memory importer and <b>Reflect</b>.</td></tr>
     <tr><td>Connect agent</td><td>One-click connect/disconnect for each supported agent, manual config for anything else, and <b>My connections</b>.</td></tr>
-    <tr><td>Connections</td><td>Other MCP servers brain uses for you. See <a href="#connections">Connections</a>.</td></tr>
+    <tr><td>Connections</td><td>Other MCP servers brain uses for you, sign-in for the ones that need it, and connections proposed by agents. See <a href="#connections">Connections</a>.</td></tr>
     <tr><td>Graph</td><td>The <a href="#graph">graph</a>.</td></tr>
-    <tr><td>Knowledge</td><td>Save a URL, hybrid search, rebuild the keyword index, list of sources.</td></tr>
+    <tr><td>Knowledge</td><td>Save a URL, hybrid search, rebuild the keyword index, list of sources with how old their content is and when they were last checked, and <i>Refresh</i> (one or all; a failed refresh keeps the last good copy and shows the error).</td></tr>
     <tr><td>Logs</td><td>Live output of every service the dashboard manages.</td></tr>
   </table>
   <h2>Services</h2>
@@ -539,13 +559,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language, <b>services</b> (the <b>i</b> button: Chroma, Ollama and the MCP Inspector with their state; it gets a red dot if one fails) and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>).</p>
   <p>Anything that deletes or disconnects asks first in brain's own dialog, and the dropdowns are brain's too (keyboard: arrows, Enter, Esc).</p>
   <h2>Settings</h2>
-  <p>A full view (<code>#ajustes</code>) with six sections:</p>
+  <p>A full view (<code>#ajustes</code>) with seven sections:</p>
   <ul>
     <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click it. If there's a newer one, Settings shows it with a link to the release notes, and the gear turns green until you update with <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reorder the views with the arrows and hide the ones you don't use. A hidden view is still reachable by its URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: the default model, selected when the chat opens and on every new chat. "The last one I used" keeps the previous behavior.</li>
     <li><b>Context</b>: how much of each model's context window the chat uses. Either each model's maximum with a cap for all of them (16k by default), or everything each model supports, plus an optional value per model. The table lists the detected models, what they support and what they'll use. Saved in <code>data/chat_settings.json</code>.</li>
     <li><b>System prompt</b>: your own instructions for the chat (tone, format, language, what to focus on, up to 4000 characters). They're added to brain's instructions on every reply; they don't change what the tools can do.</li>
+    <li><b>Backup</b>: <i>Create backup</i> downloads a <code>.zip</code> with the vault, the version history, settings, connections and what's indexed in Chroma (with the embeddings, so restoring doesn't need Ollama); copies stay in <code>data/backups</code>. Credentials (<code>.env</code>, OAuth sign-ins) are only included if you tick the box. <i>Restore</i> (from the list or from a file) first saves the current state as <code>before-restore-….zip</code>, replaces everything, and rebuilds what the backup didn't bring (the keyword index always; Chroma from the vault if it wasn't exported). <i>Rebuild indexes</i> does that rebuild on its own.</li>
     <li><b>Graph colors</b>: a color per node type, or back to black and white.</li>
   </ul>
 </div>
@@ -559,9 +580,9 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Chat</td><td>Un modelo local de Ollama con tu memoria como contexto y las mismas tools que tus agentes. Ver <a href="#chat">Chat</a>.</td></tr>
     <tr><td>Perfil</td><td>Tu perfil, tu memoria (filtrable, se borra por ítem), el importador y <b>Reflect</b>.</td></tr>
     <tr><td>Conectar agente</td><td>Conectar y desconectar cada agente soportado en un click, config manual para cualquier otro, y <b>Mis conexiones</b>.</td></tr>
-    <tr><td>Conexiones</td><td>Otros servers MCP que brain usa por vos. Ver <a href="#connections">Conexiones</a>.</td></tr>
+    <tr><td>Conexiones</td><td>Otros servers MCP que brain usa por vos, el login de los que lo piden y las conexiones que propusieron los agentes. Ver <a href="#connections">Conexiones</a>.</td></tr>
     <tr><td>Grafo</td><td>El <a href="#graph">grafo</a>.</td></tr>
-    <tr><td>Conocimiento</td><td>Guardar una URL, búsqueda híbrida, reindexar la búsqueda por palabra, lista de fuentes.</td></tr>
+    <tr><td>Conocimiento</td><td>Guardar una URL, búsqueda híbrida, reindexar la búsqueda por palabra, lista de fuentes con de cuándo es su contenido y cuándo se revisaron, y <i>Actualizar</i> (una o todas; si falla, queda la última copia buena y se muestra el error).</td></tr>
     <tr><td>Logs</td><td>Salida en vivo de cada servicio que maneja el dashboard.</td></tr>
   </table>
   <h2>Servicios</h2>
@@ -570,13 +591,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma, <b>servicios</b> (el botón <b>i</b>: Chroma, Ollama y el Inspector MCP con su estado; lleva un punto rojo si alguno falla) y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
   <p>Todo lo que borra o desconecta pregunta antes en una ventana propia de brain, y los desplegables también son propios (teclado: flechas, Enter, Esc).</p>
   <h2>Ajustes</h2>
-  <p>Una vista completa (<code>#ajustes</code>) con seis secciones:</p>
+  <p>Una vista completa (<code>#ajustes</code>) con siete secciones:</p>
   <ul>
     <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release al abrir el dashboard, cada 3 horas mientras está abierto y cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades y el engranaje se pone en verde hasta que actualices con <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reordená las vistas con las flechas y ocultá las que no uses. Una vista oculta sigue accesible por su URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: el modelo por defecto, que se elige al abrir el chat y en cada chat nuevo. "El último que usé" mantiene el comportamiento de antes.</li>
     <li><b>Contexto</b>: cuánto de la ventana de contexto de cada modelo usa el chat. El máximo de cada modelo con un tope para todos (16k por defecto), o todo lo que soporta cada uno, más un valor propio opcional por modelo. La tabla lista los modelos detectados, cuánto soportan y cuánto van a usar. Se guarda en <code>data/chat_settings.json</code>.</li>
     <li><b>System prompt</b>: tus instrucciones para el chat (tono, formato, idioma, en qué enfocarse; hasta 4000 caracteres). Se suman a las de brain en cada respuesta; no cambian lo que pueden hacer las tools.</li>
+    <li><b>Backup</b>: <i>Crear backup</i> descarga un <code>.zip</code> con el vault, el historial de versiones, los ajustes, las conexiones y lo indexado en Chroma (con los embeddings, así restaurar no necesita a Ollama); las copias quedan en <code>data/backups</code>. Las credenciales (<code>.env</code>, sesiones OAuth) solo van si marcás la casilla. <i>Restaurar</i> (de la lista o desde un archivo) primero guarda el estado actual como <code>before-restore-….zip</code>, reemplaza todo y reconstruye lo que el backup no trae (el índice por palabra siempre; Chroma desde el vault si no venía exportado). <i>Reconstruir índices</i> hace solo esa reconstrucción.</li>
     <li><b>Colores del grafo</b>: un color por tipo de nodo, o volver a blanco y negro.</li>
   </ul>
 </div>
@@ -605,6 +627,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <table>
     <tr><th>Command</th><th>What it does</th></tr>
     <tr><td><code>/organize</code></td><td>Organizes the vault and its graph with a built-in skill (adapted from <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>). It looks at a snapshot of the vault (loose notes, notes with no links, no description, repeated or near-duplicate tags, similar names), asks you a few questions, proposes a plan and only changes what you approve, with <code>move_file</code>, <code>set_frontmatter</code> and friends. It never touches <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> or <code>knowledge/sources/</code>. The chat stays in this mode, so you can just answer its questions. Add text after the command to focus it: <code>/organize only projects/</code>.</td></tr>
+    <tr><td><code>/add-mcp</code></td><td>Sets up a connector from a URL or instructions and proposes it; you add it with one click. See <a href="#connections">Connections</a>.</td></tr>
     <tr><td><code>/compact</code></td><td>Compacts the session: the model summarizes the conversation so far (requests, decisions, files it changed, what's pending) and from then on gets that summary instead of the old messages, which stay visible in the chat. The context circle empties and you keep going in the same chat.</td></tr>
     <tr><td><code>/reflect</code></td><td>Brings <a href="#reflect-skills">Reflect</a>'s suggestions into the chat (duplicates, contradictions, notes without entities) and applies only the ones you confirm.</td></tr>
     <tr><td><code>/new</code></td><td>Starts a new chat.</td></tr>
@@ -632,6 +655,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <table>
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>/organize</code></td><td>Ordena el vault y su grafo con una skill integrada (adaptada de <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>). Mira un panorama del vault (notas sueltas, sin conexiones, sin descripción, tags repetidos o con variantes, nombres parecidos), te hace unas preguntas, propone un plan y cambia solo lo que apruebes, con <code>move_file</code>, <code>set_frontmatter</code> y compañía. Nunca toca <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> ni <code>knowledge/sources/</code>. El chat queda en ese modo, así que alcanza con responderle. Podés sumar texto para enfocarlo: <code>/organize solo projects/</code>.</td></tr>
+    <tr><td><code>/add-mcp</code></td><td>Arma un conector a partir de una URL o instrucciones y lo propone; lo agregás con un click. Ver <a href="#connections">Conexiones</a>.</td></tr>
     <tr><td><code>/compact</code></td><td>Compacta la sesión: el modelo resume lo hablado (pedidos, decisiones, archivos que cambió, lo pendiente) y desde ahí recibe ese resumen en vez de los mensajes viejos, que siguen visibles en el chat. El círculo de contexto se vacía y seguís en el mismo chat.</td></tr>
     <tr><td><code>/reflect</code></td><td>Trae al chat las sugerencias de <a href="#reflect-skills">Reflect</a> (duplicados, contradicciones, notas sin entidades) y aplica solo las que confirmes.</td></tr>
     <tr><td><code>/new</code></td><td>Empieza un chat nuevo.</td></tr>
@@ -706,7 +730,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p class="lead">brain is also an MCP client. Add other MCP servers (GitHub, Notion, Gmail…) and their tools show up in every agent you connected, with their results saved to your memory.</p>
   <h2>Types</h2>
   <ul>
-    <li><b>Local command</b> (recommended): an MCP server that runs on your Mac, e.g. <code>npx -y @modelcontextprotocol/server-github</code> with <code>GITHUB_TOKEN=…</code>. The token stays on your machine.</li>
+    <li><b>Local command</b> (recommended): an MCP server that runs on your computer, e.g. <code>npx -y @modelcontextprotocol/server-github</code> with <code>GITHUB_TOKEN=…</code>. The token stays on your machine.</li>
     <li><b>URL</b>: a remote MCP server, with optional headers (<code>Authorization: Bearer …</code>).</li>
     <li><b>Composio</b> (optional): hundreds of apps through one connection. <b>Composio keeps your accounts' OAuth tokens in its own cloud.</b> A consumer key (<code>ck_…</code>) connects directly; a project key (<code>ak_…</code>) lets you pick auth configs and creates an MCP server through Composio's developer API.</li>
   </ul>
@@ -714,6 +738,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>Tools are re-exposed with the connection's prefix: <code>github__create_issue</code>, <code>composio__GMAIL_FETCH_EMAILS</code>. Turning a connection off removes its tools from your agents right away, without restarting anything. Each call opens a session with the origin server, runs, and closes it.</p>
   <h2>Save to memory</h2>
   <p>With the switch on, every result is written to <code>knowledge/connections/&lt;connection&gt;/…md</code> (or <code>knowledge/composio/&lt;app&gt;/…</code>) with the tool, arguments and time in its frontmatter, and indexed for semantic and keyword search. Long results get an <code>abstract</code>, and all get <code>entities</code> when a chat model is available. Capturing never breaks the call: without Chroma or Ollama the <code>.md</code> is saved anyway.</p>
+  <h2>Signing in (OAuth)</h2>
+  <p>Many remote servers (Notion, Linear, Sentry…) answer <code>401 Unauthorized</code> until you sign in. Add them by URL without headers: the card shows <b>Sign in</b>, which opens the service's own login in a new tab. When you approve, the service sends you back to <code>http://127.0.0.1:&lt;port&gt;/oauth/callback</code>, brain stores the token in <code>~/.brain/data/oauth.json</code> (permissions <code>600</code>) and renews it on its own. It's the standard MCP authorization (discovery, dynamic client registration and PKCE). <b>Sign out</b> forgets the token. If an agent uses the connection before you sign in, it gets an error telling it to sign in from the dashboard.</p>
+  <h2>Adding connectors from the chat</h2>
+  <p>Type <code>/add-mcp</code> and paste a URL (the docs on GitHub, npm or PyPI, or the server's own <code>/mcp</code> URL) or describe what you want. The chat reads the docs with <code>read_url</code>, asks for any API key it needs and calls <code>propose_connection</code>. <b>Nothing is added yet</b>: a card shows the exact command or URL and the keys it asks for, and you choose <i>Add</i> or <i>Discard</i>. The same proposals wait in the Connections tab, including those made by other agents. After you add a server that needs a login, the card offers <i>Sign in</i>.</p>
   <h2>Secrets</h2>
   <p>Env values, headers and API keys go to <code>~/.brain/.env</code> (permissions <code>600</code>, gitignored); the config only stores references (<code>$env:KEY</code>). The dashboard never returns them.</p>
 </div>
@@ -722,7 +750,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p class="lead">brain también es cliente MCP. Agregá otros servers MCP (GitHub, Notion, Gmail…) y sus tools aparecen en todos los agentes que conectaste, con sus resultados guardados en tu memoria.</p>
   <h2>Tipos</h2>
   <ul>
-    <li><b>Comando local</b> (recomendado): un server MCP que corre en tu Mac, por ejemplo <code>npx -y @modelcontextprotocol/server-github</code> con <code>GITHUB_TOKEN=…</code>. El token queda en tu máquina.</li>
+    <li><b>Comando local</b> (recomendado): un server MCP que corre en tu compu, por ejemplo <code>npx -y @modelcontextprotocol/server-github</code> con <code>GITHUB_TOKEN=…</code>. El token queda en tu máquina.</li>
     <li><b>URL</b>: un server MCP remoto, con headers opcionales (<code>Authorization: Bearer …</code>).</li>
     <li><b>Composio</b> (opcional): cientos de apps con una sola conexión. <b>Composio guarda los tokens OAuth de tus cuentas en su nube.</b> Una consumer key (<code>ck_…</code>) conecta directo; una key de proyecto (<code>ak_…</code>) te deja elegir auth configs y crea un server MCP con la API de desarrollador de Composio.</li>
   </ul>
@@ -730,6 +758,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>Las tools se re-exponen con el prefijo de la conexión: <code>github__create_issue</code>, <code>composio__GMAIL_FETCH_EMAILS</code>. Apagar una conexión saca sus tools de tus agentes en el momento, sin reiniciar nada. Cada llamada abre una sesión con el server de origen, ejecuta y la cierra.</p>
   <h2>Guardar en memoria</h2>
   <p>Con el switch prendido, cada resultado se escribe en <code>knowledge/connections/&lt;conexión&gt;/…md</code> (o <code>knowledge/composio/&lt;app&gt;/…</code>) con la tool, los argumentos y la hora en el frontmatter, y se indexa para la búsqueda semántica y por palabra. Los resultados largos llevan un <code>abstract</code>, y todos llevan <code>entities</code> si hay un modelo de chat. Capturar nunca rompe la llamada: sin Chroma u Ollama el <code>.md</code> se guarda igual.</p>
+  <h2>Iniciar sesión (OAuth)</h2>
+  <p>Muchos servers remotos (Notion, Linear, Sentry…) responden <code>401 Unauthorized</code> hasta que iniciás sesión. Agregalos por URL sin headers: la tarjeta muestra <b>Iniciar sesión</b>, que abre el login del servicio en otra pestaña. Cuando aprobás, el servicio te devuelve a <code>http://127.0.0.1:&lt;puerto&gt;/oauth/callback</code>, brain guarda el token en <code>~/.brain/data/oauth.json</code> (permisos <code>600</code>) y lo renueva solo. Es la autorización estándar de MCP (descubrimiento, registro dinámico del cliente y PKCE). <b>Cerrar sesión</b> olvida el token. Si un agente usa la conexión antes de que inicies sesión, recibe un error que le dice que lo hagas desde el dashboard.</p>
+  <h2>Agregar conectores desde el chat</h2>
+  <p>Escribí <code>/add-mcp</code> y pegá una URL (la documentación en GitHub, npm o PyPI, o la URL <code>/mcp</code> del server) o contá qué querés. El chat lee la documentación con <code>read_url</code>, te pide las API keys que falten y llama a <code>propose_connection</code>. <b>Todavía no se agrega nada</b>: una tarjeta muestra el comando o la URL exactos y las claves que pide, y vos elegís <i>Agregar</i> o <i>Descartar</i>. Las mismas propuestas esperan en la pestaña Conexiones, incluidas las que hagan otros agentes. Si el server necesita login, después de agregarlo la tarjeta ofrece <i>Iniciar sesión</i>.</p>
   <h2>Secretos</h2>
   <p>Los valores de env, headers y API keys van a <code>~/.brain/.env</code> (permisos <code>600</code>, en el gitignore); la config solo guarda referencias (<code>$env:CLAVE</code>). El dashboard nunca los devuelve.</p>
 </div>
@@ -819,7 +851,9 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><th>Tool</th><th>What it does</th></tr>
     <tr><td><code>save_url(url, render_js?)</code></td><td>Scrapes, indexes and saves a URL.</td></tr>
     <tr><td><code>search_knowledge(query, top_k?)</code></td><td>Hybrid search (semantic + keyword). <code>top_k</code> 1–50, default 5.</td></tr>
-    <tr><td><code>list_sources()</code></td><td>Saved URLs with title, date, path and <code>abstract</code>.</td></tr>
+    <tr><td><code>list_sources()</code></td><td>Saved URLs with title, when the content was downloaded and last checked, path and <code>abstract</code>.</td></tr>
+    <tr><td><code>refresh_sources(path?)</code></td><td>Re-downloads one source (or all). If it fails, keeps the last good copy and notes the error.</td></tr>
+    <tr><td><code>read_url(url, max_chars?)</code></td><td>Reads a page's text without saving it.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Rebuilds the keyword index from <code>knowledge/</code>.</td></tr>
   </table>
   <h2>Skills</h2>
@@ -832,6 +866,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Connections</h2>
   <table>
     <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><code>propose_connection(name, url? | command?, args?, env?, headers?, note?)</code></td><td>Proposes an MCP server for Connections. It doesn't add it: the user approves it with one click.</td></tr>
     <tr><td><code>list_connections()</code></td><td>Your connections, whether they're active, and their tools.</td></tr>
     <tr><td><code>refresh_connectors()</code></td><td>Re-discovers the tools of every active connection.</td></tr>
     <tr><td><code>&lt;connection&gt;__&lt;tool&gt;</code></td><td>Any tool from an active connection, proxied.</td></tr>
@@ -866,7 +901,9 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><th>Tool</th><th>Qué hace</th></tr>
     <tr><td><code>save_url(url, render_js?)</code></td><td>Scrapea, indexa y guarda una URL.</td></tr>
     <tr><td><code>search_knowledge(query, top_k?)</code></td><td>Búsqueda híbrida (semántica + por palabra). <code>top_k</code> de 1 a 50, por defecto 5.</td></tr>
-    <tr><td><code>list_sources()</code></td><td>URLs guardadas con título, fecha, path y <code>abstract</code>.</td></tr>
+    <tr><td><code>list_sources()</code></td><td>URLs guardadas con título, de cuándo es el contenido y cuándo se revisó, path y <code>abstract</code>.</td></tr>
+    <tr><td><code>refresh_sources(path?)</code></td><td>Vuelve a bajar una fuente (o todas). Si falla, conserva la última copia buena y anota el error.</td></tr>
+    <tr><td><code>read_url(url, max_chars?)</code></td><td>Lee el texto de una página sin guardarla.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Reconstruye el índice por palabra desde <code>knowledge/</code>.</td></tr>
   </table>
   <h2>Skills</h2>
@@ -879,6 +916,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Conexiones</h2>
   <table>
     <tr><th>Tool</th><th>Qué hace</th></tr>
+    <tr><td><code>propose_connection(name, url? | command?, args?, env?, headers?, note?)</code></td><td>Propone un server MCP para Conexiones. No lo agrega: el usuario lo aprueba con un click.</td></tr>
     <tr><td><code>list_connections()</code></td><td>Tus conexiones, si están activas y sus tools.</td></tr>
     <tr><td><code>refresh_connectors()</code></td><td>Vuelve a descubrir las tools de cada conexión activa.</td></tr>
     <tr><td><code>&lt;conexión&gt;__&lt;tool&gt;</code></td><td>Cualquier tool de una conexión activa, proxeada.</td></tr>
@@ -999,6 +1037,9 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>The vault, the history, both search indexes and your secrets live in <code>~/.brain</code>.</li>
     <li>Embeddings, summaries and entities are computed by Ollama on your machine.</li>
     <li>Composio, if you use it, keeps your app tokens in its cloud; everything it fetches is saved locally.</li>
+    <li>Sign-ins to MCP servers (OAuth) stay in <code>~/.brain/data/oauth.json</code> (permissions <code>600</code>).</li>
+    <li>brain goes online on its own only to check GitHub for a new version (it reads the latest release number and sends nothing about you).</li>
+    <li>Backups leave credentials out unless you tick <i>Include credentials</i>.</li>
   </ul>
   <h2>The dashboard</h2>
   <ul>
@@ -1011,6 +1052,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Tools can't leave the vault (<code>..</code>, absolute paths, hidden files and outbound symlinks are rejected).</li>
     <li>Every write is versioned and can be undone.</li>
     <li>Agent configs are never rewritten without a backup, and other entries are never removed.</li>
+    <li>Agents can only <i>propose</i> a connection (<code>propose_connection</code>). Nothing runs until you click <i>Add</i> on a card that shows the exact command or URL.</li>
   </ul>
   <h2>Reporting a vulnerability</h2>
   <p>Please don't open a public issue. Use GitHub's private reporting: <a href="https://github.com/Lautaro005/brain/security/advisories/new">Security → Report a vulnerability</a>. Scope and response times are in <a href="https://github.com/Lautaro005/brain/blob/main/SECURITY.md">SECURITY.md</a>.</p>
@@ -1023,6 +1065,9 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>El vault, el historial, los dos índices de búsqueda y tus secretos viven en <code>~/.brain</code>.</li>
     <li>Los embeddings, resúmenes y entidades los calcula Ollama en tu máquina.</li>
     <li>Composio, si lo usás, guarda los tokens de tus apps en su nube; todo lo que trae se guarda local.</li>
+    <li>Las sesiones iniciadas en servers MCP (OAuth) quedan en <code>~/.brain/data/oauth.json</code> (permisos <code>600</code>).</li>
+    <li>brain sale a internet por su cuenta solo para fijarse en GitHub si hay una versión nueva (lee el número del último release y no manda nada tuyo).</li>
+    <li>Los backups dejan afuera las credenciales salvo que marques <i>Incluir credenciales</i>.</li>
   </ul>
   <h2>El dashboard</h2>
   <ul>
@@ -1035,6 +1080,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Las tools no pueden salir del vault (se rechazan <code>..</code>, paths absolutos, archivos ocultos y symlinks hacia afuera).</li>
     <li>Cada escritura queda versionada y se puede deshacer.</li>
     <li>Las configs de los agentes nunca se reescriben sin backup, y nunca se borran entradas ajenas.</li>
+    <li>Los agentes solo pueden <i>proponer</i> una conexión (<code>propose_connection</code>). No se ejecuta nada hasta que tocás <i>Agregar</i> en una tarjeta que muestra el comando o la URL exactos.</li>
   </ul>
   <h2>Reportar una vulnerabilidad</h2>
   <p>Por favor no abras un issue público. Usá el reporte privado de GitHub: <a href="https://github.com/Lautaro005/brain/security/advisories/new">Security → Report a vulnerability</a>. El alcance y los tiempos de respuesta están en <a href="https://github.com/Lautaro005/brain/blob/main/SECURITY.md">SECURITY.md</a>.</p>

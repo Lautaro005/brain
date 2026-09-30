@@ -454,6 +454,26 @@
   .ctx-table td.mono { font-size: 12.5px; overflow-wrap: anywhere; }
   .ctx-table .input { width: 110px; min-width: 0; flex: none; padding: 5px 8px; font-family: "Courier Prime", monospace; font-size: 12.5px; }
   .ctx-table .eff { font: 700 12.5px/1 "Courier Prime", monospace; white-space: nowrap; }
+  /* conexiones: login OAuth */
+  .conn-auth { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 3px; font-size: 13.5px; }
+  .conn-auth span { flex: 1; min-width: 180px; }
+  .conn.prop { border-style: dashed; }
+  /* ajustes: backups */
+  .backup-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+  .backup-list li { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .bk-main { display: grid; gap: 2px; flex: 1; min-width: 200px; }
+  .bk-main .mono { font-size: 12.5px; overflow-wrap: anywhere; }
+  .bk-act { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bk-act .btn { padding: 4px 10px; font-size: 12.5px; }
+  /* conocimiento: frescura de las fuentes */
+  .src-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .src-wrap { overflow-x: auto; }
+  .src-err { color: var(--bad); font-size: 12.5px; margin-top: 3px; }
+  .fresh { font: 400 12.5px/1.3 "Courier Prime", monospace; white-space: nowrap; color: var(--text-2); }
+  .fresh.old { color: var(--text); font-weight: 700; text-decoration: underline dotted; }
+  .fresh.new { color: var(--text); }
+  #sources .btn { padding: 4px 10px; font-size: 12.5px; }
+  .stamp-ok { font-size: 12px; color: var(--text-2); align-self: center; margin-right: 4px; }
   /* servicios: el botón (i) del sidebar abre esta lista hacia arriba */
   .info-wrap { position: relative; display: inline-flex; }
   /* fixed y ubicada por JS (toggleInfo): así no la recorta el sidebar, esté plegado o en celular */
@@ -705,7 +725,10 @@
           </div></div>
       </div>
       <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="know.sources"></h2><span class="sub" id="sources-sub"></span></div>
-        <div class="card-b" id="sources"></div></div>
+        <div class="card-b">
+          <div class="src-bar"><button class="btn" type="button" id="refresh-all" data-i18n="know.refreshAll"></button><span class="muted mono" id="refresh-all-st"></span></div>
+          <div id="sources"></div>
+        </div></div>
     </section>
 
     <!-- LOGS -->
@@ -767,6 +790,19 @@
               </div>
               <div class="result" id="system-result"></div>
             </div></div>
+          <div class="card" id="backup-card"><div class="card-h"><h2 data-i18n="settings.backup"></h2><span class="sub" data-i18n="settings.backupSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.backupHint"></p>
+              <label class="check"><input type="checkbox" id="backup-secrets"> <span data-i18n="settings.backupSecrets"></span></label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn primary" type="button" id="backup-create" data-i18n="settings.backupCreate"></button>
+                <button class="btn" type="button" id="backup-upload-btn" data-i18n="settings.backupUpload"></button>
+                <input type="file" id="backup-file" accept=".zip,application/zip" hidden>
+                <button class="btn" type="button" id="backup-rebuild" data-i18n="settings.backupRebuild"></button>
+              </div>
+              <div class="result" id="backup-result"></div>
+              <ul class="backup-list" id="backup-list"></ul>
+            </div></div>
         <div class="card"><div class="card-h"><h2 data-i18n="settings.graphColors"></h2></div>
           <div class="card-b">
             <p class="form-hint" style="margin:0 0 12px" data-i18n="settings.graphHint"></p>
@@ -810,7 +846,13 @@ Required format:
 const I18N = {
   es: {
     nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
-    conn: { title: "Conexiones", sub: "Apps y servicios que brain usa por vos: sus tools aparecen en tus agentes y lo que traen queda en tu memoria",
+    conn: { proposed: "Propuesta", needsKeys: "pide", propAdd: "Agregar", propDiscard: "Descartar",
+      propWarn: "Un agente propuso esta conexión. Se va a ejecutar este comando en tu máquina: agregala solo si confiás en el paquete.",
+      needsAuth: "Este servicio pide que inicies sesión para dar acceso a brain.", login: "Iniciar sesión", signedIn: "Sesión iniciada",
+      signout: "Cerrar sesión", loginWaiting: "Terminá de iniciar sesión en la pestaña que se abrió…", loginOk: n => `Listo: ${n} tools disponibles.`,
+      loginErr: "No se pudo iniciar sesión:", savedNeedsAuth: "Se guardó. Este servicio pide iniciar sesión: tocá «Iniciar sesión» en su tarjeta.",
+      popupBlocked: "El navegador bloqueó la pestaña del login. Permití ventanas emergentes para 127.0.0.1 y probá de nuevo.",
+      title: "Conexiones", sub: "Apps y servicios que brain usa por vos: sus tools aparecen en tus agentes y lo que traen queda en tu memoria",
       yours: "Tus conexiones", count: n => `${n} en total`, formSub: "server MCP", add: "Agregar conexión", edit: n => `Editar ${n}`,
       kindStdio: "Comando local", kindHttp: "URL", fName: "Nombre", fCmd: "Comando", fArgs: "Argumentos · uno por línea",
       fEnv: "Variables · CLAVE=valor por línea", fUrl: "URL del server", fHeaders: "Headers · Nombre: valor por línea",
@@ -929,6 +971,11 @@ const I18N = {
       reindex: "Reindexar búsqueda por palabra", reindexing: "Reindexando…", reindexed: r => `Listo: ${r.chunks} chunks de ${r.files} archivos.`,
       noHits: "No hay resultados (¿todavía no guardaste ninguna URL?).", sources: "Fuentes guardadas", total: n => `${n} en total`,
       thTitle: "Título", thDomain: "Dominio", thChunks: "Chunks", thSaved: "Guardada", noSources: "Todavía no guardaste ninguna fuente.",
+      thAge: "Contenido de", thChecked: "Revisada", refresh: "Actualizar", refreshAll: "Actualizar todas",
+      refreshed: "Actualizada: la página cambió y se volvió a indexar.", unchanged: "Sin cambios desde la última vez.",
+      refreshFailed: "No se pudo actualizar (se conserva la última copia):", refreshing: (d, t) => `Actualizando ${d} de ${t}…`,
+      refreshDone: (u, s, e) => `Listo: ${u} actualizadas, ${s} sin cambios${e ? `, ${e} con error` : ""}.`,
+      old: "vieja", recent: "reciente", freshTip: "Cuándo se bajó el contenido que tenés guardado",
       saved: r => `${r.updated ? "Actualizado" : "Guardado"}: “${r.title}” → ${r.path} (${r.chunks} chunks${r.rendered_js ? ", renderizado con Playwright" : ""})` },
     err: { bad_url: "La URL tiene que empezar con http:// o https://", ollama: "Ollama no está corriendo. Prendelo desde el Panel.",
       chroma: "El server de Chroma no está corriendo. Prendelo desde el Panel.", scrape: "No se pudo extraer texto de esa URL.", other: "Error" },
@@ -958,6 +1005,20 @@ const I18N = {
       systemPh: "Ej.: Respondeme corto y directo, en viñetas. Tuteame. Si hablo de código, usá Python. Antes de guardar una memoria, preguntame.",
       systemSave: "Guardar", systemClear: "Borrar", systemSaved: "System prompt guardado: se usa desde el próximo mensaje.",
       systemCleared: "System prompt borrado.", systemCount: (n, m) => `${n} / ${m}`,
+      backup: "Backup", backupSub: "todo lo tuyo en un archivo",
+      backupHint: "Un .zip con tu vault, el historial de versiones, los ajustes, las conexiones y lo indexado en Chroma (con los embeddings, así restaurar no necesita a Ollama). Se guarda en data/backups y se descarga.",
+      backupSecrets: "Incluir credenciales (.env con API keys y sesiones iniciadas en conexiones)",
+      backupSecretsWarn: "Ojo: con credenciales, cualquiera que tenga el archivo puede usar tus conexiones. Guardalo en un lugar seguro.",
+      backupCreate: "Crear backup", backupUpload: "Restaurar desde un archivo…", backupRebuild: "Reconstruir índices",
+      backupCreating: "Creando el backup…", backupCreated: (n, s) => `Listo: ${n} (${s}).`,
+      backupChromaOff: "Chroma estaba apagado: el backup no trae lo indexado; al restaurar se reconstruye desde el vault (los chats no).",
+      backupFiles: n => `${n} archivos`, backupWithSecrets: "con credenciales", backupDownload: "Descargar", backupRestore: "Restaurar", backupDelete: "Borrar",
+      backupNone: "Todavía no hay backups.", backupDelConfirm: n => `¿Borrar ${n}?`,
+      backupRestoreConfirm: n => `¿Restaurar ${n}? Se reemplazan tu vault, el historial, los ajustes y lo indexado. Antes se guarda automáticamente un backup del estado actual.`,
+      backupRestoring: "Restaurando…", backupRestored: (n, s) => `Restaurado: ${n} archivos. El estado anterior quedó en ${s}.`,
+      backupNoChroma: "No se pudo reconstruir lo indexado en Chroma (¿Ollama o Chroma apagados?): la búsqueda por palabra funciona igual; probá «Reconstruir índices» después.",
+      backupUploading: "Subiendo el archivo…", backupBadFile: "Ese archivo no es un backup de brain:",
+      backupRebuilding: "Reconstruyendo desde el vault…", backupRebuilt: (k, c) => `Listo: ${k} chunks en la búsqueda por palabra${c != null ? ` y ${c} en Chroma` : ""}.`,
       ctx: "Contexto", ctxSub: "cuánto recuerda el chat de cada modelo",
       ctxHint: "La ventana de contexto es cuánto texto ve el modelo a la vez (tu memoria, el chat y las tools). Más contexto usa más RAM y responde más lento: si el chat se pone lento, bajalo.",
       ctxCap: "El máximo de cada modelo, con un tope para todos:", ctxMax: "El máximo que soporta cada modelo, sin tope",
@@ -970,7 +1031,13 @@ const I18N = {
   },
   en: {
     nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
-    conn: { title: "Connections", sub: "Apps and services brain uses for you: their tools show up in your agents and what they bring back stays in your memory",
+    conn: { proposed: "Proposed", needsKeys: "needs", propAdd: "Add", propDiscard: "Discard",
+      propWarn: "An agent proposed this connection. This command will run on your machine: only add it if you trust the package.",
+      needsAuth: "This service asks you to sign in to give brain access.", login: "Sign in", signedIn: "Signed in",
+      signout: "Sign out", loginWaiting: "Finish signing in in the tab that opened…", loginOk: n => `Done: ${n} tools available.`,
+      loginErr: "Couldn't sign in:", savedNeedsAuth: "Saved. This service asks you to sign in: click “Sign in” on its card.",
+      popupBlocked: "The browser blocked the sign-in tab. Allow pop-ups for 127.0.0.1 and try again.",
+      title: "Connections", sub: "Apps and services brain uses for you: their tools show up in your agents and what they bring back stays in your memory",
       yours: "Your connections", count: n => `${n} total`, formSub: "MCP server", add: "Add connection", edit: n => `Edit ${n}`,
       kindStdio: "Local command", kindHttp: "URL", fName: "Name", fCmd: "Command", fArgs: "Arguments · one per line",
       fEnv: "Environment · KEY=value per line", fUrl: "Server URL", fHeaders: "Headers · Name: value per line",
@@ -1089,6 +1156,11 @@ const I18N = {
       reindex: "Rebuild keyword index", reindexing: "Rebuilding…", reindexed: r => `Done: ${r.chunks} chunks from ${r.files} files.`,
       noHits: "No results (haven't saved any URL yet?).", sources: "Saved sources", total: n => `${n} total`,
       thTitle: "Title", thDomain: "Domain", thChunks: "Chunks", thSaved: "Saved", noSources: "You haven't saved any source yet.",
+      thAge: "Content from", thChecked: "Checked", refresh: "Refresh", refreshAll: "Refresh all",
+      refreshed: "Refreshed: the page changed and was re-indexed.", unchanged: "No changes since last time.",
+      refreshFailed: "Couldn't refresh (the last copy is kept):", refreshing: (d, t) => `Refreshing ${d} of ${t}…`,
+      refreshDone: (u, s, e) => `Done: ${u} updated, ${s} unchanged${e ? `, ${e} with errors` : ""}.`,
+      old: "old", recent: "recent", freshTip: "When the content you have saved was downloaded",
       saved: r => `${r.updated ? "Updated" : "Saved"}: “${r.title}” → ${r.path} (${r.chunks} chunks${r.rendered_js ? ", rendered with Playwright" : ""})` },
     err: { bad_url: "The URL must start with http:// or https://", ollama: "Ollama isn't running. Turn it on from the Dashboard.",
       chroma: "The Chroma server isn't running. Turn it on from the Dashboard.", scrape: "Couldn't extract text from that URL.", other: "Error" },
@@ -1118,6 +1190,20 @@ const I18N = {
       systemPh: "E.g.: Keep answers short and direct, in bullet points. If I talk about code, use Python. Ask me before saving a memory.",
       systemSave: "Save", systemClear: "Clear", systemSaved: "System prompt saved: it applies from your next message.",
       systemCleared: "System prompt cleared.", systemCount: (n, m) => `${n} / ${m}`,
+      backup: "Backup", backupSub: "all your data in one file",
+      backupHint: "A .zip with your vault, version history, settings, connections and what's indexed in Chroma (with embeddings, so restoring doesn't need Ollama). Saved in data/backups and downloaded.",
+      backupSecrets: "Include credentials (.env with API keys and signed-in connection sessions)",
+      backupSecretsWarn: "Careful: with credentials, anyone who has the file can use your connections. Keep it somewhere safe.",
+      backupCreate: "Create backup", backupUpload: "Restore from a file…", backupRebuild: "Rebuild indexes",
+      backupCreating: "Creating the backup…", backupCreated: (n, s) => `Done: ${n} (${s}).`,
+      backupChromaOff: "Chroma was off: the backup doesn't include indexed data; restoring rebuilds it from the vault (chats can't be rebuilt).",
+      backupFiles: n => `${n} files`, backupWithSecrets: "with credentials", backupDownload: "Download", backupRestore: "Restore", backupDelete: "Delete",
+      backupNone: "No backups yet.", backupDelConfirm: n => `Delete ${n}?`,
+      backupRestoreConfirm: n => `Restore ${n}? Your vault, history, settings and indexed data are replaced. A backup of the current state is saved first.`,
+      backupRestoring: "Restoring…", backupRestored: (n, s) => `Restored: ${n} files. The previous state was saved as ${s}.`,
+      backupNoChroma: "Couldn't rebuild the Chroma index (Ollama or Chroma off?): keyword search still works; try “Rebuild indexes” later.",
+      backupUploading: "Uploading the file…", backupBadFile: "That file isn't a brain backup:",
+      backupRebuilding: "Rebuilding from the vault…", backupRebuilt: (k, c) => `Done: ${k} chunks in keyword search${c != null ? ` and ${c} in Chroma` : ""}.`,
       ctx: "Context", ctxSub: "how much each model's chat remembers",
       ctxHint: "The context window is how much text the model sees at once (your memory, the chat and the tools). More context uses more RAM and answers slower: if the chat gets slow, lower it.",
       ctxCap: "Each model's maximum, with a cap for all of them:", ctxMax: "The most each model supports, no cap",
@@ -1280,7 +1366,73 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); }
+
+// ================= ajustes: backup y restauración (brain_mcp/backup.py) =================
+const fmtSize = n => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+async function loadBackups() {
+  let r; try { r = await api("/api/backup/list"); } catch (e) { return; }
+  const S = T.settings;
+  $("#backup-list").innerHTML = (r.backups || []).map(b => {
+    const m = b.manifest || {};
+    return `<li><div class="bk-main"><span class="mono">${esc(b.name)}</span>
+      <span class="muted">${esc(m.created_at ? ago(m.created_at) : "")} · ${esc(fmtSize(b.size))} · ${esc(S.backupFiles(m.files || 0))}${m.includes_secrets ? ` · <b>${esc(S.backupWithSecrets)}</b>` : ""}</span></div>
+      <div class="bk-act"><a class="btn" href="/api/backup/download?name=${encodeURIComponent(b.name)}" download>${esc(S.backupDownload)}</a>
+      <button class="btn" type="button" data-bk-restore="${esc(b.name)}">${esc(S.backupRestore)}</button>
+      <button class="btn" type="button" data-bk-del="${esc(b.name)}" style="color:var(--bad)">${esc(S.backupDelete)}</button></div></li>`;
+  }).join("") || `<li class="muted">${esc(S.backupNone)}</li>`;
+  $("#backup-list").querySelectorAll("[data-bk-restore]").forEach(b => b.onclick = () => restoreBackup(b.dataset.bkRestore));
+  $("#backup-list").querySelectorAll("[data-bk-del]").forEach(b => b.onclick = async () => {
+    if (!(await ask(S.backupDelConfirm(b.dataset.bkDel), { ok: T.dlg.del, danger: true }))) return;
+    try { await api("/api/backup/delete", { name: b.dataset.bkDel }); } catch (e) { toast(e.message); }
+    loadBackups();
+  });
+}
+async function restoreBackup(name) {
+  const S = T.settings, out = $("#backup-result");
+  if (!(await ask(S.backupRestoreConfirm(name), { ok: S.backupRestore, danger: true }))) return;
+  showResult(out, "info", S.backupRestoring, true);
+  try {
+    const r = await api("/api/backup/restore", { name });
+    if (!r.ok) return showResult(out, "err", `${T.err.other} ${r.detail || r.code}`);
+    const rb = r.rebuild || {};
+    showResult(out, "ok", S.backupRestored(r.files, r.safety_backup) + (rb.chroma_error ? ` ${S.backupNoChroma}` : ""));
+    statsSig = ""; loadBackups();
+  } catch (e) { showResult(out, "err", e.message); }
+}
+$("#backup-create").onclick = async () => {
+  const S = T.settings, out = $("#backup-result"), btn = $("#backup-create");
+  btn.disabled = true; showResult(out, "info", S.backupCreating, true);
+  try {
+    const r = await api("/api/backup/create", { include_secrets: $("#backup-secrets").checked });
+    if (!r.ok) return showResult(out, "err", r.detail || r.code);
+    const ch = r.manifest.chroma || {};
+    showResult(out, "ok", S.backupCreated(r.name, fmtSize(r.size)) + (ch.sources == null ? ` ${S.backupChromaOff}` : ""));
+    location.href = `/api/backup/download?name=${encodeURIComponent(r.name)}`;  // se descarga solo
+    loadBackups();
+  } catch (e) { showResult(out, "err", e.message); }
+  finally { btn.disabled = false; }
+};
+$("#backup-secrets").onchange = e => { if (e.target.checked) toast(T.settings.backupSecretsWarn); };
+$("#backup-upload-btn").onclick = () => $("#backup-file").click();
+$("#backup-file").onchange = async e => {
+  const f = e.target.files[0], out = $("#backup-result");
+  e.target.value = "";
+  if (!f) return;
+  showResult(out, "info", T.settings.backupUploading, true);
+  try {
+    const r = await (await fetch("/api/backup/upload", { method: "POST", headers: { "X-Brain": "1", "Content-Type": "application/zip" }, body: f })).json();
+    if (!r.ok) return showResult(out, "err", `${T.settings.backupBadFile} ${r.detail || r.code}`);
+    out.className = "result"; loadBackups(); restoreBackup(r.name);
+  } catch (err) { showResult(out, "err", err.message); }
+};
+$("#backup-rebuild").onclick = async () => {
+  const out = $("#backup-result"); showResult(out, "info", T.settings.backupRebuilding, true);
+  try {
+    const r = await api("/api/backup/rebuild", {});
+    showResult(out, r.chroma_error ? "err" : "ok", T.settings.backupRebuilt(r.keyword.chunks, r.chroma) + (r.chroma_error ? ` ${T.settings.backupNoChroma}` : ""));
+  } catch (e) { showResult(out, "err", e.message); }
+};
 
 // ================= ajustes: contexto por modelo =================
 // Se guarda en el server (data/chat_settings.json) porque lo usa chat.py al pedirle num_ctx a Ollama.
@@ -1332,6 +1484,7 @@ async function saveCtx(body) {
     const r = await api("/api/chat/context", body);
     if (!r.ok) return showResult(out, "err", r.code === "bad_ctx" ? T.settings.ctxBad(ctxData.min, ctxData.max) : (r.detail || T.err.other));
     ctxData = r; renderContext(); showResult(out, "ok", T.settings.ctxSaved);
+    try { localStorage.setItem("brain-ctx-changed", String(Date.now())); } catch (e) {}  // el chat recarga sus modelos
   } catch (e) { showResult(out, "err", e.message); }
 }
 $("#ctx-save").onclick = () => saveCtx(readCtx());
@@ -1714,9 +1867,41 @@ function renderStats() {
     || `<li class="muted">${esc(T.recent.none)}</li>`;
   $("#sources-sub").textContent = T.know.total(fmt(stats.sources.length));
   $("#sources").innerHTML = stats.sources.length
-    ? `<table class="data" style="margin-top:0"><thead><tr><th>${T.know.thTitle}</th><th>${T.know.thDomain}</th><th class="num">${T.know.thChunks}</th><th class="num">${T.know.thSaved}</th></tr></thead><tbody>${
-        stats.sources.map(s => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></td><td class="muted">${esc(s.domain)}</td><td class="num">${fmt(s.chunks)}</td><td class="num muted">${esc(s.scraped_at ? ago(s.scraped_at) : "—")}</td></tr>`).join("")}</tbody></table>`
+    ? `<div class="src-wrap"><table class="data" style="margin-top:0"><thead><tr><th>${T.know.thTitle}</th><th>${T.know.thDomain}</th><th class="num">${T.know.thChunks}</th><th>${T.know.thAge}</th><th>${T.know.thChecked}</th><th></th></tr></thead><tbody>${
+        stats.sources.map(s => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>${s.refresh_error ? `<div class="src-err">${esc(T.know.refreshFailed)} ${esc(s.refresh_error)}</div>` : ""}</td>
+          <td class="muted">${esc(s.domain)}</td><td class="num">${fmt(s.chunks)}</td>
+          <td>${freshStamp(s.scraped_at)}</td><td class="muted">${esc(s.checked_at ? ago(s.checked_at) : "—")}</td>
+          <td><button class="btn" type="button" data-refresh="${esc(s.path)}">${esc(T.know.refresh)}</button></td></tr>`).join("")}</tbody></table></div>`
     : `<div class="empty-chart">${esc(T.know.noSources)}</div>`;
+  $("#refresh-all").hidden = !stats.sources.length;
+  $("#sources").querySelectorAll("[data-refresh]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "…";
+    try {
+      const r = await api("/api/sources/refresh", { path: b.dataset.refresh });
+      toast(r.status === "updated" ? T.know.refreshed : r.status === "unchanged" ? T.know.unchanged : `${T.know.refreshFailed} ${r.error || r.code || ""}`);
+    } catch (e) { toast(e.message); }
+    statsSig = ""; loadStats();
+  });
+}
+// antigüedad del contenido guardado: reciente (≤7 días), normal, vieja (>30 días)
+function freshStamp(iso) {
+  if (!iso) return "—";
+  const days = (Date.now() - new Date(iso)) / 864e5;
+  const cls = days > 30 ? "old" : days <= 7 ? "new" : "";
+  return `<span class="fresh ${cls}" title="${esc(T.know.freshTip)}">${esc(ago(iso))}${cls ? ` · ${esc(cls === "old" ? T.know.old : T.know.recent)}` : ""}</span>`;
+}
+$("#refresh-all").onclick = async () => {
+  $("#refresh-all").disabled = true;
+  try { await api("/api/sources/refresh_all", {}); } catch (e) { toast(e.message); }
+  pollRefresh();
+};
+async function pollRefresh() {
+  let st;
+  try { st = await (await fetch("/api/sources/refresh_status")).json(); } catch (e) { return; }
+  $("#refresh-all-st").textContent = st.running ? T.know.refreshing(st.done, st.total)
+    : st.total ? T.know.refreshDone(st.updated, st.unchanged, st.errors.length) : "";
+  $("#refresh-all").disabled = st.running;
+  if (st.running) setTimeout(pollRefresh, 1500); else { statsSig = ""; loadStats(); }
 }
 async function loadStats() {
   try {
@@ -1965,6 +2150,7 @@ $("#conn-form").onsubmit = async e => {
   try {
     const r = await api(connEditing ? `/api/connections/${connEditing}` : "/api/connections", body);
     if (!r.ok) showResult(out, "err", connErr(r));
+    else if (r.connection.needs_auth) { showResult(out, "info", T.conn.savedNeedsAuth); resetConnForm(); }
     else if (r.connection.error) showResult(out, "err", `${T.conn.savedErr} ${r.connection.error}`);
     else { showResult(out, "ok", T.conn.saved(r.connection.tools.length)); resetConnForm(); }
     loadConnections();
@@ -1983,23 +2169,46 @@ function connCard(c) {
         <label class="lbl"><span>${esc(T.conn.active)}</span><span class="switch"><input type="checkbox" role="switch" data-flag="enabled" ${c.enabled ? "checked" : ""}><span class="track"></span></span></label>
       </div></div>
     <div class="conn-meta">${esc(where)} · <span>${esc(c.prefix)}__…</span>${c.refreshed_at ? ` · ${esc(T.conn.updated(ago(c.refreshed_at)))}` : ""}</div>
-    ${c.error ? `<div class="conn-err">${esc(c.error)}</div>` : ""}
+    ${c.needs_auth ? `<div class="conn-auth"><span>${esc(T.conn.needsAuth)}</span><button class="btn primary" data-login>${esc(T.conn.login)}</button></div>`
+      : c.error ? `<div class="conn-err">${esc(c.error)}</div>` : ""}
     <div class="tool-chips">${tools || `<span>${esc(T.conn.noTools)}</span>`}</div>
-    <div class="conn-actions"><button class="btn" data-act="refresh">${esc(T.conn.refresh)}</button><button class="btn" data-act="edit">${esc(T.conn.editBtn)}</button><button class="btn" data-act="delete" style="color:var(--bad)">${esc(T.conn.del)}</button></div>
+    <div class="conn-actions">${c.signed_in ? `<span class="stamp-ok mono">✓ ${esc(T.conn.signedIn)}</span><button class="btn" data-act="signout">${esc(T.conn.signout)}</button>` : ""}<button class="btn" data-act="refresh">${esc(T.conn.refresh)}</button><button class="btn" data-act="edit">${esc(T.conn.editBtn)}</button><button class="btn" data-act="delete" style="color:var(--bad)">${esc(T.conn.del)}</button></div>
   </div>`;
+}
+function propCard(p) {
+  const where = p.kind === "http" ? p.url : [p.command, ...(p.args || [])].join(" ");
+  const keys = [...(p.env_keys || []), ...(p.header_keys || [])];
+  return `<div class="card conn prop"><div class="conn-top"><span class="conn-name">${esc(p.name)}</span><span class="kind-stamp">${esc(T.conn.proposed)}</span></div>
+    ${p.note ? `<div class="conn-meta">${esc(p.note)}</div>` : ""}
+    <div class="conn-meta mono">${esc(where)}${keys.length ? ` · ${esc(T.conn.needsKeys)} ${keys.map(esc).join(", ")}` : ""}</div>
+    ${p.kind !== "http" ? `<div class="conn-auth"><span>${esc(T.conn.propWarn)}</span></div>` : ""}
+    <div class="conn-actions"><button class="btn primary" data-prop="${esc(p.id)}" data-prop-act="approve">${esc(T.conn.propAdd)}</button>
+      <button class="btn" data-prop="${esc(p.id)}" data-prop-act="reject">${esc(T.conn.propDiscard)}</button></div></div>`;
 }
 function renderConnections() {
   if (!connData) return;
   const list = connData.connections;
   $("#conn-count").textContent = T.conn.count(list.length);
   if (!connEditing) $("#conn-form-title").textContent = T.conn.add;
-  $("#conns").innerHTML = list.length ? list.map(connCard).join("") : `<div class="empty-chart" style="height:140px">${esc(T.conn.empty)}</div>`;
-  $("#conns").querySelectorAll(".conn").forEach(card => {
+  const props = connData.proposals || [];
+  $("#conns").innerHTML = props.map(propCard).join("") + (list.length ? list.map(connCard).join("") : `<div class="empty-chart" style="height:140px">${esc(T.conn.empty)}</div>`);
+  $("#conns").querySelectorAll("[data-prop-act]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const r = await api(`/api/connections/proposals/${encodeURIComponent(b.dataset.prop)}/${b.dataset.propAct}`, {});
+      if (!r.ok) toast(connErr(r));
+      else if (r.connection) toast(r.connection.needs_auth ? T.conn.savedNeedsAuth : r.connection.error ? `${T.conn.savedErr} ${r.connection.error}` : T.conn.saved(r.connection.tools.length));
+    } catch (e) { toast(e.message); }
+    loadConnections();
+  });
+  $("#conns").querySelectorAll(".conn:not(.prop)").forEach(card => {
     const c = list.find(x => x.id === card.dataset.id);
     card.querySelectorAll("input[data-flag]").forEach(inp => inp.onchange = async () => {
       try { await api(`/api/connections/${c.id}/toggle`, { field: inp.dataset.flag, value: inp.checked }); } catch (e) { toast(e.message); }
       loadConnections();
     });
+    const lb = card.querySelector("[data-login]");
+    if (lb) lb.onclick = () => connLogin(c, lb);
     card.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => {
       if (b.dataset.act === "edit") return editConnection(c);
       if (b.dataset.act === "delete" && !(await ask(T.conn.delConfirm(c.name), { ok: T.dlg.del, danger: true }))) return;
@@ -2014,6 +2223,25 @@ function renderConnections() {
   $("#cmp-off").hidden = !cmp.configured;
   if (!$("#cmp-user").value) $("#cmp-user").value = cmp.user_id || "";
   if (cmpApps) renderCmpApps();
+}
+// Login OAuth: la pestaña se abre en el click (si no, el navegador la bloquea) y después se le pone la
+// URL del servicio. El dashboard recibe el código en /oauth/callback; acá solo se espera el resultado.
+async function connLogin(c, btn) {
+  const w = window.open("about:blank", "_blank");
+  if (!w) return toast(T.conn.popupBlocked);
+  btn.disabled = true; toast(T.conn.loginWaiting);
+  try {
+    const r = await api(`/api/connections/${c.id}/authorize`, {});
+    if (!r.ok) { w.close(); return toast(`${T.conn.loginErr} ${connErr(r)}`); }
+    if (r.url) w.location = r.url; else w.close();
+    for (let i = 0; i < 200; i++) {  // hasta ~5 minutos
+      const s = await api(`/api/connections/${c.id}/auth_status`, {});
+      if (s.status === "done") { toast(T.conn.loginOk(s.connection.tools.length)); break; }
+      if (s.status === "error") { toast(`${T.conn.loginErr} ${s.error || ""}`); break; }
+      await new Promise(res => setTimeout(res, 1500));
+    }
+  } catch (e) { toast(e.message); }
+  finally { btn.disabled = false; loadConnections(); }
 }
 async function loadConnections() {
   try { connData = await api("/api/connections"); renderConnections(); } catch (e) { /* reintenta */ }

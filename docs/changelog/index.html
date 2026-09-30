@@ -51,9 +51,50 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.02.9 ===================== -->
+  <article class="release" id="v0.02.9">
+    <div class="when"><div class="ver">v0.02.9</div><time class="date" datetime="2026-09-30">2026-09-30</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>Windows, Linux and connectors that sign in</h2>
+        <p>brain now installs on macOS, Linux and Windows, remote MCP servers that need a login work, the chat can set up connectors for you, and your data can be backed up and restored.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>Windows and Linux.</b> Linux uses the same <code>install.sh</code> command; Windows gets <code>irm …/install.ps1 | iex</code> and a <code>brain-setup.exe</code> installer attached to each release, along with <code>brain-install-linux.sh</code>. GitHub Actions runs the tests and the installers on all three systems on every commit to main.</li>
+          <li><b>Sign in to MCP servers.</b> Remote servers that answered <code>401 Unauthorized</code> (Notion, Linear, Sentry…) now show <i>Sign in</i>: it opens the service's own login and brain keeps and renews the token (standard MCP OAuth with PKCE).</li>
+          <li><b><code>/add-mcp</code></b> in the chat: give it a URL or instructions and it reads the docs and proposes the connector. Nothing is added until you click <i>Add</i> and see the exact command or URL. New tools <code>propose_connection</code> and <code>read_url</code>.</li>
+          <li><b>Backup and restore</b> in Settings: one <code>.zip</code> with the vault, history, settings, connections and what's indexed in Chroma (embeddings included, so restoring doesn't need Ollama). Credentials are left out unless you ask. Restoring saves a copy of the current state first and rebuilds what's missing.</li>
+          <li><b>Source freshness.</b> Knowledge shows how old each source's content is and when it was last checked. <i>Refresh</i> re-downloads one or all; if it fails, the last good copy stays and the error is shown. New tool <code>refresh_sources</code>.</li>
+        </ul>
+        <h3>Fixed</h3>
+        <ul>
+          <li>The model picker in a new chat shows the context limit set in Settings for each model, instead of 16k for all.</li>
+          <li>Re-saving a URL no longer loses its index if Ollama or Chroma fail halfway.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Windows, Linux y conectores que inician sesión</h2>
+        <p>brain ahora se instala en macOS, Linux y Windows, andan los servers MCP remotos que piden login, el chat puede armar conectores por vos y tus datos se pueden respaldar y restaurar.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>Windows y Linux.</b> Linux usa el mismo comando de <code>install.sh</code>; Windows tiene <code>irm …/install.ps1 | iex</code> y un instalador <code>brain-setup.exe</code> en cada release, junto con <code>brain-install-linux.sh</code>. GitHub Actions corre las pruebas y los instaladores en los tres sistemas en cada commit a main.</li>
+          <li><b>Iniciar sesión en servers MCP.</b> Los servers remotos que respondían <code>401 Unauthorized</code> (Notion, Linear, Sentry…) ahora muestran <i>Iniciar sesión</i>: abre el login del servicio y brain guarda y renueva el token (OAuth estándar de MCP con PKCE).</li>
+          <li><b><code>/add-mcp</code></b> en el chat: pasale una URL o instrucciones y lee la documentación y propone el conector. No se agrega nada hasta que tocás <i>Agregar</i> y ves el comando o la URL exactos. Tools nuevas <code>propose_connection</code> y <code>read_url</code>.</li>
+          <li><b>Backup y restauración</b> en Ajustes: un <code>.zip</code> con el vault, el historial, los ajustes, las conexiones y lo indexado en Chroma (con los embeddings, así restaurar no necesita a Ollama). Las credenciales quedan afuera salvo que las pidas. Restaurar guarda antes una copia del estado actual y reconstruye lo que falte.</li>
+          <li><b>Frescura de las fuentes.</b> Conocimiento muestra de cuándo es el contenido de cada fuente y cuándo se revisó por última vez. <i>Actualizar</i> vuelve a bajar una o todas; si falla, queda la última copia buena y se muestra el error. Tool nueva <code>refresh_sources</code>.</li>
+        </ul>
+        <h3>Arreglado</h3>
+        <ul>
+          <li>El selector de modelo de un chat nuevo muestra el límite de contexto configurado en Ajustes para cada modelo, en vez de 16k para todos.</li>
+          <li>Volver a guardar una URL ya no pierde su índice si Ollama o Chroma fallan a mitad de camino.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.02.8.1 ===================== -->
   <article class="release" id="v0.02.8.1">
-    <div class="when"><div class="ver">v0.02.8.1</div><time class="date" datetime="2026-09-29">2026-09-29</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.02.8.1</div><time class="date" datetime="2026-09-29">2026-09-29</time></div>
     <div>
       <div class="l-en">
         <h2>Context under your control</h2>

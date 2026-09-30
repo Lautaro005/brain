@@ -42,11 +42,14 @@ brain es un servidor MCP local: un vault en Markdown, el perfil y la memoria del
 | `save_url(url, render_js?)` | scrapea, indexa (Chroma + FTS5) y crea o actualiza `knowledge/sources/<slug>.md`, con `abstract` si pasa de 800 palabras y `entities`. Si el fetch normal saca menos de 30 palabras, prueba con Playwright; `render_js=True` lo fuerza |
 | `search_knowledge(query, top_k?)` | búsqueda híbrida: semántica + BM25, fusionadas con RRF |
 | `reindex_keyword_search()` | reconstruye el índice por palabra desde `knowledge/**.md` |
-| `list_sources()` | todo lo scrapeado, con `abstract` |
+| `list_sources()` | todo lo scrapeado, con `abstract`, `scraped_at`, `checked_at` y `refresh_error` |
+| `refresh_sources(path?)` | vuelve a bajar una fuente o todas; si falla conserva la copia anterior y anota `refresh_error` |
+| `read_url(url, max_chars?)` | lee una página sin guardarla (para leer la doc de un server MCP) |
+| `propose_connection(name, url? \| command?, …)` | propone una conexión; NO la crea: el usuario la aprueba en el chat o en Conexiones |
 
 ## Instalación
 
-Para usuarios: `curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash`. Instala en `~/.brain` y crea el comando `brain` (ver README.md).
+Para usuarios: macOS y Linux `curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash`; Windows `irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex` o `brain-setup.exe` del release. Instala en `~/.brain` (`%USERPROFILE%\.brain`) y crea el comando `brain` (ver README.md).
 
 Para desarrollar: `git clone https://github.com/Lautaro005/brain && cd brain && uv sync && ./brain.sh`.
 
@@ -83,7 +86,13 @@ Para arrancar de cero: cerrá el dashboard y los clientes MCP, borrá `vault/` y
 server.py              entrypoint MCP (stdio); define las tools
 dashboard.py           server HTTP del dashboard (páginas, API, acciones)
 brain.sh               comando principal: dashboard + subcomandos update/path/uninstall/help
-install.sh             instalador de un comando (curl | bash): uv, clon en ~/.brain, deps, Chromium, Ollama, comando `brain`
+install.sh             instalador macOS/Linux (curl | bash): uv, clon en ~/.brain, deps, Chromium, Ollama, comando `brain`
+install.ps1            instalador Windows (irm | iex): lo mismo con winget; crea brain.cmd en %USERPROFILE%\.local\bin
+brain.ps1              el comando `brain` en Windows (equivalente de brain.sh)
+installers/windows/    brain_setup.py → brain-setup.exe (PyInstaller en release.yml): trae install.ps1 y lo corre
+scripts/               smoke_mcp.py (server.py por stdio) y check_site.py (links, estructura y versión de docs/) para el CI
+tests/                 pytest sin red/Ollama/Chroma (conftest aísla vault y data/ en tmp): `uv run pytest -q tests`
+.github/workflows/     ci.yml (tests + instaladores en macOS/Linux/Windows + sitio, en cada commit a main y PR) y release.yml (.exe y archivos de Linux al publicar un release)
 start.sh               lanzador del server MCP
 chroma_server.sh       Chroma suelto, sin dashboard (127.0.0.1:8055)
 register-desktop.sh    registra el server en Claude Desktop (correr con Claude cerrado)
@@ -106,6 +115,9 @@ brain_mcp/
   skills/organize.md   skill integrada de /organize (adaptada de file-organizer, MIT, con atribución en el frontmatter)
   ui.js                componentes compartidos del dashboard y el chat, servido en /ui.js: BrainUI.confirm y BrainUI.select
   updates.py           versión instalada (VERSION) + chequeo contra el último release de GitHub
+  locks.py             lock de archivo entre procesos para macOS/Linux (flock) y Windows (msvcrt)
+  oauth.py             login OAuth de conexiones por URL (provider del SDK de MCP, tokens en data/oauth.json, callback /oauth/callback)
+  backup.py            backup/restauración (.zip con vault, historial, ajustes y export de Chroma con embeddings) + reconstruir índices
   chunking.py          chunks de ~500 palabras con overlap de 50
   scrape.py            trafilatura + fallback a Playwright (Chromium headless, thread dedicado)
   graph.py             arma nodos y links del vault
@@ -170,3 +182,9 @@ data/                  (ignorado) historial, Chroma, lock
 - **/compact**: no es un modo (no queda en `command`). `_compact()` resume la transcripción (desde el último resumen) sin tools y guarda `/compact` + un mensaje del asistente con `compact: true`. `_split_compact()` hace que los pedidos siguientes lleven ese resumen en el system prompt y solo los mensajes posteriores. Los mensajes viejos no se borran.
 - **Comandos del chat**: `chat.COMMANDS` (backend: organize, reflect, compact) y `COMMANDS` + `T.cmds` en `chat.html` (lista y descripciones es/en). Un comando suma instrucciones al system prompt (`_command_prompt`) y queda en el meta del chat (`command`), así las respuestas siguientes siguen en ese modo. Al modelo le llega el pedido en palabras (`COMMANDS[cmd]`), no "/organize". `/new` es solo del frontend. Para agregar uno: sumarlo en los dos lados y en `CMD_TITLES`.
 - **Servicios en el sidebar**: están en el popover del botón `#info-btn` (`#side-svcs`), posicionado con `position: fixed` por `placeInfo()` para que no lo recorte el sidebar (arriba en escritorio, a la derecha plegado, abajo en celular).
+- **Multiplataforma (macOS, Linux, Windows)**: nada de `fcntl` ni `os.killpg` directos: los locks van por `locks.locked(path)` y el cierre de procesos por `services._terminate`. Las rutas de config de apps salen de `agents._app_data()` (macOS `~/Library/Application Support`, Windows `%APPDATA%`, Linux `~/.config`). Los ejecutables de servicios se resuelven con `shutil.which` (en Windows `npx` es `npx.cmd`). `install.sh` es para macOS/Linux y `install.ps1` para Windows; mantenerlos equivalentes. El CI (`.github/workflows/ci.yml`) corre `pytest`, el smoke del server y los dos instaladores en los tres sistemas: si tocás algo de plataforma, que siga verde ahí. Para probar el instalador sin Ollama/Chromium: `BRAIN_SKIP_OLLAMA=1 BRAIN_SKIP_CHROMIUM=1`.
+- **OAuth de conexiones (`oauth.py`)**: una conexión `http` sin headers usa `OAuthClientProvider` del SDK (`connectors.uses_oauth`). Solo el dashboard pasa `port` y puede abrir el login (`oauth.start` → URL de autorización; el código vuelve por `GET /oauth/callback` y se valida por `state`); sin `port` (agentes, llamadas proxeadas) una conexión sin token levanta `NeedsAuth` y el caché queda con `error = "needs_auth"`, que la UI muestra como "Iniciar sesión". Tokens y registro del cliente en `data/oauth.json` (600, lock `data/.oauth.lock`); la redirect URI incluye el puerto del dashboard, así que si cambia el puerto se registra de nuevo. Para probar: un `MCPServer` con `auth_server_provider` + `AuthSettings` cuyo `authorize()` devuelve el redirect con el código (ver CHANGES.md v0.02.9).
+- **Propuestas de conexión**: `propose_connection` (tool) y `/add-mcp` (chat) solo guardan en `data/connection_proposals.json` (600). Crear la conexión es siempre un click del usuario (`POST /api/connections/proposals/<id>/approve`). No agregar ningún camino para que un agente cree o apruebe una conexión: una stdio ejecuta comandos.
+- **Backup (`backup.py`)**: el historial se copia y se restaura con la API de backup de SQLite (nunca pisar el archivo: otros procesos lo tienen abierto en WAL, y `with sqlite3.connect()` NO cierra la conexión: usar `closing`). Restaurar valida el zip (`_check`: rutas, tamaño, manifest), hace antes un `before-restore-*.zip` con secretos y reemplaza el vault bajo `vault._lock()`. Credenciales solo con `include_secrets`. La subida (`/api/backup/upload`) es el único POST que no es JSON ni tiene el límite de 5 MB.
+- **Fuentes**: `save_url_core` indexa lo nuevo antes de borrar chunks sobrantes y reescribir el .md, así un fallo a mitad de camino no pierde la copia anterior. `refresh_source_core` compara el texto: sin cambios solo actualiza `checked_at`; con error anota `refresh_error` y no toca nada más.
+- **Contexto en el chat**: el chat recarga los modelos (con el `ctx` de Ajustes → Contexto) en cada chat nuevo y cuando el dashboard guarda esos ajustes (evento `storage` sobre `brain-ctx-changed`).
