@@ -73,6 +73,18 @@ def main() -> int:
         if 'class="l-en"' not in m.group(2) or 'class="l-es"' not in m.group(2):
             errors.append(f"docs: la página #{m.group(1)} no tiene inglés y español")
 
+    # llms.txt, sitemap.xml y robots.txt: al día con las docs, y cada URL del sitemap existe
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import build_site_files
+    for path, text in build_site_files.expected().items():
+        if not path.exists() or path.read_text(encoding="utf-8") != text:
+            errors.append(f"{path.relative_to(ROOT)} desactualizado: corré python3 scripts/build_site_files.py")
+    for loc in re.findall(r"<loc>([^<]+)</loc>", (DOCS / "sitemap.xml").read_text(encoding="utf-8")):
+        rel = loc.removeprefix(build_site_files.BASE)
+        target = DOCS / rel if rel and not rel.endswith("/") else DOCS / rel / "index.html"
+        if not target.exists():
+            errors.append(f"sitemap.xml: {loc} no existe en docs/")
+
     for e in errors:
         print("✗", e)
     print(f"{len(pages)} páginas revisadas, versión {version}: " + ("OK" if not errors else f"{len(errors)} problemas"))

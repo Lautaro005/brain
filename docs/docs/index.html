@@ -56,7 +56,7 @@
 <section class="page" id="introduction" data-group-en="Getting started" data-group-es="Primeros pasos" data-title-en="Introduction" data-title-es="Introducción">
 <div class="l-en">
   <h1>Introduction</h1>
-  <p class="lead">brain is a local MCP server that gives Claude, ChatGPT, Cursor and any other AI agent the same memory about you. It runs on your Mac; nothing goes to anyone's cloud.</p>
+  <p class="lead">brain is a local MCP server that gives Claude, ChatGPT, Cursor and any other AI agent the same memory about you. It runs on your computer (macOS, Linux or Windows); nothing goes to anyone's cloud.</p>
   <h2>What brain is</h2>
   <p>Every AI app keeps its own little memory, and none of them talk to each other. brain is one knowledge base that all of them read and write through <a href="https://modelcontextprotocol.io">MCP</a>, the standard protocol agents use to call tools:</p>
   <ul>
@@ -82,7 +82,7 @@
 </div>
 <div class="l-es">
   <h1>Introducción</h1>
-  <p class="lead">brain es un server MCP local que les da a Claude, ChatGPT, Cursor y cualquier otro agente de IA la misma memoria sobre vos. Corre en tu Mac; nada va a la nube de nadie.</p>
+  <p class="lead">brain es un server MCP local que les da a Claude, ChatGPT, Cursor y cualquier otro agente de IA la misma memoria sobre vos. Corre en tu compu (macOS, Linux o Windows); nada va a la nube de nadie.</p>
   <h2>Qué es brain</h2>
   <p>Cada app de IA guarda su propia memoria, y ninguna habla con las otras. brain es una sola base de conocimiento que todas leen y escriben por <a href="https://modelcontextprotocol.io">MCP</a>, el protocolo estándar con el que los agentes llaman tools:</p>
   <ul>
@@ -1031,7 +1031,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
 <section class="page" id="security" data-group-en="Reference" data-group-es="Referencia" data-title-en="Privacy and security" data-title-es="Privacidad y seguridad">
 <div class="l-en">
   <h1>Privacy and security</h1>
-  <p class="lead">Your data stays on your Mac. brain only goes online when you save a URL or use a connection that talks to a remote service.</p>
+  <p class="lead">Your data stays on your computer. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, or checks GitHub for a new version. The <a href="../privacy/">privacy policy</a> covers this website too (including its chat, provided by DokBot).</p>
   <h2>What stays local</h2>
   <ul>
     <li>The vault, the history, both search indexes and your secrets live in <code>~/.brain</code>.</li>
@@ -1059,7 +1059,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
 </div>
 <div class="l-es">
   <h1>Privacidad y seguridad</h1>
-  <p class="lead">Tus datos se quedan en tu Mac. brain solo sale a internet cuando guardás una URL o usás una conexión que habla con un servicio remoto.</p>
+  <p class="lead">Tus datos se quedan en tu compu. brain solo sale a internet cuando guardás o actualizás una URL, usás una conexión que habla con un servicio remoto o se fija en GitHub si hay una versión nueva. La <a href="../privacy/">política de privacidad</a> cubre también este sitio (incluido su chat, provisto por DokBot).</p>
   <h2>Qué queda local</h2>
   <ul>
     <li>El vault, el historial, los dos índices de búsqueda y tus secretos viven en <code>~/.brain</code>.</li>
@@ -1194,10 +1194,21 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <aside class="toc" id="toc" aria-label="On this page"></aside>
 </div>
 
-<footer>
+<footer class="site-foot">
   <div class="wrap">
-    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT + Commons Clause</a> © 2026 Lautaro Silva</span>
-    <span><a href="../">Home</a> · <a href="./">Docs</a> · <a href="../changelog/">Changelog</a> · <a href="https://github.com/Lautaro005/brain">GitHub</a></span>
+    <span class="foot-legal">brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT + Commons Clause</a> © 2026 Lautaro Silva</span>
+    <nav class="foot-nav" aria-label="Footer">
+      <ul class="foot-col">
+        <li><a href="../docs/">Docs</a></li>
+        <li><a href="../changelog/">Changelog</a></li>
+      </ul>
+      <ul class="foot-col">
+        <li><a href="../privacy/"><span class="l-en">Privacy policy</span><span class="l-es">Política de privacidad</span></a></li>
+        <li><a href="../llms.txt">llms.txt</a></li>
+        <li><a href="../sitemap.xml">sitemap.xml</a></li>
+      </ul>
+      <a class="gh-foot" href="https://github.com/Lautaro005/brain"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+    </nav>
   </div>
 </footer>
 <script src="../assets/pages.js"></script>

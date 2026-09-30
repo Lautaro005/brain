@@ -1,0 +1,46 @@
+# brain
+
+> brain is a local MCP server that gives Claude, ChatGPT, Cursor and any other AI agent the same memory about you: your notes, projects, profile, what other chatbots know about you and the web pages you saved, with hybrid (semantic + keyword) search. Everything stays on your computer (macOS, Linux or Windows). Free and source-available (MIT + Commons Clause: use and modify, don't sell).
+
+- Install (macOS, Linux): `curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash`
+- Install (Windows, PowerShell): `irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex`, or `brain-setup.exe` from the latest release
+- Then run `brain` to open the local dashboard at http://127.0.0.1:8765 and connect your agents in one click.
+- Source code: https://github.com/Lautaro005/brain
+
+## Getting started
+
+- [Introduction](https://lautaro005.github.io/brain/docs/#introduction): brain is a local MCP server that gives Claude, ChatGPT, Cursor and any other AI agent the same memory about you. It runs on your computer (macOS, Linux or Windows); nothing goes to anyone's cloud.
+- [Installation](https://lautaro005.github.io/brain/docs/#installation): One command on macOS, Linux or Windows. You need git; the installer handles the rest.
+- [Quickstart](https://lautaro005.github.io/brain/docs/#quickstart): From install to an agent that knows you, in four steps.
+
+## Core concepts
+
+- [The vault](https://lautaro005.github.io/brain/docs/#vault): Plain Markdown files with YAML frontmatter in ~/.brain/vault/. It's created from a template the first time brain starts.
+- [Memory](https://lautaro005.github.io/brain/docs/#memory): What your agents know about you: a profile you write, plus facts imported from other chatbots or saved by agents as they learn them. Facts are dated, and when one changes the old version is kept.
+- [Saving and search](https://lautaro005.github.io/brain/docs/#search): Save any web page, then find it by meaning or by exact words. Search is hybrid: semantic and keyword results are merged into one list.
+- [The graph](https://lautaro005.github.io/brain/docs/#graph): An interactive map of the vault: how your profile, memories, projects, skills, sources, tags and entities connect.
+- [Version history](https://lautaro005.github.io/brain/docs/#history): Every write and every delete stores the file's previous and new content. Any file can go back to any earlier version, including files that were deleted.
+
+## Using brain
+
+- [Dashboard](https://lautaro005.github.io/brain/docs/#dashboard): The local web app at http://127.0.0.1:8765, opened with brain. English or Spanish, light, dark or system theme.
+- [Chat](https://lautaro005.github.io/brain/docs/#chat): Talk to a local Ollama model that already knows your profile and memory, and can look things up and edit your vault with the same tools your agents have.
+- [Connecting agents](https://lautaro005.github.io/brain/docs/#agents): Each agent keeps its list of MCP servers in its own file. Connect adds brain's entry without touching anything else, after saving a backup (<file>.bak-brain).
+- [Connections](https://lautaro005.github.io/brain/docs/#connections): brain is also an MCP client. Add other MCP servers (GitHub, Notion, Gmail…) and their tools show up in every agent you connected, with their results saved to your memory.
+- [Reflect and skills](https://lautaro005.github.io/brain/docs/#reflect-skills): Two ways to make stored memory more useful: Reflect reviews it and suggests fixes, and distill_skill turns everything on a topic into a reusable skill.
+
+## Reference
+
+- [MCP tools](https://lautaro005.github.io/brain/docs/#tools): Every tool brain exposes to your agents. Errors come back as text starting with Error:, never as exceptions.
+- [The brain command](https://lautaro005.github.io/brain/docs/#command): Installed in ~/.local/bin/brain. From a clone, ./brain.sh does the same.
+- [Configuration](https://lautaro005.github.io/brain/docs/#configuration): brain works without configuration. These are the knobs and the files it uses.
+- [Privacy and security](https://lautaro005.github.io/brain/docs/#security): Your data stays on your computer. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, or checks GitHub for a new version. The privacy policy covers this website too (including its chat, provided by DokBot).
+- [Troubleshooting](https://lautaro005.github.io/brain/docs/#troubleshooting): The usual problems and their fixes.
+- [License](https://lautaro005.github.io/brain/docs/#license): MIT with the Commons Clause. Source available: use it, study it, change it and share it for free, including at work. Don't sell it.
+
+## Optional
+
+- [Changelog](https://lautaro005.github.io/brain/changelog/): every release with its date and what changed
+- [Privacy policy](https://lautaro005.github.io/brain/privacy/): what the website and the app send and to whom (the website chat is provided by DokBot)
+- [README](https://github.com/Lautaro005/brain/blob/main/README.md): the full project overview on GitHub
+- [Security policy](https://github.com/Lautaro005/brain/blob/main/SECURITY.md): supported versions and how to report a vulnerability

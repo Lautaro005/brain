@@ -121,10 +121,6 @@
   .top-right { display: flex; align-items: center; gap: 14px; align-self: center; }
   .gh-top { display: inline-flex; align-items: center; gap: 7px; font: 600 14px/1 var(--sans); text-decoration: none; }
   .gh-top svg { width: 19px; height: 19px; }
-  footer .gh-foot { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
-  footer .gh-foot:hover span { text-decoration: underline; }
-  footer .gh-foot svg { width: 17px; height: 17px; }
-  footer .foot-links { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
   /* ---------------- hero ---------------- */
   .hero { padding: clamp(40px, 7vw, 88px) 0 clamp(56px, 8vw, 104px); }
@@ -213,6 +209,7 @@
 
   /* drawer: tabbed, the product's contents */
   .drawer { display: grid; grid-template-columns: 1fr; }
+  .install-then code { overflow-wrap: anywhere; }  /* el comando de Windows es largo: que corte en celular */
   .drawer-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding-left: 10px; }
   .drawer-tabs { align-items: flex-end; }
   .drawer-tabs button {
@@ -320,9 +317,19 @@
   .close .btn { border-color: var(--card); background: transparent; color: var(--card); }
   .close .btn:hover { background: var(--card); color: var(--ink); }
   .close .meta { color: #a9a9a5; }
-  footer { background: var(--ink); color: #a9a9a5; border-top: 1px solid #2c2c2c; font: 500 14px/1.5 var(--sans); }
-  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-top: 22px; padding-bottom: 26px; }
-  footer a { color: var(--card); }
+
+  /* footer compartido (home, docs, changelog y privacidad): mismo markup y mismos estilos en todas */
+  footer.site-foot { background: var(--ink); color: #a9a9a5; border-top: 1px solid #2c2c2c; font: 500 14px/1.5 var(--sans); }
+  footer.site-foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 20px 40px; padding-top: 26px; padding-bottom: 30px; }
+  footer.site-foot a { color: var(--card); text-decoration: none; }
+  footer.site-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  footer.site-foot .foot-nav { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px 48px; }
+  footer.site-foot .foot-col { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  footer.site-foot .gh-foot { display: inline-flex; align-items: center; gap: 7px; }
+  footer.site-foot .gh-foot:hover { text-decoration: none; }
+  footer.site-foot .gh-foot:hover span { text-decoration: underline; text-underline-offset: 3px; }
+  footer.site-foot .gh-foot svg { width: 17px; height: 17px; flex: none; }
+  @media (max-width: 560px) { footer.site-foot .foot-nav { gap: 16px 32px; } }
 
   /* ---------------- responsive ---------------- */
   @media (max-width: 1020px) {
@@ -720,10 +727,21 @@
   </section>
 </main>
 
-<footer>
+<footer class="site-foot">
   <div class="wrap">
-    <span>brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT + Commons Clause</a> © 2026 Lautaro Silva</span>
-    <span class="foot-links"><a href="docs/" data-i18n="nav.docs">Docs</a> · <a href="changelog/" data-i18n="nav.changelog">Changelog</a> · <a class="gh-foot" href="https://github.com/Lautaro005/brain"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a></span>
+    <span class="foot-legal">brain · <a href="https://github.com/Lautaro005/brain/blob/main/LICENSE">MIT + Commons Clause</a> © 2026 Lautaro Silva</span>
+    <nav class="foot-nav" aria-label="Footer">
+      <ul class="foot-col">
+        <li><a href="docs/">Docs</a></li>
+        <li><a href="changelog/">Changelog</a></li>
+      </ul>
+      <ul class="foot-col">
+        <li><a href="privacy/" data-i18n="foot.privacy">Privacy policy</a></li>
+        <li><a href="llms.txt">llms.txt</a></li>
+        <li><a href="sitemap.xml">sitemap.xml</a></li>
+      </ul>
+      <a class="gh-foot" href="https://github.com/Lautaro005/brain"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+    </nav>
   </div>
 </footer>
 
@@ -732,7 +750,7 @@
   const I18N = {
     en: {
       "nav.why": "Why", "nav.what": "What it keeps", "nav.how": "How it works", "nav.agents": "Agents", "nav.dash": "Dashboard", "nav.privacy": "Privacy",
-      "nav.docs": "Docs", "nav.changelog": "Changelog",
+      "nav.docs": "Docs", "nav.changelog": "Changelog", "foot.privacy": "Privacy policy",
       "hero.t1": "Every AI you use.", "hero.t2": "One memory.",
       "hero.lede": "brain gives Claude, ChatGPT and your other agents the same memory about you: who you are, what you're working on, the pages you saved. It lives on your computer, not in anyone's cloud.",
       "install.h": "Install · macOS · Linux", "copy": "Copy", "copied": "Copied",
@@ -787,7 +805,7 @@
     },
     es: {
       "nav.why": "Por qué", "nav.what": "Qué guarda", "nav.how": "Cómo funciona", "nav.agents": "Agentes", "nav.dash": "Dashboard", "nav.privacy": "Privacidad",
-      "nav.docs": "Docs", "nav.changelog": "Changelog",
+      "nav.docs": "Docs", "nav.changelog": "Changelog", "foot.privacy": "Política de privacidad",
       "hero.t1": "Todas tus IAs.", "hero.t2": "Una sola memoria.",
       "hero.lede": "brain les da a Claude, ChatGPT y tus otros agentes la misma memoria sobre vos: quién sos, en qué estás trabajando, las páginas que guardaste. Vive en tu compu, no en la nube de nadie.",
       "install.h": "Instalar · macOS · Linux", "copy": "Copiar", "copied": "Copiado",

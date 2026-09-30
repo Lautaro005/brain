@@ -284,6 +284,8 @@ brain help            help
 - **Agents can propose, not install.** An agent (or the chat's `/add-mcp`) can only *propose* a new connection; nothing runs until you click *Add* and see the exact command or URL.
 - **Everything can be undone.** Any write can be reverted with `file_history` + `restore_file`, and Settings → Backup keeps full copies you can restore.
 
+The website's [privacy policy](https://lautaro005.github.io/brain/privacy/) covers the site too (its chat assistant is provided by [DokBot](https://www.dokbot.app)).
+
 To start from scratch: close the dashboard and your agents, and delete `~/.brain/vault` and `~/.brain/data`. They're recreated empty on the next start.
 
 ## Troubleshooting
