@@ -1,6 +1,5 @@
 """Operaciones sobre archivos dentro de vault/. Cada escritura queda registrada en el historial
 (brain_mcp/history.py), así cualquier archivo se puede volver a una versión anterior."""
-import fcntl
 import json
 import logging
 import re
@@ -10,7 +9,7 @@ from pathlib import Path
 import frontmatter
 import yaml
 
-from . import history
+from . import history, locks
 
 log = logging.getLogger(__name__)
 
@@ -70,13 +69,8 @@ def _rel(p: Path) -> str:
 def _lock():
     """Lock entre procesos: varios server.py (Claude Code + Desktop) + el dashboard pueden escribir
     a la vez, y leer-modificar-escribir + registrar en el historial tiene que ser atómico."""
-    history.DATA.mkdir(parents=True, exist_ok=True)
-    with open(history.DATA / ".vault.lock", "w") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+    with locks.locked(history.DATA / ".vault.lock"):
+        yield
 
 
 def _read_or_none(p: Path) -> str | None:

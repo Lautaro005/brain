@@ -91,7 +91,8 @@ mcp = BrainServer(
         "Al escribir notas, conectalas: usá [[nombre]] para linkear otros archivos del vault, y en el "
         "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
         "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
-        "(preguntale al usuario antes de mover o borrar)."
+        "(preguntale al usuario antes de mover o borrar). Para sumar un server MCP que pida el usuario, "
+        "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba."
     ),
 )
 
@@ -262,6 +263,37 @@ def list_connections() -> list[dict] | str:
 
 
 @mcp.tool()
+def propose_connection(name: str, url: str | None = None, command: str | None = None, args: list[str] | None = None,
+                       env: dict | None = None, headers: dict | None = None, note: str = "") -> dict | str:
+    """Propone agregar un server MCP a las Conexiones de brain. NO lo agrega: el usuario lo aprueba
+    con un click (en el chat o en Conexiones) viendo el comando o la URL.
+    - Server remoto: url="https://…/mcp" (si pide login, el usuario inicia sesión al aprobar).
+    - Server local: command + args, ej. command="npx", args=["-y", "@modelcontextprotocol/server-github"]
+      o command="uvx", args=["mcp-server-fetch"]. env/headers: claves que pide (ej. {"GITHUB_TOKEN": "…"}).
+    note: una línea que explique qué hace. Si falta un dato (una API key), pediselo al usuario antes."""
+    try:
+        data = {"name": name, "url": url, "command": command, "args": args or [], "env": env or {}, "headers": headers or {}}
+        if url:
+            data["kind"] = "http"
+        p = connectors.propose(data, note)
+        return {"ok": True, "proposal": p,
+                "next": "Decile al usuario que revise la propuesta y toque «Agregar» (en el chat o en Conexiones)."}
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def read_url(url: str, max_chars: int = 8000) -> str:
+    """Lee una página web y devuelve su texto, SIN guardarla en el vault (para guardarla, save_url).
+    Sirve para leer la documentación de un server MCP antes de proponerlo."""
+    try:
+        text = scrape(url).get("text", "")
+        return text[: max(500, min(int(max_chars), 30000))] or f"Error: no se pudo sacar texto de {url}"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 async def refresh_connectors() -> str:
     """Vuelve a descubrir las tools de todas las conexiones activas (después de conectar una app nueva)."""
     out = []
@@ -314,9 +346,12 @@ def save_url(url: str, render_js: bool = False) -> str:
         return _err(e)
 
 
-def save_url_core(url: str, render_js: bool = False) -> dict:
-    """Lo que hace save_url, devolviendo datos (lo usa también el dashboard). Levanta excepciones."""
-    data = scrape(url, render_js=render_js)
+def save_url_core(url: str, render_js: bool = False, data: dict | None = None) -> dict:
+    """Lo que hace save_url, devolviendo datos (lo usa también el dashboard). Levanta excepciones.
+    `data`: un scrape ya hecho (refresh_source lo pasa para no bajar la página dos veces).
+    Si algo falla (red, Ollama, Chroma), la copia anterior queda intacta: primero se indexa lo nuevo
+    y recién después se borran los chunks que sobran y se reescribe el .md."""
+    data = data or scrape(url, render_js=render_js)
     slug = _slug(url)
     md_path = f"{SOURCES_DIR}/{slug}.md"
 
@@ -331,12 +366,14 @@ def save_url_core(url: str, render_js: bool = False) -> dict:
     ids = [f"{slug}-{i}" for i in range(len(chunks))]
     metas = [{"url": url, "source_md_path": md_path, "chunk_index": i} for i in range(len(chunks))]
 
-    chroma_store.delete(old_ids)
-    chroma_store.upsert(ids, chunks, metas)
-    keyword_store.delete(old_ids)
+    chroma_store.upsert(ids, chunks, metas)  # los ids se repiten (slug-0, slug-1…): pisa los viejos
     keyword_store.upsert(ids, chunks, metas)
+    stale = [i for i in old_ids if i not in set(ids)]  # la página nueva tiene menos chunks
+    chroma_store.delete(stale)
+    keyword_store.delete(stale)
 
-    fields = dict(name=slug, description=data["title"], url=url, scraped_at=data["fetched_at"], chroma_ids=ids)
+    fields = dict(name=slug, description=data["title"], url=url, scraped_at=data["fetched_at"],
+                  checked_at=data["fetched_at"], chroma_ids=ids)
     # best-effort con el modelo de chat de Ollama: sin él la fuente se guarda igual, sin estos campos
     abstract = summarize(data["text"]) if len(data["text"].split()) > ABSTRACT_MIN_WORDS else None
     if abstract:
@@ -461,8 +498,9 @@ def reindex_keyword_search() -> str:
 
 @mcp.tool()
 def list_sources() -> list[dict] | str:
-    """Lista todas las fuentes scrapeadas (url, fecha, path del .md, título y, si es larga, un
-    resumen corto en 'abstract' para decidir si leerla entera con read_file)."""
+    """Lista todas las fuentes scrapeadas (url, cuándo se bajó el contenido actual, cuándo se revisó
+    por última vez, el error de la última actualización si falló, path del .md, título y, si es larga,
+    un resumen corto en 'abstract' para decidir si leerla entera con read_file)."""
     try:
         out = []
         for f in vault.list_files(SOURCES_DIR):
@@ -471,12 +509,56 @@ def list_sources() -> list[dict] | str:
                 {
                     "url": meta.get("url"),
                     "scraped_at": str(meta.get("scraped_at", "")),
+                    "checked_at": str(meta.get("checked_at") or meta.get("scraped_at", "")),
+                    "refresh_error": meta.get("refresh_error"),
                     "path": f["path"],
                     "title": meta.get("description", ""),
                     "abstract": meta.get("abstract"),
                 }
             )
         return out
+    except Exception as e:
+        return _err(e)
+
+
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def refresh_source_core(path: str) -> dict:
+    """Vuelve a bajar una fuente. {"path", "status": updated | unchanged | error, "error"?, "chunks"?}.
+    Si falla, el .md y los índices quedan como estaban y el error se anota en `refresh_error`."""
+    meta, body = vault.parse(vault.read_file(path))
+    url = str(meta.get("url") or "")
+    if not url:
+        return {"path": path, "status": "error", "error": "La fuente no tiene url."}
+    try:
+        data = scrape(url)
+        if data["text"].strip() == body.strip():
+            vault.set_frontmatter(path, {"checked_at": _now_iso(), "refresh_error": None})
+            return {"path": path, "status": "unchanged"}
+        r = save_url_core(url, data=data)
+        return {"path": path, "status": "updated", "chunks": r["chunks"]}
+    except Exception as e:
+        msg = str(e)[:300] or type(e).__name__
+        try:
+            vault.set_frontmatter(path, {"checked_at": _now_iso(), "refresh_error": msg})
+        except vault.VaultError:
+            pass
+        return {"path": path, "status": "error", "error": msg}
+
+
+@mcp.tool()
+def refresh_sources(path: str | None = None) -> dict | str:
+    """Vuelve a bajar una fuente guardada (path de knowledge/sources/…) o todas si no pasás path.
+    Si la página cambió, actualiza el .md y los índices; si falla, conserva la última copia buena
+    y anota el error. Puede tardar si son muchas."""
+    try:
+        paths = [path] if path else [f["path"] for f in vault.list_files(SOURCES_DIR)]
+        results = [refresh_source_core(p) for p in paths]
+        count = {s: sum(r["status"] == s for r in results) for s in ("updated", "unchanged", "error")}
+        return {"summary": count, "errors": [r for r in results if r["status"] == "error"]}
     except Exception as e:
         return _err(e)
 

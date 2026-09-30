@@ -26,7 +26,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import frontmatter
 import httpx
 
-from . import chroma_store, entities, keyword_store, vault
+from . import chroma_store, entities, keyword_store, oauth, vault
 from .chunking import chunk_text
 from .summarize import summarize
 
@@ -152,6 +152,8 @@ def public(c: dict) -> dict:
         "tools": [t["name"] for t in cache.get("tools", [])],
         "refreshed_at": cache.get("refreshed_at"), "error": cache.get("error"),
         "local": c["kind"] == "stdio",
+        "oauth": uses_oauth(c), "signed_in": oauth.has_tokens(c["id"]) if uses_oauth(c) else False,
+        "needs_auth": cache.get("error") == NEEDS_AUTH,
     }
 
 
@@ -246,6 +248,7 @@ def delete(conn_id: str) -> None:
     refs = [v for f in ("env", "headers") for v in (c.get(f) or {}).values()]
     _write_env({v[5:]: None for v in refs if isinstance(v, str) and v.startswith("$env:")})
     _save([x for x in conns if x["id"] != conn_id])
+    oauth.forget(conn_id)
     cache = _load_cache()
     cache.pop(conn_id, None)
     _save_cache(cache)
@@ -253,7 +256,12 @@ def delete(conn_id: str) -> None:
 
 # ---------- cliente MCP ----------
 
-async def _open(stack: AsyncExitStack, c: dict):
+def uses_oauth(c: dict) -> bool:
+    """Una conexión por URL sin headers propios (API key) usa OAuth si el server lo pide (401)."""
+    return c.get("kind") == "http" and not (c.get("headers") or {})
+
+
+async def _open(stack: AsyncExitStack, c: dict, port: int | None = None):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
@@ -268,20 +276,37 @@ async def _open(stack: AsyncExitStack, c: dict):
         from mcp.client.streamable_http import streamable_http_client
 
         headers = {k: _resolve(v, env) for k, v in (c.get("headers") or {}).items()}
-        client = await stack.enter_async_context(httpx2.AsyncClient(headers=headers, timeout=CALL_TIMEOUT))
+        # OAuth: el provider no hace nada si el server no pide auth; si la pide, usa el token guardado,
+        # lo renueva, o (solo desde el dashboard, con port) abre el login del servicio
+        auth = oauth.provider(c["id"], c["url"], port) if uses_oauth(c) else None
+        client = await stack.enter_async_context(httpx2.AsyncClient(headers=headers, auth=auth, timeout=CALL_TIMEOUT))
         read, write = await stack.enter_async_context(streamable_http_client(c["url"], http_client=client))
     session = await stack.enter_async_context(ClientSession(read, write))
     await session.initialize()
     return session
 
 
-async def discover(conn_id: str) -> dict:
-    """Se conecta, lista las tools y las guarda en el caché."""
+def _root_error(e: BaseException) -> BaseException:
+    while isinstance(e, BaseExceptionGroup) and e.exceptions:
+        e = e.exceptions[0]
+    return e
+
+
+NEEDS_AUTH = "needs_auth"
+
+
+def cached_error(conn_id: str) -> str | None:
+    return (_load_cache().get(conn_id) or {}).get("error")
+
+
+async def discover(conn_id: str, port: int | None = None) -> dict:
+    """Se conecta, lista las tools y las guarda en el caché. `port` (el del dashboard) permite
+    que una conexión OAuth abra el login; sin él, queda marcada como NEEDS_AUTH."""
     c = get(conn_id)
     cache = _load_cache()
     try:
         async with AsyncExitStack() as stack:
-            session = await _open(stack, c)
+            session = await _open(stack, c, port)
             tools, cursor = [], None
             while True:
                 from mcp.types import PaginatedRequestParams
@@ -296,9 +321,15 @@ async def discover(conn_id: str) -> dict:
                     break
         cache[conn_id] = {"tools": tools, "refreshed_at": _now(), "error": None}
     except Exception as e:  # el error queda visible en el dashboard
-        msg = _short(e)
-        if c["kind"] != "stdio":
-            msg = _http_probe(c) or msg
+        root = _root_error(e)
+        if isinstance(root, oauth.NeedsAuth) or (uses_oauth(c) and "401" in str(root)):
+            msg = NEEDS_AUTH
+        else:
+            msg = _short(e)
+            if c["kind"] != "stdio":
+                msg = _http_probe(c) or msg
+                if uses_oauth(c) and msg.startswith("HTTP 401"):
+                    msg = NEEDS_AUTH
         log.warning("No se pudo descubrir %s: %s", conn_id, msg)
         prev = cache.get(conn_id, {})
         cache[conn_id] = {"tools": prev.get("tools", []), "refreshed_at": prev.get("refreshed_at"), "error": msg}
@@ -356,7 +387,12 @@ async def call(conn_id: str, tool: str, arguments: dict) -> tuple[list, bool]:
     if not c.get("enabled", True):
         raise ConnectorError("disabled", c["name"])
     async with AsyncExitStack() as stack:
-        session = await _open(stack, c)
+        try:
+            session = await _open(stack, c)
+        except Exception as e:
+            if isinstance(_root_error(e), oauth.NeedsAuth):
+                raise ConnectorError(NEEDS_AUTH, f"{c['name']} necesita que inicies sesión: abrí el dashboard → Conexiones → Iniciar sesión.") from e
+            raise
         res = await session.call_tool(tool, arguments or {}, read_timeout_seconds=CALL_TIMEOUT)
     content = list(getattr(res, "content", []) or [])
     is_error = bool(getattr(res, "is_error", False) or getattr(res, "isError", False))
@@ -537,3 +573,78 @@ def composio_provision(auth_config_ids: list[str], name: str = "brain") -> dict:
 
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ---------- propuestas (agregar conexiones desde el chat o un agente) ----------
+# Un agente puede proponer una conexión (propose_connection), pero no crearla: una conexión stdio
+# ejecuta un comando en la máquina, así que siempre la aprueba el usuario con un click (en el chat o
+# en Conexiones), viendo exactamente qué comando o URL se va a usar. Los valores secretos que traiga
+# la propuesta quedan en data/connection_proposals.json (600) hasta aprobarla o descartarla.
+PROPOSALS = DATA / "connection_proposals.json"
+
+
+def _load_proposals() -> list[dict]:
+    try:
+        return json.loads(PROPOSALS.read_text(encoding="utf-8") or "[]")
+    except (OSError, ValueError):
+        return []
+
+
+def _save_proposals(items: list[dict]) -> None:
+    PROPOSALS.parent.mkdir(parents=True, exist_ok=True)
+    tmp = PROPOSALS.with_suffix(".tmp")
+    tmp.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
+    if os.name != "nt":
+        os.chmod(tmp, 0o600)
+    tmp.replace(PROPOSALS)
+
+
+def _proposal_public(p: dict) -> dict:
+    d = p["data"]
+    return {"id": p["id"], "created_at": p["created_at"], "note": p.get("note", ""), "name": d["name"], "kind": d["kind"],
+            "url": _mask_url(d.get("url", "")), "command": d.get("command", ""), "args": d.get("args", []),
+            "env_keys": sorted(d.get("env") or {}), "header_keys": sorted(d.get("headers") or {})}
+
+
+def propose(data: dict, note: str = "") -> dict:
+    """Valida y guarda una propuesta pendiente. No crea la conexión."""
+    kind = data.get("kind") or ("http" if data.get("url") else "stdio")
+    name = str(data.get("name", "")).strip()
+    if kind not in ("stdio", "http"):
+        raise ConnectorError("bad_kind", kind)
+    if not name:
+        raise ConnectorError("missing_name")
+    clean = {"kind": kind, "name": name[:60]}
+    if kind == "http":
+        url = str(data.get("url", "")).strip()
+        if not url.startswith(("http://", "https://")):
+            raise ConnectorError("bad_url", url)
+        clean.update(url=url, headers={str(k): str(v) for k, v in (data.get("headers") or {}).items() if str(k).strip()})
+    else:
+        cmd = str(data.get("command", "")).strip()
+        if not cmd:
+            raise ConnectorError("missing_command")
+        args = data.get("args") or []
+        if isinstance(args, str):
+            args = args.split()
+        clean.update(command=cmd, args=[str(a) for a in args],
+                     env={str(k): str(v) for k, v in (data.get("env") or {}).items() if str(k).strip()})
+    items = _load_proposals()
+    pid = "p" + hashlib.sha1(f"{time.time()}{name}".encode()).hexdigest()[:8]
+    items.append({"id": pid, "created_at": _now(), "note": str(note)[:500], "data": clean})
+    _save_proposals(items[-20:])  # no se acumulan propuestas viejas
+    return _proposal_public(items[-1])
+
+
+def proposals() -> list[dict]:
+    return [_proposal_public(p) for p in _load_proposals()]
+
+
+def resolve_proposal(pid: str, approve: bool) -> dict | None:
+    """Aprueba (crea la conexión; el llamador hace discover) o descarta. Devuelve la conexión creada."""
+    items = _load_proposals()
+    p = next((x for x in items if x["id"] == pid), None)
+    if not p:
+        raise ConnectorError("unknown", pid)
+    _save_proposals([x for x in items if x["id"] != pid])
+    return upsert(p["data"]) if approve else None

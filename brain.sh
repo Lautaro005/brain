@@ -6,7 +6,7 @@ cd "$DIR"
 
 UV="$(command -v uv || true)"
 [ -z "$UV" ] && [ -x "$HOME/.local/bin/uv" ] && UV="$HOME/.local/bin/uv"
-[ -z "$UV" ] && { echo "No encontré uv. Instalalo con: brew install uv"; exit 1; }
+[ -z "$UV" ] && { echo "No encontré uv. Instalalo con: curl -LsSf https://astral.sh/uv/install.sh | sh"; exit 1; }
 
 case "${1:-}" in
   update)

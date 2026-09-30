@@ -2,12 +2,15 @@
 
 **Your local second brain for Claude, ChatGPT and any AI agent.**
 
-brain is an [MCP](https://modelcontextprotocol.io) server that runs on your Mac and gives your AI agents a shared memory: your notes, your projects, what they know about you and the web pages you saved, with semantic search. Connect it once to Claude, ChatGPT, Cursor or whatever agent you use, and they all read and write the same knowledge base. Everything stays on your computer.
+brain is an [MCP](https://modelcontextprotocol.io) server that runs on your computer (macOS, Linux or Windows) and gives your AI agents a shared memory: your notes, your projects, what they know about you and the web pages you saved, with semantic search. Connect it once to Claude, ChatGPT, Cursor or whatever agent you use, and they all read and write the same knowledge base. Everything stays on your computer.
 
 It ships with a web dashboard so you never have to touch the terminal: turn services on and off, fill in your profile, import the memory other chatbots have about you, connect agents, explore the connection graph and search what you saved.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash      # macOS and Linux
+```
+```powershell
+irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex               # Windows (PowerShell)
 ```
 
 Then type `brain` and the dashboard opens.
@@ -49,19 +52,27 @@ Then type `brain` and the dashboard opens.
 
 ## Installation
 
-**Requirements:** macOS (Apple Silicon or Intel) and git (`xcode-select --install` if you don't have it). The installer takes care of the rest.
+**Requirements:** macOS, Linux or Windows, and git. The installer takes care of the rest.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash
-```
+| System | Command | File |
+|---|---|---|
+| macOS | `curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh \| bash` | |
+| Linux | same command | `brain-install-linux.sh` in each [release](https://github.com/Lautaro005/brain/releases/latest) (`bash brain-install-linux.sh`) |
+| Windows | `irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 \| iex` (PowerShell) | `brain-setup.exe` in each [release](https://github.com/Lautaro005/brain/releases/latest) |
+
+Missing git? macOS: `xcode-select --install`. Linux: your distro's package manager (`sudo apt install git`). Windows: the installer tries `winget`, or get it from [git-scm.com](https://git-scm.com/download/win). `brain-setup.exe` isn't code-signed yet, so Windows SmartScreen may ask you to confirm (*More info → Run anyway*).
+
+Every commit to `main` runs the tests and both installers on macOS, Linux and Windows in GitHub Actions, and every release attaches the Windows `.exe` and the Linux installer.
 
 The installer:
 
 1. Installs [uv](https://docs.astral.sh/uv/) if you don't have it (it manages Python and the dependencies without touching the system Python).
 2. Downloads brain into `~/.brain`.
 3. Installs the dependencies and the headless Chromium used to scrape JavaScript sites.
-4. Installs [Ollama](https://ollama.com) with Homebrew if needed, and pulls the `nomic-embed-text` embedding model (~270 MB). Without Homebrew, it tells you where to download Ollama. The chat model (`llama3.2`, ~2 GB) is **optional** and not pulled automatically: it powers the Chat tab, source summaries (`abstract`) and entity extraction for the graph. Get it with `ollama pull llama3.2` or the *Download llama3.2* button in the Chat tab; without it those three features are skipped and everything else works. Use another model with `BRAIN_SUMMARY_MODEL=<model>`, or turn summaries and entities off with `BRAIN_SUMMARY_MODEL=off`.
-5. Creates the `brain` command in `~/.local/bin` and adds it to your `PATH` if it wasn't there.
+4. Installs [Ollama](https://ollama.com) if needed (Homebrew on macOS, `winget` on Windows, the official script on Linux when `sudo` doesn't ask for a password; otherwise it tells you the command), and pulls the `nomic-embed-text` embedding model (~270 MB). Without Homebrew, it tells you where to download Ollama. The chat model (`llama3.2`, ~2 GB) is **optional** and not pulled automatically: it powers the Chat tab, source summaries (`abstract`) and entity extraction for the graph. Get it with `ollama pull llama3.2` or the *Download llama3.2* button in the Chat tab; without it those three features are skipped and everything else works. Use another model with `BRAIN_SUMMARY_MODEL=<model>`, or turn summaries and entities off with `BRAIN_SUMMARY_MODEL=off`.
+5. Creates the `brain` command in `~/.local/bin` (`%USERPROFILE%\.local\bin\brain.cmd` on Windows) and adds it to your `PATH` if it wasn't there.
+
+On Linux, Chromium needs some system libraries; if they're missing the installer prints the one command to add them (`sudo uv run playwright install-deps chromium`).
 
 Running it again updates the install. To install somewhere else, set `BRAIN_HOME=~/some/folder` before `bash`.
 
@@ -89,12 +100,12 @@ ollama pull nomic-embed-text
 | Tab | What it's for |
 |---|---|
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
-| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click) when you start a chat; it then stays with that chat. A circle next to the send button fills up as the chat uses the model's context window. Rename a chat with the pencil next to its title. Type `/` for commands: **`/organize`** tidies up the vault and its graph with a built-in skill (adapted from [file-organizer](https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md)): it asks how you want it organized, proposes a plan and changes only what you approve; `/compact` summarizes the conversation so far to free up context and keep going in the same chat; `/reflect` brings Reflect's suggestions into the chat; `/new` starts a new chat. Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
+| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click) when you start a chat; it then stays with that chat. A circle next to the send button fills up as the chat uses the model's context window. Rename a chat with the pencil next to its title. Type `/` for commands: **`/organize`** tidies up the vault and its graph with a built-in skill (adapted from [file-organizer](https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md)): it asks how you want it organized, proposes a plan and changes only what you approve; **`/add-mcp`** sets up a connector from a URL or instructions (you approve it with one click before anything runs); `/compact` summarizes the conversation so far to free up context and keep going in the same chat; `/reflect` brings Reflect's suggestions into the chat; `/new` starts a new chat. Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
 | **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. **Reflect** reviews your memory and suggests fixes (duplicates, contradictions, notes without entities) without changing anything. |
 | **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
-| **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. |
+| **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. Servers that need a login (OAuth) show **Sign in**: it opens the service's own sign-in page and brain keeps the token. Connections an agent proposed (`/add-mcp` in the chat) wait here for you to approve them. |
 | **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders, tags and entities. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
-| **Knowledge** | Save a URL (optionally forcing JavaScript rendering), hybrid search (semantic score, or a *keyword* tag for exact matches), a button to rebuild the keyword index, and the list of saved sources. |
+| **Knowledge** | Save a URL (optionally forcing JavaScript rendering), hybrid search (semantic score, or a *keyword* tag for exact matches), a button to rebuild the keyword index, and the list of saved sources with how old their content is and when they were last checked. **Refresh** re-downloads one source or all of them; if a refresh fails, the last good copy is kept and the error is shown. |
 | **Logs** | Live output of every service the dashboard manages. |
 
 The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**), an **i** button that lists the services (Chroma, Ollama, MCP Inspector) and their state, and **Settings** (the gear), a full view where you can:
@@ -103,6 +114,7 @@ The bottom of the sidebar has the theme (system, light or dark), the language (*
 - reorder the **sidebar** and hide the views you don't use (a hidden view is still reachable by its URL, e.g. `#logs`);
 - pick the **default chat model**, used when the chat opens and on every new chat;
 - set the chat's **context window**: each model's maximum with a cap for all (16k by default), everything each model supports, or a value per model, with a table of the detected models and what they support;
+- make a **backup** of everything local (vault, history, settings, connections and what's indexed in Chroma, embeddings included) and **restore** it; credentials are left out unless you tick the box, and restoring first saves a backup of the current state;
 - write a **system prompt** for the chat: how you want it to answer (tone, format, language, focus), added to brain's own instructions;
 - give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags, Entities) its own color, or go back to black and white.
 
@@ -239,7 +251,10 @@ flowchart LR
 | `save_url(url, render_js?)` | Scrapes, indexes and saves a URL (long pages also get a short `abstract`) |
 | `search_knowledge(query, top_k?)` | Hybrid search over what you saved: semantic + exact keyword (names, IDs, dates), merged with reciprocal rank fusion |
 | `reindex_keyword_search()` | Rebuilds the keyword index from the `.md` files in `knowledge/` (for sources saved before hybrid search existed) |
-| `list_sources()` | Every saved URL, with its `abstract` when there is one |
+| `list_sources()` | Every saved URL, with its `abstract`, when its content was downloaded and when it was last checked |
+| `refresh_sources(path?)` | Re-downloads one saved source (or all); keeps the last good copy if it fails |
+| `read_url(url, max_chars?)` | Reads a web page without saving it (e.g. an MCP server's docs) |
+| `propose_connection(name, url? \| command?, args?, env?, headers?, note?)` | Proposes adding an MCP server to Connections. It doesn't add it: you approve it with one click |
 | `list_connections()` | Your connections, whether they're active, and their tools |
 | `refresh_connectors()` | Re-discovers the tools of every active connection |
 | `<connection>__<tool>` | Any tool from an active connection, proxied (and captured to memory if enabled) |
@@ -262,11 +277,12 @@ brain help            help
 ## Data, privacy and security
 
 - **Everything is local.** Your data lives in `~/.brain/vault/` and `~/.brain/data/`. Both folders are in `.gitignore`, so they're never uploaded anywhere, not even if you fork the repo.
-- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save a URL or use a connection that talks to a remote service. Composio, if you use it, keeps your app tokens in its cloud.
+- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, or checks GitHub for a new version (it only reads the latest release number). Composio, if you use it, keeps your app tokens in its cloud.
 - **The dashboard only accepts requests from your own machine.** It listens on `127.0.0.1`, rejects requests with any other `Host` (DNS-rebinding protection), and its actions require a custom header browsers won't send from other pages. No website you have open can start processes or write to your vault.
 - **Agents can't leave the vault.** The tools reject paths with `..`, absolute paths, hidden files and symlinks that point outside.
-- **Secrets stay out of the vault and the repo.** Connection tokens and API keys are in `~/.brain/.env` (permissions `600`, gitignored); the dashboard never shows them back.
-- **Everything can be undone.** Any write can be reverted with `file_history` + `restore_file`.
+- **Secrets stay out of the vault and the repo.** Connection tokens and API keys are in `~/.brain/.env`, and OAuth sign-ins in `~/.brain/data/oauth.json` (both permissions `600`, gitignored); the dashboard never shows them back, and backups leave them out unless you ask.
+- **Agents can propose, not install.** An agent (or the chat's `/add-mcp`) can only *propose* a new connection; nothing runs until you click *Add* and see the exact command or URL.
+- **Everything can be undone.** Any write can be reverted with `file_history` + `restore_file`, and Settings → Backup keeps full copies you can restore.
 
 To start from scratch: close the dashboard and your agents, and delete `~/.brain/vault` and `~/.brain/data`. They're recreated empty on the next start.
 

@@ -1,0 +1,58 @@
+# Al publicar un release en GitHub, agrega los archivos para instalar brain en Windows y Linux:
+# - brain-setup.exe: instalador de Windows (corre install.ps1; ver installers/windows/brain_setup.py).
+# - brain-install-linux.sh: el instalador de Linux/macOS, para bajar y correr con `bash`.
+# - brain-<versión>-src.tar.gz: el código de ese release.
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag del release (ej. v0.02.9)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: brain-setup.exe
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Armar el .exe
+        shell: pwsh
+        run: |
+          pip install pyinstaller
+          pyinstaller --onefile --name brain-setup --add-data "install.ps1;." installers/windows/brain_setup.py
+      - name: Subir al release
+        shell: pwsh
+        run: gh release upload $env:TAG dist/brain-setup.exe --clobber
+
+  linux:
+    name: Instalador de Linux y código
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Armar los archivos
+        run: |
+          cp install.sh brain-install-linux.sh
+          chmod +x brain-install-linux.sh
+          git archive --format=tar.gz --prefix=brain/ -o "brain-${TAG}-src.tar.gz" HEAD
+      - name: Subir al release
+        run: gh release upload "$TAG" brain-install-linux.sh "brain-${TAG}-src.tar.gz" --clobber

@@ -51,6 +51,7 @@ COMMANDS = {
     "organize": "Ayudame a ordenar mi vault y su grafo.",
     "reflect": "Revisá mi memoria y lo que guardé: duplicados, contradicciones y notas sin entidades.",
     "compact": "Resumí la conversación hasta acá.",
+    "add-mcp": "Quiero agregar un server MCP a las Conexiones de brain.",
 }
 # /compact no es un modo: resume lo anterior en un mensaje marcado `compact` y, desde ahí, al modelo le
 # llega ese resumen en lugar de los mensajes viejos (que siguen guardados y visibles en el chat).
@@ -59,8 +60,20 @@ COMPACT_PROMPT = (
     "usuario, qué se decidió o respondió, datos concretos (nombres, números, paths de archivos), qué cambios "
     "se hicieron en el vault con las tools, y qué quedó pendiente. Viñetas, máximo ~300 palabras, sin "
     "introducción. Escribí en el idioma de la conversación.")
-CMD_TITLES = {"es": {"organize": "Ordenar el vault", "reflect": "Revisar la memoria"},
-              "en": {"organize": "Organize the vault", "reflect": "Review my memory"}}
+CMD_TITLES = {"es": {"organize": "Ordenar el vault", "reflect": "Revisar la memoria", "add-mcp": "Agregar un conector"},
+              "en": {"organize": "Organize the vault", "reflect": "Review my memory", "add-mcp": "Add a connector"}}
+ADD_MCP_PROMPT = """# Modo /add-mcp: agregar un conector
+El usuario quiere sumar un server MCP a las Conexiones de brain. Pasos:
+1. Si te pasó una URL de documentación (GitHub, npm, PyPI, la web del servicio), leela con read_url. Si te pasó
+   directamente la URL de un server MCP remoto (suele terminar en /mcp o /sse), usala tal cual.
+2. Armá la config: remoto → url; local → command + args (Node: command "npx", args ["-y", "<paquete>"];
+   Python: command "uvx", args ["<paquete>"]). Anotá qué variables de entorno o headers pide (API keys).
+3. Si falta una API key u otro dato, pedíselo al usuario en una pregunta corta y esperá. Si el server
+   remoto usa login (OAuth), no hace falta key: el usuario inicia sesión después de aprobar.
+4. Llamá propose_connection con name, url o command/args, env/headers y una nota de una línea.
+5. Contale en una o dos líneas qué propusiste y que tiene que tocar «Agregar» en la tarjeta que aparece
+   abajo (o en Conexiones). Vos no podés agregarla solo: la aprobación es del usuario.
+No inventes paquetes ni URLs: si la documentación no alcanza para saber el comando, decilo y preguntá."""
 
 
 class ChatError(RuntimeError):
@@ -317,13 +330,15 @@ def _transcript(summary: str, msgs: list[dict]) -> str:
 
 def parse_command(text: str) -> tuple[str, str]:
     """"/organize y los proyectos" → ("organize", "y los proyectos"). Sin comando: ("", text)."""
-    m = re.match(r"^/([a-z]+)\b\s*(.*)$", text.strip(), re.S)
+    m = re.match(r"^/([a-z][a-z-]*)(?![\w-])\s*(.*)$", text.strip(), re.S)
     if m and m.group(1) in COMMANDS:
         return m.group(1), m.group(2).strip()
     return "", text
 
 
 def _command_prompt(cmd: str) -> str:
+    if cmd == "add-mcp":
+        return ADD_MCP_PROMPT
     if cmd == "organize":
         return organize.skill() + "\n\n" + organize.overview_text()
     if cmd == "reflect":
@@ -364,6 +379,8 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         "2) para cambiar un metadato (description, tags, related, name) usá set_frontmatter, no reescribas el archivo; "
         "3) para cambiar texto usá str_replace_file o write_file; 4) nunca digas que hiciste un cambio si la tool no "
         "respondió 'OK'; si respondió 'Error', contá el error y probá de otra forma. "
+        "Si el usuario pide sumar un conector o server MCP, leé su documentación con read_url y proponelo con "
+        "propose_connection (el usuario lo aprueba con un click; vos no podés agregarlo solo). "
         "Después de actuar, contá en una línea qué hiciste. Cada cambio queda en el historial y se puede deshacer con "
         "file_history + restore_file. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. "
         "No inventes datos: si algo no está en el contexto ni en el vault, decilo. "

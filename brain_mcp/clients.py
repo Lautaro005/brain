@@ -7,15 +7,17 @@ donde quieren, así que agents.py no las puede leer. Para que igual aparezcan en
   manda en el handshake MCP (clientInfo), con la fecha del último uso.
 - **Manuales**: el usuario puede anotar a mano una app donde agregó brain (por si todavía no la usó).
 
-Varios server.py escriben a la vez (uno por cliente): todo pasa por un flock sobre data/.clients.lock.
+Varios server.py escriben a la vez (uno por cliente): todo pasa por un lock sobre data/.clients.lock
+(brain_mcp/locks.py: flock en macOS/Linux, msvcrt en Windows).
 """
-import fcntl
 import json
 import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
+from . import locks
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -49,27 +51,22 @@ def _id(name: str) -> str:
 
 @contextmanager
 def _locked():
-    DATA.mkdir(parents=True, exist_ok=True)
-    with open(DATA / ".clients.lock", "w") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            data = {"seen": {}, "manual": {}}
-            if PATH.exists():
-                try:
-                    loaded = json.loads(PATH.read_text() or "{}")
-                    if isinstance(loaded, dict):
-                        data["seen"] = loaded.get("seen") or {}
-                        data["manual"] = loaded.get("manual") or {}
-                except json.JSONDecodeError:
-                    pass
-            before = json.dumps(data, sort_keys=True)
-            yield data
-            if json.dumps(data, sort_keys=True) != before:
-                tmp = PATH.with_suffix(".tmp")
-                tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
-                tmp.replace(PATH)
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+    with locks.locked(DATA / ".clients.lock"):
+        data = {"seen": {}, "manual": {}}
+        if PATH.exists():
+            try:
+                loaded = json.loads(PATH.read_text() or "{}")
+                if isinstance(loaded, dict):
+                    data["seen"] = loaded.get("seen") or {}
+                    data["manual"] = loaded.get("manual") or {}
+            except json.JSONDecodeError:
+                pass
+        before = json.dumps(data, sort_keys=True)
+        yield data
+        if json.dumps(data, sort_keys=True) != before:
+            tmp = PATH.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+            tmp.replace(PATH)
 
 
 def known_key(name: str) -> str | None:

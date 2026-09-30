@@ -4,11 +4,11 @@ brain runs on your own machine and handles personal data (your notes, your profi
 
 ## Supported versions
 
-Only the latest release gets security fixes. Update with `brain update` (or run the installer again).
+Only the latest release gets security fixes, on macOS, Linux and Windows. Update with `brain update` (or run the installer again). The dashboard checks for new versions on its own and turns the gear green when one is out.
 
 | Version | Supported |
 |---|---|
-| Latest release (currently `v0.02.8.1`) | ✅ |
+| Latest release (currently `v0.02.9`) | ✅ |
 | Older releases | ❌ |
 
 ## Reporting a vulnerability
@@ -27,15 +27,18 @@ brain's own code in this repository, in particular:
 
 - **The dashboard** (`dashboard.py`, `127.0.0.1:8765`): it must only accept requests from its own page. It listens on `127.0.0.1`, rejects any `Host` other than `127.0.0.1:<port>` / `localhost:<port>` (DNS rebinding) and requires the `X-Brain: 1` header on every POST (so browsers force a CORS preflight that is never approved). A way for a website to start processes, read the vault or write to it is a vulnerability.
 - **Vault path validation** (`brain_mcp/vault.py`): tools must not read or write outside `vault/` (`..`, absolute paths, hidden files, symlinks). This includes both ends of `move_file`, which also refuses to move `BRAIN.md`, `profile.md`, `memory/` and `knowledge/sources/`.
-- **Secrets** (`.env`, `data/connections.json`): API keys and tokens must never be returned by the dashboard API, written to the vault, or logged.
+- **Secrets** (`.env`, `data/connections.json`, `data/oauth.json`, `data/connection_proposals.json`): API keys and tokens must never be returned by the dashboard API, written to the vault, logged, or put in a backup unless the user ticks *Include credentials*.
+- **OAuth sign-in for connections** (`brain_mcp/oauth.py`): the callback (`/oauth/callback`) must only complete a sign-in the dashboard started (matching `state`, PKCE); tokens stay in `data/oauth.json` with permissions `600`. A way to plant a token or complete someone else's login is a vulnerability.
+- **Connections proposed by agents** (`propose_connection`, `/add-mcp`): an agent or a web page it reads must never be able to add a connection, and so run a command, without the user clicking *Add* on a card that shows the exact command or URL.
+- **Backup and restore** (`brain_mcp/backup.py`): a backup file must not be able to write outside brain's folders (zip slip) or run code when restored.
 - **Agent configs** (`brain_mcp/agents.py`): connecting an agent must never drop other entries from a client's config file or write it without a backup.
-- **The installer** (`install.sh`).
+- **The installers** (`install.sh`, `install.ps1`, `brain-setup.exe`) and the release workflow that builds the `.exe`.
 - **Content rendering**: scraped pages, notes and chat answers are rendered in the dashboard, graph and chat through DOMPurify, and brain's own dialogs and dropdowns (`brain_mcp/ui.js`) escape their text; script execution from vault content or model output is a vulnerability.
 - **Chat settings stored locally**: the chat system prompt and context settings stay on your machine (browser storage and `data/`); a way to read or change them from a website is a vulnerability.
 
 ## Out of scope
 
 - Vulnerabilities in third-party software brain uses (Ollama, Chroma, Playwright/Chromium, the MCP SDK, Composio). Report those upstream.
-- MCP servers you add under **Connections**: they run with your permissions by design, like any program you install.
+- MCP servers you add (or approve) under **Connections**: they run with your permissions by design, like any program you install.
 - Attacks that require someone who already has access to your user account on the machine.
 - Prompt injection that makes an agent write to your vault through the normal tools. Every write is versioned and can be undone with `file_history` + `restore_file`; reports that show a way around that history are in scope.
