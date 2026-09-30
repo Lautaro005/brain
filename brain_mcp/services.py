@@ -80,7 +80,7 @@ class Service:
             self.last_exit = self.proc.returncode
         if self.healthy():
             return "external"
-        return "error" if self.last_exit not in (None, 0, -signal.SIGTERM, -signal.SIGKILL) else "stopped"
+        return "error" if self.last_exit not in (None, 0, *_STOP_CODES) else "stopped"
 
     def info(self) -> dict:
         st = self.status()
@@ -133,18 +133,22 @@ class Service:
                 proc.wait(timeout=3)
             except ProcessLookupError:
                 pass
-            self.last_exit = proc.returncode
+            # lo cerró el dashboard: no es un error aunque el código de salida no sea 0 (en Windows,
+            # terminate() deja 1; en macOS/Linux, -SIGTERM)
+            self.last_exit = 0
 
 
 # Cada servicio corre en su propio grupo de procesos para poder cerrarlo con sus hijos.
 # Windows no tiene grupos POSIX: se usa un process group nuevo y terminate()/kill().
 if os.name == "nt":  # pragma: no cover - se prueba en el CI de Windows
     _GROUP = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    _STOP_CODES: tuple[int, ...] = ()  # Windows no tiene SIGKILL: solo cuenta el cierre hecho por stop()
 
     def _terminate(proc: subprocess.Popen, force: bool) -> None:
         proc.kill() if force else proc.terminate()
 else:
     _GROUP = {"start_new_session": True}
+    _STOP_CODES = (-signal.SIGTERM, -signal.SIGKILL)  # cerrado por una señal: no es un error
 
     def _terminate(proc: subprocess.Popen, force: bool) -> None:
         os.killpg(proc.pid, signal.SIGKILL if force else signal.SIGTERM)
