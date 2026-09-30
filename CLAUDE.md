@@ -90,7 +90,7 @@ install.sh             instalador macOS/Linux (curl | bash): uv, clon en ~/.brai
 install.ps1            instalador Windows (irm | iex): lo mismo con winget; crea brain.cmd en %USERPROFILE%\.local\bin
 brain.ps1              el comando `brain` en Windows (equivalente de brain.sh)
 installers/windows/    brain_setup.py → brain-setup.exe (PyInstaller en release.yml): trae install.ps1 y lo corre
-scripts/               smoke_mcp.py (server.py por stdio) y check_site.py (links, estructura y versión de docs/) para el CI
+scripts/               smoke_mcp.py (server.py por stdio), check_site.py (links, estructura, versión y archivos generados de docs/) y build_site_files.py (llms.txt, sitemap.xml, robots.txt) para el CI
 tests/                 pytest sin red/Ollama/Chroma (conftest aísla vault y data/ en tmp): `uv run pytest -q tests`
 .github/workflows/     ci.yml (tests + instaladores en macOS/Linux/Windows + sitio, en cada commit a main y PR) y release.yml (.exe y archivos de Linux al publicar un release)
 start.sh               lanzador del server MCP
@@ -128,6 +128,8 @@ brain_mcp/
 docs/index.html        landing page (GitHub Pages, main /docs): un solo HTML sin build, EN/ES, blanco y negro
 docs/docs/index.html   documentación (/docs/): páginas por hash (#memory…), sidebar, "en esta página", anterior/siguiente
 docs/changelog/        changelog (/changelog/): versión + fecha de publicación, EN/ES
+docs/privacy/          política de privacidad (/privacy/), EN/ES: el chat de la home es de DokBot (www.dokbot.app)
+docs/llms.txt, sitemap.xml, robots.txt   generados por scripts/build_site_files.py (no editarlos a mano)
 docs/assets/           pages.css + pages.js compartidos por docs y changelog (la landing sigue autocontenida)
 SECURITY.md            política de seguridad (GitHub la muestra en la pestaña Security)
 docs/.nojekyll         Pages sirve el HTML tal cual (sin Jekyll)
@@ -188,3 +190,5 @@ data/                  (ignorado) historial, Chroma, lock
 - **Backup (`backup.py`)**: el historial se copia y se restaura con la API de backup de SQLite (nunca pisar el archivo: otros procesos lo tienen abierto en WAL, y `with sqlite3.connect()` NO cierra la conexión: usar `closing`). Restaurar valida el zip (`_check`: rutas, tamaño, manifest), hace antes un `before-restore-*.zip` con secretos y reemplaza el vault bajo `vault._lock()`. Credenciales solo con `include_secrets`. La subida (`/api/backup/upload`) es el único POST que no es JSON ni tiene el límite de 5 MB.
 - **Fuentes**: `save_url_core` indexa lo nuevo antes de borrar chunks sobrantes y reescribir el .md, así un fallo a mitad de camino no pierde la copia anterior. `refresh_source_core` compara el texto: sin cambios solo actualiza `checked_at`; con error anota `refresh_error` y no toca nada más.
 - **Contexto en el chat**: el chat recarga los modelos (con el `ctx` de Ajustes → Contexto) en cada chat nuevo y cuando el dashboard guarda esos ajustes (evento `storage` sobre `brain-ctx-changed`).
+- **Footer y archivos del sitio**: home, docs, changelog y privacidad usan el mismo `<footer class="site-foot">` (licencia; columna Docs + Changelog; columna Política de privacidad + llms.txt + sitemap.xml; GitHub al final). Los estilos están repetidos a propósito en el `<style>` de `docs/index.html` (la landing es autocontenida) y en `docs/assets/pages.css`: si cambiás uno, cambiá el otro. Al agregar o cambiar páginas de las docs, o una versión nueva al changelog, correr `python3 scripts/build_site_files.py`; el CI (`check_site.py`) falla si `llms.txt`, `sitemap.xml` o `robots.txt` quedaron desactualizados. Si se agrega una página nueva al sitio, sumarla a `PAGES` en ese script y al footer de las cuatro páginas.
+- **Chat de la landing**: es un widget de DokBot (`<script src="https://www.dokbot.app/widget.js">` al final de `docs/index.html`), no el chat de la app. La política de privacidad lo dice; si se cambia de proveedor, actualizarla.

@@ -518,3 +518,18 @@ Pedido del usuario: las seis mejoras de un mail ("Brain — lista limpia de mejo
 - 21 chequeos en Chromium: `/add-mcp` con propuesta, aprobación e inicio de sesión desde el chat; cerrar y volver a iniciar sesión en Conexiones; propuesta pendiente; backup descargado y restaurado desde archivo con la confirmación propia; 390 px sin scroll. Los 38 + 18 + 6 de las versiones anteriores siguen pasando.
 - `install.sh` corrido de verdad en Linux desde un clon local. Windows no se pudo probar acá: lo prueba el CI (pytest, smoke, `install.ps1` y el armado del .exe en `windows-latest`).
 - El primer CI en Windows encontró un bug real: `services.py` usaba `signal.SIGKILL`, que no existe en Windows (`/api/status` daba 500). Ahora los códigos de "cerrado a propósito" dependen de la plataforma, y un servicio que cierra el dashboard queda como "apagado" y no como "error" (en Windows `terminate()` deja código 1).
+
+## 2026-09-30 — v0.02.9.1: política de privacidad, llms.txt, sitemap.xml y un solo footer en el sitio
+
+**Qué cambió**
+- `docs/privacy/index.html` (nuevo, EN/ES, mismo layout que el changelog): qué manda el sitio (GitHub Pages, Google Fonts, sin analytics; solo el idioma en localStorage), que **el chat de la home es provisto por DokBot (www.dokbot.app)** y lo que se escribe ahí lo procesa DokBot (el dueño del sitio puede ver las conversaciones), y qué hace la app (todo local; sale a internet solo para URLs pedidas, conexiones, el chequeo de versión y la instalación).
+- `docs/llms.txt`, `docs/sitemap.xml` y `docs/robots.txt`, generados por `scripts/build_site_files.py` desde las páginas de las docs (título + primera línea de cada una) y la fecha del último release. `check_site.py` falla si están desactualizados o si una URL del sitemap no existe.
+- Footer único (`footer.site-foot`) en home, docs, changelog y privacidad: licencia a la izquierda; una columna con Docs y Changelog; otra con Política de privacidad, llms.txt y sitemap.xml; GitHub (logo + texto) al final. El de docs y changelog tiene el mismo ancho y estilos que el de la home. Estilos en `docs/index.html` y `docs/assets/pages.css`.
+- Docs: la intro y "Privacidad y seguridad" ya no dicen "tu Mac"; la segunda enlaza la política de privacidad.
+- Landing: el comando de Windows (`irm …/install.ps1 | iex`, agregado en v0.02.9) no cortaba y daba scroll horizontal en celular (574 px en un viewport de 390); ahora corta (`overflow-wrap: anywhere`).
+- `VERSION` → `v0.02.9.1`, SECURITY.md y changelog.
+
+**Por qué**
+- Pedido del usuario. El pedido listaba "changelog" en las dos columnas del footer; se dejó Docs + Changelog en la primera y en la segunda política de privacidad, llms.txt y sitemap.xml (que también pidió sumar al footer), para no repetir el link.
+
+**Verificado**: `check_site.py` en verde (4 páginas, archivos generados al día, URLs del sitemap existentes); en Chromium, las 4 páginas con los 7 links del footer, el texto en español en docs, y 0 px de scroll horizontal a 1440 y 390 px; pytest sigue en 16/16.

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lautaro005.github.io/brain/sitemap.xml
