@@ -90,7 +90,8 @@ y los índices, el historial y los ajustes en data/.
 - Búsqueda híbrida (search_knowledge): semántica con Ollama + Chroma, y por palabra (SQLite FTS5).
 - Vistas del dashboard (http://127.0.0.1:8765): Panel (servicios Chroma, Ollama e Inspector, métricas y salud),
   Chat (este chat), Perfil (datos del usuario, importar memoria de otro chatbot, Reflect), Conectar agente
-  (Claude, ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, Manus Studio, y el acceso
+  (Claude, ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, DeepSeek Harness, Manus Studio
+  (con su formulario «Run a command», valores en la tarjeta), y el acceso
   remoto por URL), Conexiones (servers MCP de otros servicios cuyas tools brain usa y guarda), Grafo,
   Conocimiento (guardar y buscar URLs, frescura de fuentes) y Logs. El engranaje abre Ajustes.
 - Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
@@ -98,7 +99,7 @@ y los índices, el historial y los ajustes en data/.
   restauración, y colores del grafo.
 - Acceso remoto: Conectar agente → «Acceso remoto por URL» publica el server MCP con un túnel de Cloudflare.
   La URL lleva un token secreto (es como una contraseña); se puede regenerar y poner en solo lectura. Así se
-  conectan agentes en la nube como Manus Studio, Claude.ai o ChatGPT.
+  conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT.
 - Comandos del chat: /organize (ordenar el vault), /reflect (revisar la memoria), /compact (resumir la
   conversación), /add-mcp (proponer un conector), /new (chat nuevo), y /<skill> para usar un skill guardado en
   skills/.
@@ -114,14 +115,15 @@ vault/ and the indexes, history and settings in data/.
 - Hybrid search (search_knowledge): semantic with Ollama + Chroma, and keyword (SQLite FTS5).
 - Dashboard views (http://127.0.0.1:8765): Dashboard (Chroma, Ollama and Inspector services, metrics, health),
   Chat (this chat), Profile (user details, import memory from another chatbot, Reflect), Connect agent (Claude,
-  ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, Manus Studio, and remote access by URL),
+  ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, DeepSeek Harness, Manus Studio (through its
+  "Run a command" form, values on its card), and remote access by URL),
   Connections (other services' MCP servers whose tools brain uses and saves), Graph, Knowledge (save and
   search URLs, source freshness) and Logs. The gear opens Settings.
 - Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
   and context, custom chat instructions, system notifications, backup and restore, and graph colors.
 - Remote access: Connect agent → "Remote access by URL" publishes the MCP server through a Cloudflare tunnel.
   The URL carries a secret token (treat it like a password); it can be regenerated and set to read-only. Cloud
-  agents such as Manus Studio, Claude.ai or ChatGPT connect this way.
+  agents such as Manus on the web, Claude.ai or ChatGPT connect this way.
 - Chat commands: /organize (tidy the vault), /reflect (review memory), /compact (summarize the conversation),
   /add-mcp (propose a connector), /new (new chat), and /<skill> to use a skill saved in skills/.
 - Connectors: propose_connection only proposes; the user approves with one click. You can't add them yourself.

@@ -666,7 +666,6 @@
         <div class="grid agents" id="agents-other"></div>
         <div class="section-title" id="remote-section" data-i18n="agents.remoteSection"></div>
         <div class="card remote-card" id="remote-card"></div>
-        <div class="grid agents" id="agents-remote" style="margin-top:16px"></div>
         <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="agents.manualTitle"></h2><span class="sub" data-i18n="agents.manualSub"></span></div>
           <div class="card-b"><p class="muted" style="margin:0 0 10px;font-size:13px" data-i18n="agents.manualText"></p><div id="agents-manual"></div></div></div>
       </div>
@@ -948,7 +947,8 @@ const I18N = {
         windsurf: "El editor Windsurf.",
         gemini_cli: "El CLI de Gemini de Google.",
         openmausbot: "La app de escritorio de OpenMausBot. Lee sus servers MCP al abrirse: brain la cierra, conecta y la vuelve a abrir.",
-        manus: "El agente de Manus en la nube. No puede lanzar programas en tu computadora: se conecta por la URL del acceso remoto.",
+        manus: "La app de escritorio de Manus. Agrega servers locales desde su propia configuración, sin archivo que brain pueda editar: se carga con estos valores.",
+        deepseek_harness: "La app de escritorio y el CLI (dsh) de DeepSeek Harness. brain se agrega en ~/.dsh/cordis.patch.yml, que comparten los dos, y dsh lo recarga solo.",
       },
       after: {
         claude_desktop: "Listo. Si Claude estaba cerrado, abrilo: brain aparece en el menú de herramientas (+).",
@@ -960,18 +960,18 @@ const I18N = {
         windsurf: "Listo. Reiniciá Windsurf o recargá los MCP desde Cascade.",
         gemini_cli: "Listo. La próxima sesión de gemini ya carga brain.",
         openmausbot: "Listo. En OpenMausBot, brain aparece en la lista de servers MCP.",
+        deepseek_harness: "Listo. DeepSeek Harness recarga sus servers solo: abrí una sesión nueva y las tools de brain aparecen como mcp__brain__… (si no, reabrí la app).",
       },
       removed: "Desconectado.",
       restartConfirm: n => `${n} está abierto y tiene que estar cerrado para cambiar su configuración. ¿Lo cierro, conecto brain y lo vuelvo a abrir?\n\nOjo: si estás corriendo brain desde la terminal de ${n}, se va a cortar.`,
       err: { app_running: n => `${n} está abierto. Cerralo y probá de nuevo.`, app_still_running: n => `${n} no se cerró. Cerralo a mano (Cmd+Q) y probá de nuevo.`,
         bad_config: "El archivo de configuración tiene un formato que no puedo editar sin riesgo (por ejemplo, comentarios). Agregá brain a mano con la config de abajo.",
         no_cli: c => `No encontré el comando «${c}». Instalalo o usá la config manual de abajo.`, cli_failed: "El CLI devolvió un error:",
-        url_only: n => `${n} se conecta por URL: copiá la del acceso remoto.`, other: "Error" },
-      remoteSection: "Por URL · agentes en la nube y otras máquinas",
-      byUrl: "Por URL", urlReady: "URL lista", urlOff: "Prendé el acceso remoto",
-      manusSteps: ["En Manus: Settings → Connectors → Add connectors.", "Pestaña «Custom MCP» → «Add custom MCP server» → «Direct configuration».",
-        "Nombre: brain. Transporte: HTTP. Pegá la URL del acceso remoto (lleva el token, no hace falta header)."],
-      copyUrl: "Copiar URL", goRemote: "Prender el acceso remoto",
+        form_only: n => `${n} se conecta desde su formulario: copiá el comando y los argumentos de su tarjeta.`, other: "Error" },
+      remoteSection: "Por URL · agentes en la nube y otras máquinas", byForm: "Con formulario",
+      manusSteps: ["En Manus Studio, agregá un server MCP local con la opción de comando («Run a command»).",
+        "Nombre: brain. Pegá el comando y los argumentos de abajo (un argumento por línea).",
+        "Cuando Manus use brain por primera vez, esta tarjeta pasa a «Detectado»."],
       manualTitle: "Cualquier otro cliente MCP", manualSub: "configuración manual",
       manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
       formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» y completá cada campo con estos valores. Si la app solo acepta una URL, usá el acceso remoto de arriba.",
@@ -1119,7 +1119,7 @@ const I18N = {
     dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
     remote: { title: "Acceso remoto por URL", sub: "túnel de Cloudflare",
-      text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Manus Studio, Claude.ai → Conectores, ChatGPT en modo desarrollador…). Usa un túnel de Cloudflare: no abre puertos en tu router.",
+      text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Manus en la web, Claude.ai → Conectores, ChatGPT en modo desarrollador…). Usa un túnel de Cloudflare: no abre puertos en tu router.",
       on: "Prender", off: "Apagar", st: { off: "Apagado", starting: "Abriendo el túnel…", on: "Publicado", error: "Error" },
       url: "URL del server MCP (con el token)", copy: "Copiar", copied: "Copiado ✓",
       bearer: "Si tu app pide la URL sin el token y un header aparte:", bearerUrl: "URL", bearerHeader: "Header",
@@ -1182,7 +1182,8 @@ const I18N = {
         windsurf: "The Windsurf editor.",
         gemini_cli: "Google's Gemini CLI.",
         openmausbot: "The OpenMausBot desktop app. It reads its MCP servers when it opens: brain quits it, connects and reopens it.",
-        manus: "Manus's cloud agent. It can't launch programs on your computer: it connects with the remote access URL.",
+        manus: "The Manus desktop app. It adds local servers from its own settings, with no file brain can edit: set it up with these values.",
+        deepseek_harness: "DeepSeek Harness's desktop app and CLI (dsh). brain is added to ~/.dsh/cordis.patch.yml, which both share, and dsh reloads it by itself.",
       },
       after: {
         claude_desktop: "Done. If Claude was closed, open it: brain shows up in the tools menu (+).",
@@ -1194,18 +1195,18 @@ const I18N = {
         windsurf: "Done. Restart Windsurf or reload MCP servers from Cascade.",
         gemini_cli: "Done. Your next gemini session loads brain.",
         openmausbot: "Done. In OpenMausBot, brain shows up in the MCP servers list.",
+        deepseek_harness: "Done. DeepSeek Harness reloads its servers by itself: open a new session and brain's tools show up as mcp__brain__… (otherwise, reopen the app).",
       },
       removed: "Disconnected.",
       restartConfirm: n => `${n} is open and has to be closed to change its configuration. Should I quit it, connect brain and reopen it?\n\nNote: if you're running brain from ${n}'s terminal, it will stop.`,
       err: { app_running: n => `${n} is open. Quit it and try again.`, app_still_running: n => `${n} didn't quit. Quit it by hand (Cmd+Q) and try again.`,
         bad_config: "The config file has a format I can't edit safely (for example, comments). Add brain by hand with the config below.",
         no_cli: c => `Couldn't find the “${c}” command. Install it or use the manual config below.`, cli_failed: "The CLI returned an error:",
-        url_only: n => `${n} connects by URL: copy the remote access one.`, other: "Error" },
-      remoteSection: "By URL · cloud agents and other computers",
-      byUrl: "By URL", urlReady: "URL ready", urlOff: "Turn on remote access",
-      manusSteps: ["In Manus: Settings → Connectors → Add connectors.", "“Custom MCP” tab → “Add custom MCP server” → “Direct configuration”.",
-        "Name: brain. Transport: HTTP. Paste the remote access URL (it carries the token, no header needed)."],
-      copyUrl: "Copy URL", goRemote: "Turn on remote access",
+        form_only: n => `${n} connects from its own form: copy the command and arguments on its card.`, other: "Error" },
+      remoteSection: "By URL · cloud agents and other computers", byForm: "Via its form",
+      manusSteps: ["In Manus Studio, add a local MCP server with the command option (“Run a command”).",
+        "Name: brain. Paste the command and arguments below (one argument per line).",
+        "Once Manus uses brain for the first time, this card switches to “Detected”."],
       manualTitle: "Any other MCP client", manualSub: "manual configuration",
       manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
       formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” and fill each field with these values. If the app only takes a URL, use remote access above.",
@@ -1353,7 +1354,7 @@ const I18N = {
     dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
     remote: { title: "Remote access by URL", sub: "Cloudflare tunnel",
-      text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Manus Studio, Claude.ai → Connectors, ChatGPT in developer mode…). It uses a Cloudflare tunnel: no ports are opened on your router.",
+      text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Manus on the web, Claude.ai → Connectors, ChatGPT in developer mode…). It uses a Cloudflare tunnel: no ports are opened on your router.",
       on: "Turn on", off: "Turn off", st: { off: "Off", starting: "Opening the tunnel…", on: "Published", error: "Error" },
       url: "MCP server URL (with the token)", copy: "Copy", copied: "Copied ✓",
       bearer: "If your app wants the URL without the token plus a separate header:", bearerUrl: "URL", bearerHeader: "Header",
@@ -2284,22 +2285,21 @@ function agentPill(a) {
   if (a.connected) return `<span class="pill ${a.elsewhere ? "st-starting" : "st-running"}">${a.elsewhere ? ICON.alert : ICON.check}${esc(a.elsewhere ? T.agents.elsewhere : T.agents.connected)}</span>`;
   return `<span class="pill ${a.installed ? "st-stopped" : "st-none"}">${ICON.dot}${esc(a.installed ? T.agents.notConnected : T.agents.notInstalled)}</span>`;
 }
-function urlAgentCard(a) {
-  // agentes en la nube (Manus): no hay config que escribir, se pega la URL del acceso remoto
-  const url = remoteData && remoteData.url;
-  const pill = url ? `<span class="pill st-running">${ICON.check}${esc(T.agents.urlReady)}</span>`
-                   : `<span class="pill st-stopped">${ICON.globe}${esc(T.agents.byUrl)}</span>`;
-  const steps = T.agents[`${a.key}Steps`] || [];
+function formAgentCard(a) {
+  // apps que agregan servers locales con su propio formulario ("Run a command"), sin archivo de config que
+  // brain pueda escribir (Manus Studio): valores para copiar, y "Detectado" cuando ya usó brain
+  const f = agentsData.manual.form, steps = T.agents[`${a.key}Steps`] || [];
+  const pill = a.detected ? `<span class="pill st-running">${ICON.check}${esc(T.agents.detected)}</span>`
+    : `<span class="pill ${a.installed ? "st-stopped" : "st-none"}">${ICON.dot}${esc(a.installed ? T.agents.byForm : T.agents.notInstalled)}</span>`;
   return `<div class="card agent">
     <div class="agent-top"><div class="agent-name">${esc(a.name)}</div>${pill}</div>
     <div class="agent-desc">${esc(T.agents.desc[a.key] || "")}</div>
     ${steps.length ? `<ol class="agent-steps">${steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
-    <div class="agent-actions">${url ? `<button class="btn primary" data-copy-url>${esc(T.agents.copyUrl)}</button>`
-      : `<button class="btn" data-go-remote>${esc(T.agents.goRemote)}</button>`}</div>
+    ${codeBlock(T.agents.fCommand, f.command, `form-${a.key}-cmd`)}${codeBlock(T.agents.fArgs, f.args, `form-${a.key}-args`)}
   </div>`;
 }
 function agentCard(a) {
-  if (a.kind === "url") return urlAgentCard(a);
+  if (a.kind === "form") return formAgentCard(a);
   const share = a.shares ? agentsData.agents.find(x => x.key === a.shares) : null;
   const btn = a.connected && !a.elsewhere
     ? `<button class="btn" data-agent="${a.key}" data-act="disconnect">${esc(T.agents.disconnect)}</button>`
@@ -2326,9 +2326,6 @@ function renderAgents() {
   $("#agents-mine").hidden = agentTab !== "mine";
   $("#agents-desktop").innerHTML = list.filter(a => a.group === "desktop").map(agentCard).join("");
   $("#agents-other").innerHTML = list.filter(a => a.group === "other").map(agentCard).join("");
-  $("#agents-remote").innerHTML = list.filter(a => a.group === "remote").map(agentCard).join("");
-  $("#agents-remote").querySelectorAll("[data-copy-url]").forEach(b => b.onclick = () => copyText(remoteData.url, b, T.agents.copyUrl));
-  $("#agents-remote").querySelectorAll("[data-go-remote]").forEach(b => b.onclick = () => $("#remote-card").scrollIntoView({ behavior: "smooth", block: "center" }));
   const m = agentsData.manual;
   $("#agents-manual").innerHTML = `<p class="install-path">${esc(T.agents.installPath(m.install_path))}</p><div class="code-label" style="margin-bottom:6px">${esc(T.agents.formLabel)}</div>
     <p class="muted" style="margin:0 0 10px;font-size:12.5px">${esc(T.agents.formHint)}</p>

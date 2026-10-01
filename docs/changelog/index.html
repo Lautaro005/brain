@@ -51,9 +51,48 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.03.0.1 ===================== -->
+  <article class="release" id="v0.03.0.1">
+    <div class="when"><div class="ver">v0.03.0.1</div><time class="date" datetime="2026-10-01">2026-10-01</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>DeepSeek Harness, and Manus on your computer</h2>
+        <p>One more agent in one click, Manus back to local, and cloudflared installs on macOS.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>DeepSeek Harness</b> in Connect agent: one click adds brain to <code>~/.dsh/cordis.patch.yml</code>, which the desktop app and the <code>dsh</code> CLI share. dsh reloads it by itself, so there's no need to quit the app.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li><b>Manus Studio</b> connects locally again, like the other desktop apps. Its card shows the command and arguments for its <i>Run a command</i> form, and switches to <i>Detected</i> once Manus uses brain. Manus on the web can still use remote access by URL.</li>
+        </ul>
+        <h3>Fixed</h3>
+        <ul>
+          <li>Installing <code>cloudflared</code> on macOS failed with “The downloaded file doesn't match the published SHA256”. For macOS, Cloudflare publishes the checksum of the program inside the <code>.tgz</code>, not of the <code>.tgz</code> itself; brain now checks that and still refuses anything that doesn't match.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>DeepSeek Harness, y Manus en tu compu</h2>
+        <p>Un agente más con un click, Manus vuelve a local y cloudflared se instala en macOS.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>DeepSeek Harness</b> en Conectar agente: un click agrega brain a <code>~/.dsh/cordis.patch.yml</code>, que comparten la app de escritorio y el CLI <code>dsh</code>. dsh lo recarga solo, así que no hace falta cerrar la app.</li>
+        </ul>
+        <h3>Cambios</h3>
+        <ul>
+          <li><b>Manus Studio</b> vuelve a conectarse en local, como las demás apps de escritorio. Su tarjeta muestra el comando y los argumentos para su formulario <i>Run a command</i>, y pasa a <i>Detectado</i> cuando Manus usa brain. Manus en la web puede seguir usando el acceso remoto por URL.</li>
+        </ul>
+        <h3>Arreglos</h3>
+        <ul>
+          <li>Instalar <code>cloudflared</code> en macOS fallaba con «El archivo bajado no coincide con el SHA256 publicado». Para macOS, Cloudflare publica el checksum del programa que viene dentro del <code>.tgz</code>, no el del <code>.tgz</code>; brain ahora verifica eso y sigue rechazando todo lo que no coincida.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.03.0 ===================== -->
   <article class="release" id="v0.03.0">
-    <div class="when"><div class="ver">v0.03.0</div><time class="date" datetime="2026-10-01">2026-10-01</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.03.0</div><time class="date" datetime="2026-10-01">2026-10-01</time></div>
     <div>
       <div class="l-en">
         <h2>brain by URL</h2>

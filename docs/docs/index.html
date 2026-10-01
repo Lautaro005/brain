@@ -685,7 +685,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td></td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
     <tr><td>OpenMausBot</td><td><code>~/.openmausbot/config.json</code></td><td>It reads its MCP servers when it opens, so it's edited with the app closed; the dashboard offers to quit, connect and reopen it.</td></tr>
-    <tr><td>Manus Studio</td><td>by URL</td><td>Runs in the cloud and can't launch a command on your computer: turn on <a href="#remote">remote access</a> and paste the URL in Manus (<i>Settings → Connectors → Add connectors → Custom MCP → Add custom MCP server → Direct configuration</i>).</td></tr>
+    <tr><td>DeepSeek Harness</td><td><code>~/.dsh/cordis.patch.yml</code></td><td>The user patch layer that the desktop app and the <code>dsh</code> CLI share. brain adds its own block (an <code>@deepseek-ai/dsh-mcp-client</code> row with <code>transport: stdio</code>) and removes only that block; dsh reloads it without restarting. Its tools show up as <code>mcp__brain__…</code>.</td></tr>
+    <tr><td>Manus Studio</td><td>its own form</td><td>Manus adds local servers with its <i>Run a command</i> form and has no config file brain can edit: its card shows the command and arguments to paste, and switches to <i>Detected</i> once Manus uses brain. Manus on the web can use <a href="#remote">remote access</a>.</td></tr>
   </table>
   <p>Paths are the macOS ones; on Windows they're under <code>%APPDATA%</code> and on Linux under <code>~/.config</code>, and the dashboard shows the right one for your system. All local agents launch the same command with absolute paths, so they work from any folder:</p>
   <pre>/Users/you/.local/bin/uv run --directory /Users/you/.brain python server.py</pre>
@@ -716,7 +717,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td></td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
     <tr><td>OpenMausBot</td><td><code>~/.openmausbot/config.json</code></td><td>Lee sus servers MCP al abrirse, así que se edita con la app cerrada; el dashboard ofrece cerrarla, conectar y volver a abrirla.</td></tr>
-    <tr><td>Manus Studio</td><td>por URL</td><td>Corre en la nube y no puede lanzar un comando en tu computadora: prendé el <a href="#remote">acceso remoto</a> y pegá la URL en Manus (<i>Settings → Connectors → Add connectors → Custom MCP → Add custom MCP server → Direct configuration</i>).</td></tr>
+    <tr><td>DeepSeek Harness</td><td><code>~/.dsh/cordis.patch.yml</code></td><td>La capa de parches del usuario que comparten la app de escritorio y el CLI <code>dsh</code>. brain agrega un bloque propio (una fila <code>@deepseek-ai/dsh-mcp-client</code> con <code>transport: stdio</code>) y al desconectar saca solo ese bloque; dsh lo recarga sin reiniciar. Sus tools aparecen como <code>mcp__brain__…</code>.</td></tr>
+    <tr><td>Manus Studio</td><td>su formulario</td><td>Manus agrega servers locales con su formulario <i>Run a command</i> y no tiene un archivo de config que brain pueda editar: su tarjeta muestra el comando y los argumentos para pegar, y pasa a <i>Detectado</i> cuando Manus usa brain. Manus en la web puede usar el <a href="#remote">acceso remoto</a>.</td></tr>
   </table>
   <p>Los paths son los de macOS; en Windows están en <code>%APPDATA%</code> y en Linux en <code>~/.config</code>, y el dashboard muestra el de tu sistema. Todos los agentes locales lanzan el mismo comando con paths absolutos, así funcionan desde cualquier carpeta:</p>
   <pre>/Users/vos/.local/bin/uv run --directory /Users/vos/.brain python server.py</pre>
@@ -755,7 +757,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Quick or fixed URL</h2>
   <p>Without a Cloudflare account the tunnel is a <b>quick tunnel</b>: a <code>*.trycloudflare.com</code> address that changes every time it starts, so you have to paste it again in each agent. For a fixed address, create a tunnel in your Cloudflare account (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), point its public hostname to <code>http://localhost:8770</code>, and paste the hostname and the tunnel token under <i>Fixed URL with your Cloudflare account</i>. The token is passed to <code>cloudflared</code> as an environment variable and stored in <code>data/remote.json</code> (<code>600</code>).</p>
   <h2>Which agents</h2>
-  <p>Any MCP client that connects to a URL with streamable HTTP: <b>Manus Studio</b> (steps on its card), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT in developer mode, or a local agent on another computer. They show up in <b>My connections</b> once they use brain.</p>
+  <p>Any MCP client that connects to a URL with streamable HTTP: Manus on the web (<i>Settings → Connectors → Custom MCP</i>), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT in developer mode, or a local agent on another computer. They show up in <b>My connections</b> once they use brain.</p>
 </div>
 <div class="l-es">
   <h1>Acceso remoto por URL</h1>
@@ -777,7 +779,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>URL rápida o fija</h2>
   <p>Sin cuenta de Cloudflare el túnel es un <b>quick tunnel</b>: una dirección <code>*.trycloudflare.com</code> que cambia cada vez que se prende, así que hay que volver a pegarla en cada agente. Para una dirección fija, creá un túnel en tu cuenta de Cloudflare (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), apuntá su hostname público a <code>http://localhost:8770</code> y pegá el hostname y el token del túnel en <i>URL fija con tu cuenta de Cloudflare</i>. El token le llega a <code>cloudflared</code> por una variable de entorno y se guarda en <code>data/remote.json</code> (<code>600</code>).</p>
   <h2>Qué agentes</h2>
-  <p>Cualquier cliente MCP que se conecte a una URL con streamable HTTP: <b>Manus Studio</b> (pasos en su tarjeta), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT en modo desarrollador, o un agente local en otra computadora. Aparecen en <b>Mis conexiones</b> apenas usan brain.</p>
+  <p>Cualquier cliente MCP que se conecte a una URL con streamable HTTP: Manus en la web (<i>Settings → Connectors → Custom MCP</i>), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT en modo desarrollador, o un agente local en otra computadora. Aparecen en <b>Mis conexiones</b> apenas usan brain.</p>
 </div>
 </section>
 
