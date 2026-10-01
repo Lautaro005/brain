@@ -1102,6 +1102,7 @@ const I18N = {
       updateNow: "Actualizar y reiniciar", updateConfirm: v => `¿Actualizar a ${v}? brain se cierra, se actualiza y se vuelve a abrir solo (tarda un minuto). Se apagan y se vuelven a prender los servicios; un chat que esté respondiendo se corta.`,
       updatingT: v => `Actualizando a ${v}…`, updatingP: "brain se cerró para actualizarse. Esta página se recarga sola cuando vuelve a abrir.",
       updateDone: v => `Listo: brain ya está en ${v}.`, updateFailed: "No se pudo actualizar (¿sin internet o cambios locales en la carpeta?). Sigue abierta la versión instalada; probá con brain update en la terminal.",
+      updateSyncFailed: "Se bajó la versión nueva, pero no se pudieron instalar sus dependencias (¿un agente usando brain en Windows?). Cerrá tus agentes y corré brain update en la terminal.",
       updateNoLauncher: "Este dashboard no se abrió con el comando brain, así que no se puede reiniciar solo. Cerralo y corré brain update.",
       updateSlow: "Está tardando más de lo normal. Si no vuelve, abrí la terminal donde corre brain.",
       appCtx: "Contexto fijo de la app", appCtxSub: "· solo lectura",
@@ -1335,6 +1336,7 @@ const I18N = {
       updateNow: "Update and restart", updateConfirm: v => `Update to ${v}? brain quits, updates and reopens by itself (about a minute). Services are turned off and back on; a chat reply in progress is cut off.`,
       updatingT: v => `Updating to ${v}…`, updatingP: "brain closed to update. This page reloads by itself when it's back.",
       updateDone: v => `Done: brain is now on ${v}.`, updateFailed: "Couldn't update (no internet, or local changes in the folder?). The installed version is still open; try brain update in the terminal.",
+      updateSyncFailed: "The new version was downloaded, but its dependencies couldn't be installed (an agent using brain on Windows?). Close your agents and run brain update in the terminal.",
       updateNoLauncher: "This dashboard wasn't opened with the brain command, so it can't restart by itself. Close it and run brain update.",
       updateSlow: "This is taking longer than usual. If it doesn't come back, check the terminal where brain runs.",
       appCtx: "Fixed app context", appCtxSub: "· read-only",
@@ -1715,7 +1717,8 @@ async function pollActivity() {
   if (!p.on || !canNotify()) { activityLast = null; return; }
   let r; try { r = await api(`/api/activity?after=${activityLast ?? -1}`); } catch (e) { return; }
   const first = activityLast === null;
-  activityLast = r.last_id;
+  // muchos cambios de golpe (más de los que entran en una consulta): un solo aviso con el total y se salta al último
+  activityLast = r.total > r.changes.length ? r.max_id : r.last_id;
   if (first) return;  // al abrir no se avisa de lo viejo
   // un movimiento deja dos registros (origen y destino): alcanza con el destino
   const items = r.changes.filter(c => !(c.op === "move" && !c.was_new)).filter(c => p[changeKind(c)]);
@@ -1724,7 +1727,8 @@ async function pollActivity() {
     const n = new Notification(T.settings.nTitle, { body, tag });
     n.onclick = () => { window.focus(); n.close(); };
   };
-  if (items.length > 3) show(`${T.settings.nMany(items.length)}\n${items.slice(-3).map(c => c.path).join("\n")}`, `brain-${r.last_id}`);
+  if (r.total > r.changes.length) show(T.settings.nMany(r.total), `brain-${r.max_id}`);
+  else if (items.length > 3) show(`${T.settings.nMany(items.length)}\n${items.slice(-3).map(c => c.path).join("\n")}`, `brain-${r.last_id}`);
   else items.forEach(c => show(changeText(c), `brain-${c.id}`));
 }
 setInterval(pollActivity, 5000);
@@ -1825,15 +1829,16 @@ function renderUpdateBadge() {
 async function loadVersion() {
   try {
     const v = await api("/api/version");
-    appVersion = v.current; canUpdate = !!v.can_update; updateFailed = !!v.update_failed;
+    appVersion = v.current; canUpdate = !!v.can_update; updateFailed = v.update_failed || "";
   } catch (e) {}
   $("#ver-current").textContent = appVersion || "";
   renderUpdateBadge();
   // volvimos de "Actualizar y reiniciar": contar cómo salió
   let up = null; try { up = JSON.parse(sessionStorage.getItem("brain-updating") || "null"); sessionStorage.removeItem("brain-updating"); } catch (e) {}
   if (up && appVersion) {
-    if (appVersion !== up.from) { showResult($("#update-result"), "ok", T.settings.updateDone(appVersion)); toast(T.settings.updateDone(appVersion)); }
-    else if (updateFailed) { showResult($("#update-result"), "err", T.settings.updateFailed); go("ajustes"); }
+    if (appVersion !== up.from && updateFailed === "sync") { showResult($("#update-result"), "err", T.settings.updateSyncFailed); go("ajustes"); }
+    else if (appVersion !== up.from) { showResult($("#update-result"), "ok", T.settings.updateDone(appVersion)); toast(T.settings.updateDone(appVersion)); }
+    else if (updateFailed) { showResult($("#update-result"), "err", updateFailed === "sync" ? T.settings.updateSyncFailed : T.settings.updateFailed); go("ajustes"); }
     else showResult($("#update-result"), "info", T.settings.upToDate(appVersion));
   }
 }

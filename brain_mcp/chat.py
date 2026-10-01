@@ -386,27 +386,38 @@ def _transcript(summary: str, msgs: list[dict]) -> str:
     return "\n\n".join(out)
 
 
+# nombre válido para /<skill>: ASCII (el regex del front y el del back tienen que coincidir), sin espacios,
+# y sin "." ni "/" al final (así "/organize." sigue siendo el comando /organize seguido de un punto)
+SKILL_NAME = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_./-]*[A-Za-z0-9_-])?$")
+
+
 def skills() -> list[dict]:
     """Skills del vault (skills/**.md) para usar con /<nombre>: los que guardaron los agentes (distill_skill +
-    write_file) o el usuario. Un skill que se llame igual que un comando de brain queda tapado por el comando."""
+    write_file) o el usuario. Un skill que se llame igual que un comando de brain queda tapado por el comando;
+    uno cuyo nombre tenga espacios o letras fuera de ASCII no se puede invocar y no se lista."""
     out = []
     for f in vault.list_files("skills"):
         name = f["path"][len("skills/"):-len(".md")]
-        if name and name not in COMMANDS and name != "new":
+        if SKILL_NAME.match(name) and name not in COMMANDS and name != "new":
             out.append({"name": name, "description": f["description"], "path": f["path"]})
     return out
 
 
-def parse_command(text: str) -> tuple[str, str]:
+def parse_command(text: str, skill_names: set[str] | None = None) -> tuple[str, str]:
     """"/organize y los proyectos" → ("organize", "y los proyectos"); "/mi-skill algo" → ("skill:mi-skill",
-    "algo") si existe skills/mi-skill.md. Sin comando: ("", text)."""
-    m = re.match(r"^/([A-Za-z0-9][\w./-]*)(?![\w./-])\s*(.*)$", text.strip(), re.S)
+    "algo") si existe skills/mi-skill.md. Sin comando: ("", text). skill_names evita releer skills/ (run lo
+    calcula una vez por mensaje)."""
+    m = re.match(r"^/([A-Za-z0-9][\w./-]*)(.*)$", text.strip(), re.S | re.A)
     if not m:
         return "", text
-    if m.group(1) in COMMANDS:
-        return m.group(1), m.group(2).strip()
-    if any(sk["name"] == m.group(1) for sk in skills()):
-        return f"skill:{m.group(1)}", m.group(2).strip()
+    name = m.group(1).rstrip("./")  # puntuación pegada al comando ("/compact.") no es parte del nombre
+    rest = text.strip()[1 + len(name):].lstrip(".,;:!?/").strip()
+    if name in COMMANDS:
+        return name, rest
+    if skill_names is None:
+        skill_names = {sk["name"] for sk in skills()}
+    if name in skill_names:
+        return f"skill:{name}", rest
     return "", text
 
 
@@ -723,7 +734,14 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
         yield {"type": "error", "code": "no_model"}
         return
 
-    cmd, rest = parse_command(text)
+    _names: list = []
+
+    def names() -> set[str]:  # los skills se listan una sola vez por mensaje, y solo si hace falta
+        if not _names:
+            _names.append({sk["name"] for sk in skills()})
+        return _names[0]
+
+    cmd, rest = parse_command(text, names() if text.lstrip().startswith("/") else set())
     title = (CMD_TITLES[lang if lang in ("es", "en") else "es"].get(cmd) if cmd else None) \
         or (f"Skill: {cmd[6:]}" if cmd.startswith("skill:") else None) or text.splitlines()[0][:60]
     mode_cmd = "" if cmd == "compact" else cmd  # /compact no deja el chat en un modo
@@ -768,9 +786,12 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
         if summary:
             sys_ += "\n\n# Resumen de la conversación hasta ahora (se compactó con /compact)\n" + summary
         ms = [{"role": "system", "content": sys_}]
-        ms += [{"role": m["role"], "content": (_command_request(*parse_command(m["content"])) if m["role"] == "user"
-                                               and parse_command(m["content"])[0] else m["content"])}
-               for m in recent[-MAX_HISTORY:]]
+        for m in recent[-MAX_HISTORY:]:
+            c = m["content"]
+            if m["role"] == "user" and c.lstrip().startswith("/"):
+                pc = parse_command(c, names())
+                c = _command_request(*pc) if pc[0] else c
+            ms.append({"role": m["role"], "content": c})
         ms.append({"role": "user", "content": to_model})
         return ms
 

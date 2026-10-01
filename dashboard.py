@@ -98,6 +98,9 @@ def _remote_start() -> None:
         raise remote.RemoteError("no_cloudflared")
     remote.tunnel_command()  # valida el modo (named sin token/hostname) antes de prender nada
     m, t = SERVICES["remote_mcp"], SERVICES["tunnel"]
+    if m.status() == "external":
+        # otro programa ocupa el puerto: publicarlo con el túnel lo dejaría en internet sin el token de brain
+        raise remote.RemoteError("busy", f"127.0.0.1:{remote.PORT}")
     if m.status() in ("stopped", "error"):
         m.start()
     if not t.ours():
@@ -348,7 +351,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._json(dict(_REFRESH))
             elif u.path == "/api/version":
                 self._json({"current": updates.current(), "releases": updates.RELEASES_URL,
-                            "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") == "1"})
+                            "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") or None})
             elif u.path == "/api/activity":  # para las notificaciones del sistema (Ajustes → Notificaciones)
                 self._json(history.since(int(q.get("after", ["-1"])[0])))
             elif u.path == "/api/remote":

@@ -361,6 +361,13 @@ async function loadSkills(force = false) {
 }
 loadSkills(true);
 const isCmd = name => COMMANDS.includes(name) || skills.some(k => k.name === name);
+// "/organize. y algo" → ["/organize", "organize", ". y algo"]: igual que chat.parse_command (sin "." ni "/" al final)
+function cmdOf(text) {
+  const m = /^\/([A-Za-z0-9][\w./-]*)([\s\S]*)$/.exec(text || "");
+  if (!m) return null;
+  const name = m[1].replace(/[./]+$/, "");
+  return [m[0], name, text.slice(1 + name.length).replace(/^\s+/, "")];
+}
 
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify(body) };
@@ -590,7 +597,7 @@ function callHtml(t, i, open) {
 }
 function msgHtml(m, i, open = new Set()) {
   if (m.role === "user") {
-    const c = /^\/([A-Za-z0-9][\w./-]*)(?![\w./-])\s*([\s\S]*)$/.exec(m.content || "");
+    const c = cmdOf(m.content);
     return c && isCmd(c[1]) ? `<div class="msg user"><span class="cmd-chip">/${esc(c[1])}</span>${esc(c[2])}</div>` : `<div class="msg user">${esc(m.content)}</div>`;
   }
   const tools = m.tools || [];

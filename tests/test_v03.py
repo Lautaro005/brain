@@ -241,3 +241,110 @@ def test_dashboard_v03_api(dash, monkeypatch):
     r = _post(dash + "/api/update/apply")
     assert r["ok"] and dashboard._SERVER["restart"] is True
     dashboard._SERVER["restart"] = False
+
+
+# ---------- arreglos de la revisión ----------
+
+def test_remote_redirect_to_private_is_blocked(monkeypatch):
+    """Una página "pública" que redirige a 127.0.0.1 no lleva a brain a leer servicios locales."""
+    from http.server import BaseHTTPRequestHandler
+
+    from brain_mcp import scrape
+
+    class H(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/go":
+                self.send_response(302)
+                self.send_header("Location", f"http://localhost:{self.server.server_address[1]}/secret")
+                self.end_headers()
+            else:
+                body = ("<html><head><title>Hola</title></head><body><article><p>" + "palabra " * 80 + "</p></article></body></html>").encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(body)
+                self.server.hosts.append(self.headers.get("Host"))
+
+        def log_message(self, *a):
+            pass
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    srv.hosts = []
+    port = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    real = scrape.check_public
+    # el server de prueba hace de sitio "público" solo con el nombre 127.0.0.1; localhost sigue bloqueado
+    monkeypatch.setattr(scrape, "check_public", lambda url: "127.0.0.1" if "//127.0.0.1:" in url else real(url))
+    monkeypatch.setenv("BRAIN_REMOTE", "1")
+    try:
+        with pytest.raises(scrape.ScrapeError, match="públicas"):
+            scrape.scrape(f"http://127.0.0.1:{port}/go")
+        r = scrape.scrape(f"http://127.0.0.1:{port}/ok")
+        assert "palabra" in r["text"] and r["rendered_js"] is False
+        assert srv.hosts == [f"127.0.0.1:{port}"]  # se conecta a la IP validada, con el Host original
+    finally:
+        srv.shutdown()
+
+
+def test_remote_refuses_busy_port(monkeypatch):
+    import dashboard
+
+    monkeypatch.setattr(dashboard.remote, "cloudflared_path", lambda: "/bin/cloudflared")
+    monkeypatch.setattr(dashboard.SERVICES["remote_mcp"], "status", lambda: "external")
+    started = []
+    monkeypatch.setattr(dashboard.SERVICES["tunnel"], "start", lambda: started.append(1))
+    r = dashboard._remote_post("start", {})
+    assert r["code"] == "busy" and not started  # nunca se publica un puerto que no es de brain
+
+
+def test_history_since_paginates():
+    from brain_mcp import history
+
+    start = history.since(-1)["last_id"]
+    for i in range(7):
+        history.record("create", f"n{i}.md", None, "x")
+    r = history.since(start, limit=3)
+    assert len(r["changes"]) == 3 and r["total"] == 7 and r["last_id"] == r["changes"][-1]["id"]
+    assert r["max_id"] == start + 7
+    assert len(history.since(r["last_id"], limit=10)["changes"]) == 4  # nada se pierde
+
+
+def test_command_punctuation_and_skill_names():
+    from brain_mcp import chat, vault
+
+    assert chat.parse_command("/organize.") == ("organize", "")
+    assert chat.parse_command("/compact, ahora") == ("compact", "ahora")
+    vault.write_file("skills/con espacio.md", "---\nname: x\ndescription: x\n---\nx")
+    vault.write_file("skills/reseñas.md", "---\nname: x\ndescription: x\n---\nx")
+    vault.write_file("skills/equipo/onboarding.md", "---\nname: x\ndescription: x\n---\nx")
+    assert [s["name"] for s in chat.skills()] == ["equipo/onboarding"]
+    assert chat.parse_command("/equipo/onboarding. Ana") == ("skill:equipo/onboarding", "Ana")
+
+
+def test_cloudflared_failed_download_leaves_nothing(monkeypatch):
+    import requests
+    from brain_mcp import remote
+
+    monkeypatch.setattr(remote, "_expected_sha256", lambda asset: "0" * 64)
+
+    class R:
+        status_code = 403
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+    monkeypatch.setattr(requests, "get", lambda *a, **k: R())
+    with pytest.raises(remote.RemoteError):
+        remote.install_cloudflared()
+    assert list(remote.BIN.iterdir()) == []
+
+
+def test_remote_config_cache_sees_new_token():
+    from brain_mcp import remote
+
+    tok = remote.token()
+    assert remote.load()["token"] == tok
+    new = remote.regenerate()
+    assert remote.load()["token"] == new != tok  # mismo tamaño de archivo: el cache no puede quedarse con el viejo

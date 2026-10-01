@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import trafilatura
+import trafilatura.utils
 
 log = logging.getLogger(__name__)
 
@@ -134,26 +135,79 @@ def _extract(html: str) -> str:
     return (text or "").strip()
 
 
-def check_public(url: str) -> None:
+def check_public(url: str) -> str:
     """Para el acceso remoto (BRAIN_REMOTE=1): un agente que llega por la URL pública no puede usar a brain
-    para leer servicios de esta máquina o de la red local (127.0.0.1, 192.168.x.x…). Solo direcciones públicas."""
+    para leer servicios de esta máquina o de la red local (127.0.0.1, 192.168.x.x…). Solo direcciones públicas.
+    Devuelve una IP ya validada, para conectarse a esa misma (y no resolver de nuevo: DNS rebinding)."""
     u = urlparse(url)
     if u.scheme not in ("http", "https") or not u.hostname:
         raise ScrapeError(f"URL inválida: {url}")
     try:
-        infos = socket.getaddrinfo(u.hostname, u.port or (443 if u.scheme == "https" else 80))
+        infos = socket.getaddrinfo(u.hostname, u.port or (443 if u.scheme == "https" else 80), proto=socket.IPPROTO_TCP)
     except OSError as e:
         raise ScrapeError(f"No se pudo resolver {u.hostname}: {e}") from e
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0].split("%")[0])
+    ips = [ipaddress.ip_address(info[4][0].split("%")[0]) for info in infos]
+    for ip in ips:
         if not ip.is_global:
             raise ScrapeError(f"Por el acceso remoto solo se pueden leer direcciones públicas ({u.hostname} → {ip}).")
+    if not ips:
+        raise ScrapeError(f"No se pudo resolver {u.hostname}")
+    return str(ips[0])
+
+
+REMOTE_MAX_BYTES = 5 * 1024 * 1024
+REMOTE_MAX_REDIRECTS = 5
+
+
+def fetch_public(url: str) -> str:
+    """Descarga para el acceso remoto: cada salto (redirecciones incluidas) se valida con check_public y la
+    conexión va a la IP validada (con el hostname para TLS/SNI), así ni una redirección ni un DNS que cambia
+    entre la validación y la conexión llevan a una dirección local. Sin Playwright: el JS de la página podría
+    pedir direcciones locales desde el navegador."""
+    import certifi
+    import urllib3
+    from urllib.parse import urljoin
+
+    for _ in range(REMOTE_MAX_REDIRECTS + 1):
+        u = urlparse(url)
+        ip = check_public(url)
+        port = u.port or (443 if u.scheme == "https" else 80)
+        path = (u.path or "/") + (f"?{u.query}" if u.query else "")
+        if u.scheme == "https":
+            pool = urllib3.HTTPSConnectionPool(ip, port, server_hostname=u.hostname, assert_hostname=u.hostname,
+                                               cert_reqs="CERT_REQUIRED", ca_certs=certifi.where(), retries=False)
+        else:
+            pool = urllib3.HTTPConnectionPool(ip, port, retries=False)
+        try:
+            r = pool.request("GET", path, redirect=False, preload_content=False, timeout=urllib3.Timeout(connect=10, read=20),
+                             headers={"Host": u.netloc.rsplit("@", 1)[-1], "User-Agent": "Mozilla/5.0 (brain)", "Accept": "text/html,*/*"})
+        except urllib3.exceptions.HTTPError as e:
+            raise ScrapeError(f"No se pudo descargar {url}: {e}") from e
+        try:
+            if r.status in (301, 302, 303, 307, 308) and r.headers.get("Location"):
+                url = urljoin(url, r.headers["Location"])
+                continue
+            if r.status >= 400:
+                raise ScrapeError(f"No se pudo descargar {url}: HTTP {r.status}")
+            data = r.read(REMOTE_MAX_BYTES)
+        finally:
+            r.release_conn()
+            pool.close()
+        return trafilatura.utils.decode_file(data)
+    raise ScrapeError(f"Demasiadas redirecciones: {url}")
 
 
 def scrape(url: str, render_js: bool = False) -> dict:
     """render_js=True fuerza Playwright sin probar primero el fetch plano de trafilatura."""
     if os.environ.get("BRAIN_REMOTE") == "1":
-        check_public(url)
+        # por el acceso remoto: descarga validada salto por salto y sin Playwright (ver fetch_public)
+        html = fetch_public(url)
+        text = _extract(html)
+        if not text:
+            raise ScrapeError(f"No se pudo extraer texto de {url} (por el acceso remoto no se renderiza JS).")
+        meta = trafilatura.extract_metadata(html)
+        return {"title": (meta.title if meta and meta.title else None) or text.split("\n")[0][:120], "text": text,
+                "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "rendered_js": False}
     html, text, rendered = None, "", False
 
     if not render_js:

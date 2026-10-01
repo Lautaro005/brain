@@ -73,11 +73,12 @@ def all_meta() -> list[dict]:
 
 def since(after_id: int, limit: int = 50) -> dict:
     """Cambios posteriores a `after_id` (para las notificaciones del dashboard). after_id < 0: solo el
-    último id, así una pestaña recién abierta no avisa de todo lo viejo."""
+    último id, así una pestaña recién abierta no avisa de todo lo viejo. Si hay más de `limit`, `last_id` es
+    el del último devuelto (el resto llega en la consulta siguiente) y `total` cuenta todos los pendientes."""
     with closing(_connect()) as con:
-        last = con.execute("SELECT COALESCE(MAX(id), 0) FROM changes").fetchone()[0]
         if after_id < 0:
-            return {"last_id": last, "changes": []}
+            return {"last_id": con.execute("SELECT COALESCE(MAX(id), 0) FROM changes").fetchone()[0], "changes": [], "total": 0}
         rows = con.execute("SELECT id, ts, op, path, before IS NULL AS was_new FROM changes WHERE id > ? "
                            "ORDER BY id LIMIT ?", (after_id, limit)).fetchall()
-    return {"last_id": max([last] + [r["id"] for r in rows]), "changes": [dict(r) for r in rows]}
+        total, max_id = con.execute("SELECT COUNT(*), COALESCE(MAX(id), ?) FROM changes WHERE id > ?", (after_id, after_id)).fetchone()
+    return {"last_id": rows[-1]["id"] if rows else after_id, "changes": [dict(r) for r in rows], "total": total, "max_id": max_id}

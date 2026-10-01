@@ -48,12 +48,26 @@ class RemoteError(RuntimeError):
 
 # ---------- config ----------
 
+_CACHE: dict = {"key": None, "value": None}
+
+
 def load() -> dict:
+    """Se lee en cada pedido del server --http (token y solo lectura al día sin reiniciar): se cachea por
+    mtime y tamaño del archivo, así no se parsea el JSON varias veces por cada mensaje MCP."""
+    try:
+        st = CONFIG.stat()
+        key = (str(CONFIG), st.st_ino, st.st_mtime_ns, st.st_size)  # _save usa os.replace: cada escritura es otro inodo
+    except OSError:
+        key = None
+    if key is not None and _CACHE["key"] == key:
+        return dict(_CACHE["value"])
     try:
         data = json.loads(CONFIG.read_text())
     except (OSError, ValueError):
         data = {}
-    return {**DEFAULTS, **{k: v for k, v in data.items() if k in DEFAULTS}}
+    cfg = {**DEFAULTS, **{k: v for k, v in data.items() if k in DEFAULTS}}
+    _CACHE.update(key=key, value=cfg)
+    return dict(cfg)
 
 
 def _save(cfg: dict) -> dict:
@@ -232,18 +246,19 @@ def install_cloudflared() -> dict:
         raise RemoteError("no_checksum", f"{CF_RELEASES}/latest")
     BIN.mkdir(parents=True, exist_ok=True)
     h = hashlib.sha256()
-    with tempfile.NamedTemporaryFile(dir=BIN, delete=False) as tmp:
-        try:
-            with requests.get(f"{CF_RELEASES}/latest/download/{asset}", stream=True, timeout=60) as r:
-                if r.status_code != 200:
-                    raise RemoteError("download", f"HTTP {r.status_code}")
-                for chunk in r.iter_content(1 << 20):
-                    h.update(chunk)
-                    tmp.write(chunk)
-        except requests.RequestException as e:
-            raise RemoteError("download", str(e)) from e
-    tmp_path = Path(tmp.name)
-    try:
+    fd, name = tempfile.mkstemp(dir=BIN, prefix=".cloudflared-")
+    tmp_path = Path(name)
+    try:  # el archivo a medio bajar se borra siempre (falle la descarga, el checksum o lo que sea)
+        with os.fdopen(fd, "wb") as tmp:
+            try:
+                with requests.get(f"{CF_RELEASES}/latest/download/{asset}", stream=True, timeout=60) as r:
+                    if r.status_code != 200:
+                        raise RemoteError("download", f"HTTP {r.status_code}")
+                    for chunk in r.iter_content(1 << 20):
+                        h.update(chunk)
+                        tmp.write(chunk)
+            except requests.RequestException as e:
+                raise RemoteError("download", str(e)) from e
         if h.hexdigest() != expected:
             raise RemoteError("checksum", asset)
         dest = _local_bin()
