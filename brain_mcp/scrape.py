@@ -1,11 +1,15 @@
 """URL -> texto limpio con trafilatura, con fallback a Playwright para sitios con mucho JS."""
 import atexit
+import ipaddress
 import logging
+import os
 import queue
+import socket
 import threading
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FuturesTimeout
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import trafilatura
 
@@ -130,8 +134,26 @@ def _extract(html: str) -> str:
     return (text or "").strip()
 
 
+def check_public(url: str) -> None:
+    """Para el acceso remoto (BRAIN_REMOTE=1): un agente que llega por la URL pública no puede usar a brain
+    para leer servicios de esta máquina o de la red local (127.0.0.1, 192.168.x.x…). Solo direcciones públicas."""
+    u = urlparse(url)
+    if u.scheme not in ("http", "https") or not u.hostname:
+        raise ScrapeError(f"URL inválida: {url}")
+    try:
+        infos = socket.getaddrinfo(u.hostname, u.port or (443 if u.scheme == "https" else 80))
+    except OSError as e:
+        raise ScrapeError(f"No se pudo resolver {u.hostname}: {e}") from e
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0].split("%")[0])
+        if not ip.is_global:
+            raise ScrapeError(f"Por el acceso remoto solo se pueden leer direcciones públicas ({u.hostname} → {ip}).")
+
+
 def scrape(url: str, render_js: bool = False) -> dict:
     """render_js=True fuerza Playwright sin probar primero el fetch plano de trafilatura."""
+    if os.environ.get("BRAIN_REMOTE") == "1":
+        check_public(url)
     html, text, rendered = None, "", False
 
     if not render_js:

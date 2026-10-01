@@ -41,6 +41,24 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
 EOF
     ;;
   *)
-    exec "$UV" run python dashboard.py "$@"
+    # "Actualizar y reiniciar" del dashboard: sale con el código 75, acá se actualiza y se vuelve a abrir
+    # en esta misma terminal (sin abrir otra pestaña del navegador: la que estaba se recarga sola).
+    export BRAIN_LAUNCHER=1
+    EXTRA=()
+    while :; do
+      set +e
+      "$UV" run python dashboard.py "$@" ${EXTRA[@]+"${EXTRA[@]}"}
+      code=$?
+      set -e
+      [ "$code" = 75 ] || exit "$code"
+      echo "Actualizando brain…"
+      if git -C "$DIR" pull --ff-only && "$UV" sync --quiet; then
+        unset BRAIN_UPDATE_FAILED
+      else
+        echo "No se pudo actualizar; vuelvo a abrir la versión instalada."
+        export BRAIN_UPDATE_FAILED=1
+      fi
+      EXTRA=(--no-browser)
+    done
     ;;
 esac

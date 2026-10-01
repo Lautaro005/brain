@@ -40,5 +40,20 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
   brain help            esta ayuda
 "@
   }
-  default { & $Uv run python dashboard.py @args; exit $LASTEXITCODE }
+  default {
+    # "Actualizar y reiniciar" del dashboard: sale con el código 75, acá se actualiza y se vuelve a abrir
+    $env:BRAIN_LAUNCHER = "1"
+    $extra = @()
+    while ($true) {
+      & $Uv run python dashboard.py @args @extra
+      if ($LASTEXITCODE -ne 75) { exit $LASTEXITCODE }
+      Write-Host "Actualizando brain…"
+      git -C $Dir pull --ff-only
+      $ok = $LASTEXITCODE -eq 0
+      if ($ok) { & $Uv sync --quiet; $ok = $LASTEXITCODE -eq 0 }
+      if ($ok) { Remove-Item Env:BRAIN_UPDATE_FAILED -ErrorAction SilentlyContinue }
+      else { Write-Host "No se pudo actualizar; vuelvo a abrir la versión instalada."; $env:BRAIN_UPDATE_FAILED = "1" }
+      $extra = @("--no-browser")
+    }
+  }
 }

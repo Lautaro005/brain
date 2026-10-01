@@ -9,6 +9,10 @@ Casos especiales:
 - ChatGPT desktop solo usa servers MCP locales en los modos Codex / ChatGPT Work, y los lee de
   ~/.codex/config.toml, que comparte con Codex CLI (conectar uno conecta el otro).
 - Claude Code se maneja con su CLI (`claude mcp add/remove -s user`).
+- OpenMausBot guarda sus servers en ~/.openmausbot/config.json (mcpServers, como Claude) y solo los lee
+  al abrirse: se escribe con la app cerrada y se vuelve a abrir.
+- Manus Studio corre en la nube: no tiene archivo de config ni puede lanzar un comando en esta máquina.
+  Se conecta por URL con el acceso remoto (remote.py); la tarjeta muestra la URL y los pasos.
 """
 import json
 import os
@@ -66,11 +70,20 @@ CLIENTS = {
     "claude_desktop": {
         "group": "desktop", "name": "Claude Desktop", "kind": "json",
         "path": _app_data() / "Claude/claude_desktop_config.json", "key": "mcpServers",
-        "app": "Claude.app", "process": "Claude",
+        "app": "Claude.app", "process": "Claude", "win_exe": "AnthropicClaude/claude.exe",
     },
     "chatgpt": {
         "group": "desktop", "name": "ChatGPT", "kind": "toml", "path": HOME / ".codex/config.toml",
         "app": "ChatGPT.app", "shares": "codex",
+    },
+    "openmausbot": {
+        "group": "desktop", "name": "OpenMausBot", "kind": "json", "path": HOME / ".openmausbot/config.json",
+        "key": "mcpServers", "app": "OpenMausBot.app", "process": "OpenMausBot",
+        "win_exe": "Programs/OpenMausBot/OpenMausBot.exe",
+    },
+    "manus": {
+        # en la nube: se conecta con la URL del acceso remoto (Settings → Connectors → Custom MCP)
+        "group": "remote", "name": "Manus Studio", "kind": "url", "path": None,
     },
     "claude_code": {
         "group": "other", "name": "Claude Code", "kind": "cli", "path": HOME / ".claude.json", "key": "mcpServers",
@@ -101,6 +114,8 @@ CLIENTS = {
 
 
 def _installed(c: dict) -> bool:
+    if c["kind"] == "url":
+        return True  # es una web: no hay nada que instalar
     if c.get("app") and ((APPS / c["app"]).exists() or (HOME / "Applications" / c["app"]).exists()):
         return True
     if c.get("cli") and shutil.which(c["cli"]):
@@ -124,6 +139,8 @@ def _read_json(path: Path) -> dict:
 def _entry(c: dict) -> dict | None:
     """La entrada 'brain' actual en la config del cliente, o None."""
     try:
+        if c["kind"] == "url":
+            return None
         if c["kind"] == "toml":
             if not c["path"].exists():
                 return None
@@ -154,10 +171,11 @@ def status(key: str) -> dict:
         "connected": entry is not None,
         # conectado pero apuntando a otra carpeta (ej. una instalación vieja)
         "elsewhere": entry is not None and str(ROOT) not in [str(a) for a in args],
-        "config_path": str(c["path"]).replace(str(HOME), "~", 1),
+        "kind": c["kind"],
+        "config_path": str(c["path"]).replace(str(HOME), "~", 1) if c["path"] else "",
         "shares": c.get("shares"),
         "app_running": _app_running(c),
-        "auto": c["kind"] != "cli" or bool(shutil.which(c.get("cli", ""))),
+        "auto": c["kind"] in ("json", "toml") or (c["kind"] == "cli" and bool(shutil.which(c.get("cli", "")))),
     }
 
 
@@ -267,8 +285,8 @@ def _open_app(c: dict) -> None:
         if IS_MAC:
             subprocess.run(["open", "-a", c["process"]], capture_output=True)
         elif IS_WIN:
-            exe = Path(os.environ.get("LOCALAPPDATA", "")) / "AnthropicClaude" / "claude.exe"
-            if exe.exists():
+            exe = Path(os.environ.get("LOCALAPPDATA", "")) / c.get("win_exe", "")
+            if c.get("win_exe") and exe.exists():
                 subprocess.Popen([str(exe)], creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
         elif shutil.which(c["process"].lower()):
             subprocess.Popen([c["process"].lower()], start_new_session=True,
@@ -283,6 +301,8 @@ def set_connected(key: str, connected: bool, restart_app: bool = False) -> dict:
     if key not in CLIENTS:
         raise AgentError("unknown", key)
     c = CLIENTS[key]
+    if c["kind"] == "url":
+        raise AgentError("url_only", c["name"])  # se conecta pegando la URL del acceso remoto en la app
     reopen = False
     if c.get("process") and _app_running(c):
         if not restart_app:

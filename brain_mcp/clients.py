@@ -35,6 +35,8 @@ KNOWN = [
     ("gemini", "gemini_cli"),
     ("codex", "codex"),
     ("chatgpt", "chatgpt"),
+    ("openmausbot", "openmausbot"),
+    ("manus", "manus"),
 ]
 # no son agentes: el Inspector que prende el dashboard y los clientes de prueba
 IGNORED = ("mcp-inspector", "inspector")

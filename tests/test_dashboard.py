@@ -30,7 +30,8 @@ def test_pages_and_api(dash):
     assert _get(dash + "/")[0] == 200
     assert b"BrainUI" in _get(dash + "/ui.js")[1]
     st = json.loads(_get(dash + "/api/status")[1])
-    assert {s["key"] for s in st["services"]} == {"chroma", "ollama", "inspector"}
+    assert {s["key"] for s in st["services"]} == {"chroma", "ollama", "inspector", "remote_mcp", "tunnel"}
+    assert {s["key"] for s in st["services"] if s["group"] == "core"} == {"chroma", "ollama", "inspector"}
     assert json.loads(_get(dash + "/api/backup/list")[1])["ok"]
 
 

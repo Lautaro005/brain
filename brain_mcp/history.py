@@ -69,3 +69,15 @@ def all_meta() -> list[dict]:
     """Todos los cambios (id, ts, op, path) para las estadísticas del dashboard."""
     with closing(_connect()) as con:
         return [dict(r) for r in con.execute("SELECT id, ts, op, path FROM changes ORDER BY id DESC")]
+
+
+def since(after_id: int, limit: int = 50) -> dict:
+    """Cambios posteriores a `after_id` (para las notificaciones del dashboard). after_id < 0: solo el
+    último id, así una pestaña recién abierta no avisa de todo lo viejo."""
+    with closing(_connect()) as con:
+        last = con.execute("SELECT COALESCE(MAX(id), 0) FROM changes").fetchone()[0]
+        if after_id < 0:
+            return {"last_id": last, "changes": []}
+        rows = con.execute("SELECT id, ts, op, path, before IS NULL AS was_new FROM changes WHERE id > ? "
+                           "ORDER BY id LIMIT ?", (after_id, limit)).fetchall()
+    return {"last_id": max([last] + [r["id"] for r in rows]), "changes": [dict(r) for r in rows]}

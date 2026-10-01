@@ -603,21 +603,25 @@
     <div class="wrap">
       <div class="head">
         <h2 data-i18n="agents.h">Works with the AIs you already use</h2>
-        <p data-i18n="agents.p">One click from the dashboard for each of these. brain adds itself to the app's settings and keeps a backup of what was there.</p>
+        <p data-i18n="agents.p">One click from the dashboard for the apps on your computer: brain adds itself to the app's settings and keeps a backup of what was there. Agents in the cloud connect with a private URL.</p>
       </div>
       <div class="catalog">
         <div class="group" data-i18n="agents.g1">Desktop apps</div>
         <div class="row"><span class="ref">1a</span><span class="name">Claude Desktop</span><span class="note" data-i18n="agents.claude">Chat and Cowork</span><span class="stamp" data-i18n="agents.click">One click</span></div>
         <div class="row"><span class="ref">1b</span><span class="name">ChatGPT</span><span class="note" data-i18n="agents.chatgpt">In Codex and ChatGPT Work modes</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1c</span><span class="name">OpenMausBot</span><span class="where">~/.openmausbot/config.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
         <div class="group" data-i18n="agents.g2">Coding agents and editors</div>
-        <div class="row"><span class="ref">1c</span><span class="name">Cursor</span><span class="where">~/.cursor/mcp.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
-        <div class="row"><span class="ref">1d</span><span class="name">Claude Code</span><span class="where">claude mcp add</span><span class="stamp" data-i18n="agents.click">One click</span></div>
-        <div class="row"><span class="ref">1e</span><span class="name">Codex CLI</span><span class="where">~/.codex/config.toml</span><span class="stamp" data-i18n="agents.click">One click</span></div>
-        <div class="row"><span class="ref">1f</span><span class="name">VS Code · Copilot</span><span class="where">mcp.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
-        <div class="row"><span class="ref">1g</span><span class="name">Windsurf</span><span class="where">mcp_config.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
-        <div class="row"><span class="ref">1h</span><span class="name">Gemini CLI</span><span class="where">~/.gemini/settings.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1d</span><span class="name">Cursor</span><span class="where">~/.cursor/mcp.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1e</span><span class="name">Claude Code</span><span class="where">claude mcp add</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1f</span><span class="name">Codex CLI</span><span class="where">~/.codex/config.toml</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1g</span><span class="name">VS Code · Copilot</span><span class="where">mcp.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1h</span><span class="name">Windsurf</span><span class="where">mcp_config.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="row"><span class="ref">1i</span><span class="name">Gemini CLI</span><span class="where">~/.gemini/settings.json</span><span class="stamp" data-i18n="agents.click">One click</span></div>
+        <div class="group" data-i18n="agents.g4">In the cloud, by URL</div>
+        <div class="row"><span class="ref">1j</span><span class="name">Manus Studio</span><span class="note" data-i18n="agents.manus">Paste the remote access URL in its connectors</span><span class="stamp" data-i18n="agents.url">By URL</span></div>
+        <div class="row"><span class="ref">1k</span><span class="name" data-i18n="agents.cloud">Claude.ai, ChatGPT and other remote clients</span><span class="note" data-i18n="agents.cloudp">A private URL through a Cloudflare tunnel, with a secret token and an optional read-only mode.</span><span class="stamp" data-i18n="agents.url">By URL</span></div>
         <div class="group" data-i18n="agents.g3">Anything else</div>
-        <div class="row"><span class="ref">1i</span><span class="name" data-i18n="agents.any">Any local MCP client</span><span class="note" data-i18n="agents.anyp">The dashboard gives you the exact values to paste: command and arguments.</span><span class="stamp" data-i18n="agents.manual">Copy &amp; paste</span></div>
+        <div class="row"><span class="ref">1l</span><span class="name" data-i18n="agents.any">Any local MCP client</span><span class="note" data-i18n="agents.anyp">The dashboard gives you the exact values to paste: command and arguments.</span><span class="stamp" data-i18n="agents.manual">Copy &amp; paste</span></div>
       </div>
     </div>
   </section>
@@ -690,7 +694,7 @@
       </div>
       <div class="card rules"><div class="card-h"><span data-i18n="priv.rules">Rules of the drawer</span><span class="ref">7</span></div>
         <ol class="card-b">
-          <li><span class="n">7.1</span><div><b data-i18n="priv.l1">Runs on your machine</b><span data-i18n="priv.l1p">Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, and to check GitHub for a new version.</span></div></li>
+          <li><span class="n">7.1</span><div><b data-i18n="priv.l1">Runs on your machine</b><span data-i18n="priv.l1p">Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, to check GitHub for a new version and, only if you turn on remote access, to keep a Cloudflare tunnel open for your cloud agents.</span></div></li>
           <li><span class="n">7.2</span><div><b data-i18n="priv.l2">Every change can be undone</b><span data-i18n="priv.l2p">Each edit is kept as a version, so an agent can never destroy what you wrote.</span></div></li>
           <li><span class="n">7.3</span><div><b data-i18n="priv.l3">Agents stay inside the drawer</b><span data-i18n="priv.l3p">They can read and write your brain folder, and nothing else on your computer.</span></div></li>
           <li><span class="n">7.4</span><div><b data-i18n="priv.l4">Source available</b><span data-i18n="priv.l4p">MIT with the Commons Clause. Read every line on GitHub, change it, make it yours. Just don't sell it.</span></div></li>
@@ -786,8 +790,10 @@
       "how.s2": "Connect", "how.s2p": "Type brain. In the dashboard, click Connect next to each AI you use.", "how.ch2": "Connect agent", "how.on": "Connected", "how.off": "Connect",
       "how.s3": "Just ask", "how.s3p": "Your AIs now answer with your context, and remember new things for next time, in any app.", "how.example": "example",
       "how.q": "What should I focus on this week?", "how.a": "Your store launches at the end of the month, so: finish the pricing page first. Short version, as you like it.", "how.src": "from brain · 1.2 1.5 1.1",
-      "agents.h": "Works with the AIs you already use", "agents.p": "One click from the dashboard for each of these. brain adds itself to the app's settings and keeps a backup of what was there.",
-      "agents.g1": "Desktop apps", "agents.g2": "Coding agents and editors", "agents.g3": "Anything else",
+      "agents.h": "Works with the AIs you already use", "agents.p": "One click from the dashboard for the apps on your computer: brain adds itself to the app's settings and keeps a backup of what was there. Agents in the cloud connect with a private URL.",
+      "agents.g1": "Desktop apps", "agents.g2": "Coding agents and editors", "agents.g3": "Anything else", "agents.g4": "In the cloud, by URL",
+      "agents.manus": "Paste the remote access URL in its connectors", "agents.url": "By URL", "agents.cloud": "Claude.ai, ChatGPT and other remote clients",
+      "agents.cloudp": "A private URL through a Cloudflare tunnel, with a secret token and an optional read-only mode.",
       "agents.claude": "Chat and Cowork", "agents.chatgpt": "In Codex and ChatGPT Work modes", "agents.click": "One click",
       "agents.any": "Any local MCP client", "agents.anyp": "The dashboard gives you the exact values to paste: command and arguments.", "agents.manual": "Copy & paste",
       "dash.h": "A dashboard for all of it", "dash.p": "Type brain and it opens in your browser: switch services on and off, fill in your profile, connect agents, chat with your memory, save pages and see how everything connects.",
@@ -796,7 +802,7 @@
       "dash.c1": "Services on/off", "dash.c2": "Stats", "dash.c3": "Memory import", "dash.c4": "Graph", "dash.c5": "English · Español", "dash.c6": "Local chat",
       "priv.h": "Yours, on your computer", "priv.ch": "Where your memory lives",
       "priv.card": "Everything brain knows about you is a folder on your computer: <b>~/.brain</b>. Nothing is uploaded, and no account exists to sign in to.",
-      "priv.rules": "Rules of the drawer", "priv.l1": "Runs on your machine", "priv.l1p": "Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, and to check GitHub for a new version.",
+      "priv.rules": "Rules of the drawer", "priv.l1": "Runs on your machine", "priv.l1p": "Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, to check GitHub for a new version and, only if you turn on remote access, to keep a Cloudflare tunnel open for your cloud agents.",
       "priv.l2": "Every change can be undone", "priv.l2p": "Each edit is kept as a version, so an agent can never destroy what you wrote.",
       "priv.l3": "Agents stay inside the drawer", "priv.l3p": "They can read and write your brain folder, and nothing else on your computer.",
       "priv.l4": "Source available", "priv.l4p": "MIT with the Commons Clause. Read every line on GitHub, change it, make it yours. Just don't sell it.",
@@ -841,8 +847,10 @@
       "how.s2": "Conectá", "how.s2p": "Escribí brain. En el dashboard, tocá Conectar al lado de cada IA que uses.", "how.ch2": "Conectar agente", "how.on": "Conectado", "how.off": "Conectar",
       "how.s3": "Preguntá", "how.s3p": "Tus IAs ahora responden con tu contexto y recuerdan lo nuevo para la próxima, en cualquier app.", "how.example": "ejemplo",
       "how.q": "¿En qué me conviene enfocarme esta semana?", "how.a": "Tu tienda sale a fin de mes, así que: terminá primero la página de precios. Versión corta, como te gusta.", "how.src": "desde brain · 1.2 1.5 1.1",
-      "agents.h": "Funciona con las IAs que ya usás", "agents.p": "Un click desde el dashboard para cada una. brain se agrega a la configuración de la app y guarda un backup de lo que había.",
-      "agents.g1": "Apps de escritorio", "agents.g2": "Agentes de código y editores", "agents.g3": "Cualquier otra",
+      "agents.h": "Funciona con las IAs que ya usás", "agents.p": "Un click desde el dashboard para las apps de tu compu: brain se agrega a la configuración de la app y guarda un backup de lo que había. Los agentes en la nube se conectan con una URL privada.",
+      "agents.g1": "Apps de escritorio", "agents.g2": "Agentes de código y editores", "agents.g3": "Cualquier otra", "agents.g4": "En la nube, por URL",
+      "agents.manus": "Pegá la URL del acceso remoto en sus conectores", "agents.url": "Por URL", "agents.cloud": "Claude.ai, ChatGPT y otros clientes remotos",
+      "agents.cloudp": "Una URL privada por un túnel de Cloudflare, con un token secreto y modo solo lectura si querés.",
       "agents.claude": "Chat y Cowork", "agents.chatgpt": "En los modos Codex y ChatGPT Work", "agents.click": "Un click",
       "agents.any": "Cualquier cliente MCP local", "agents.anyp": "El dashboard te da los valores exactos para pegar: comando y argumentos.", "agents.manual": "Copiar y pegar",
       "dash.h": "Un dashboard para todo", "dash.p": "Escribí brain y se abre en tu navegador: prendé y apagá servicios, completá tu perfil, conectá agentes, chateá con tu memoria, guardá páginas y mirá cómo se conecta todo.",
@@ -851,7 +859,7 @@
       "dash.c1": "Servicios on/off", "dash.c2": "Estadísticas", "dash.c3": "Importar memoria", "dash.c4": "Grafo", "dash.c5": "English · Español", "dash.c6": "Chat local",
       "priv.h": "Tuyo, en tu compu", "priv.ch": "Dónde vive tu memoria",
       "priv.card": "Todo lo que brain sabe de vos es una carpeta en tu computadora: <b>~/.brain</b>. No se sube nada y no hay ninguna cuenta a la que entrar.",
-      "priv.rules": "Reglas del fichero", "priv.l1": "Corre en tu máquina", "priv.l1p": "La búsqueda funciona con un modelo chico que corre local. brain solo sale a internet para guardar una página que le pedís, para usar las conexiones que agregás y para fijarse en GitHub si hay una versión nueva.",
+      "priv.rules": "Reglas del fichero", "priv.l1": "Corre en tu máquina", "priv.l1p": "La búsqueda funciona con un modelo chico que corre local. brain solo sale a internet para guardar una página que le pedís, para usar las conexiones que agregás, para fijarse en GitHub si hay una versión nueva y, solo si prendés el acceso remoto, para mantener abierto un túnel de Cloudflare para tus agentes en la nube.",
       "priv.l2": "Todo se puede deshacer", "priv.l2p": "Cada edición queda como una versión, así que ningún agente puede destruir lo que escribiste.",
       "priv.l3": "Los agentes no salen del fichero", "priv.l3p": "Pueden leer y escribir tu carpeta de brain, y nada más de tu computadora.",
       "priv.l4": "Código a la vista", "priv.l4p": "MIT con Commons Clause. Leé cada línea en GitHub, cambiala, hacela tuya. Lo único que no podés es venderla.",

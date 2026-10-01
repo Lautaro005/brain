@@ -7,6 +7,7 @@ import argparse
 import atexit
 import json
 import logging
+import os
 import shutil
 import signal
 import sys
@@ -25,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, backup, chat, clients, connectors, history, memory, oauth, reflect, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, backup, chat, clients, connectors, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -39,6 +40,10 @@ ALLOWED_HOSTS: set[str] = set()
 PORT = 8765  # se pisa en main(); lo usa OAuth para la redirect URI
 MAX_BODY = 5 * 1024 * 1024  # 5 MB alcanza para cualquier export de memoria en texto
 MAX_BACKUP = 8 * 1024 ** 3  # subida de un backup para restaurar
+# "Actualizar y reiniciar": el dashboard sale con este código y el lanzador (brain.sh / brain.ps1, que
+# exporta BRAIN_LAUNCHER=1) actualiza con git + uv y lo vuelve a abrir en la misma terminal.
+RESTART_CODE = 75
+_SERVER: dict = {"srv": None, "restart": False}
 
 
 def _error_code(e: Exception) -> str:
@@ -64,6 +69,71 @@ def _chunks(chroma_up: bool) -> int | None:
     return _chunks_cache["value"]
 
 
+def _can_self_update() -> bool:
+    return os.environ.get("BRAIN_LAUNCHER") == "1" and (Path(__file__).resolve().parent / ".git").exists()
+
+
+def _update_apply() -> dict:
+    """Cierra el dashboard para que el lanzador actualice y lo vuelva a abrir (la página se recarga sola)."""
+    if not _can_self_update():
+        return {"ok": False, "code": "no_launcher"}
+    _SERVER["restart"] = True
+    threading.Timer(0.4, lambda: _SERVER["srv"] and _SERVER["srv"].shutdown()).start()
+    return {"ok": True, "current": updates.current()}
+
+
+def _remote_info() -> dict:
+    t = SERVICES["tunnel"].info()
+    m = SERVICES["remote_mcp"].info()
+    err = None
+    if "error" in (t["status"], m["status"]):  # la última línea con error de cloudflared o del server, para la tarjeta
+        lines = list(SERVICES["tunnel" if t["status"] == "error" else "remote_mcp"].logs)
+        err = next((ln for ln in reversed(lines) if any(w in ln for w in ("ERR", "failed", "Error", "error"))), None)
+    return {"ok": True, **remote.public(t["link"] if t["status"] == "running" else None), "tunnel": t, "mcp": m,
+            "error": err[-300:] if err else None}
+
+
+def _remote_start() -> None:
+    if not remote.cloudflared_path():
+        raise remote.RemoteError("no_cloudflared")
+    remote.tunnel_command()  # valida el modo (named sin token/hostname) antes de prender nada
+    m, t = SERVICES["remote_mcp"], SERVICES["tunnel"]
+    if m.status() in ("stopped", "error"):
+        m.start()
+    if not t.ours():
+        t.start()
+    remote.set_enabled(True)
+
+
+def _remote_post(action: str, body: dict) -> dict:
+    """/api/remote/start · stop · settings · regenerate · install"""
+    try:
+        if action == "start":
+            _remote_start()
+        elif action == "stop":
+            SERVICES["tunnel"].stop()
+            SERVICES["remote_mcp"].stop()
+            remote.set_enabled(False)
+        elif action == "settings":
+            before = remote.load()
+            after = remote.configure(body)
+            t = SERVICES["tunnel"]
+            if t.ours() and any(before[k] != after[k] for k in ("mode", "hostname", "tunnel_token")):
+                t.stop()
+                t.start()
+        elif action == "regenerate":
+            remote.regenerate()  # la URL vieja deja de andar en el acto: el server lee el token en cada pedido
+        elif action == "install":
+            remote.install_cloudflared()
+        else:
+            return {"ok": False, "code": "unknown_action"}
+    except remote.RemoteError as e:
+        return {"ok": False, "code": e.code, "detail": e.detail}
+    except RuntimeError as e:  # Service.start: el puerto está ocupado por otro programa
+        return {"ok": False, "code": "busy", "detail": str(e)}
+    return _remote_info()
+
+
 def _status() -> dict:
     services = [s.info() for s in SERVICES.values()]
     st = {s["key"]: s["status"] for s in services}
@@ -85,6 +155,10 @@ def _chat_get(path: str, q: dict) -> dict:
             return {"ok": True, "chat": chat.get_chat(q.get("id", [""])[0])}
         if path == "/api/chat/context":
             return _chat_context()
+        if path == "/api/chat/commands":  # los skills del vault, para el menú de "/"
+            return {"ok": True, "skills": chat.skills()}
+        if path == "/api/chat/app_context":  # el contexto fijo sobre cómo funciona brain (Ajustes → Chat)
+            return {"ok": True, "text": chat.app_guide()}
     except chat.ChatError as e:
         return {"ok": False, "code": e.code, "detail": e.detail}
     except Exception as e:
@@ -273,7 +347,12 @@ class Handler(BaseHTTPRequestHandler):
                 with _REFRESH_LOCK:
                     self._json(dict(_REFRESH))
             elif u.path == "/api/version":
-                self._json({"current": updates.current(), "releases": updates.RELEASES_URL})
+                self._json({"current": updates.current(), "releases": updates.RELEASES_URL,
+                            "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") == "1"})
+            elif u.path == "/api/activity":  # para las notificaciones del sistema (Ajustes → Notificaciones)
+                self._json(history.since(int(q.get("after", ["-1"])[0])))
+            elif u.path == "/api/remote":
+                self._json(_remote_info())
             elif u.path == "/api/history":
                 self._json({"changes": history.list_changes(path=q.get("path", [None])[0], limit=int(q.get("limit", ["50"])[0]))})
             elif u.path.startswith("/api/logs/"):
@@ -341,6 +420,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, **mcp_tools.reindex_keyword_core()})
             elif u.path == "/api/reflect":
                 self._json({"ok": True, **reflect.run()})
+            elif parts[:2] == ["api", "remote"] and len(parts) == 3:
+                self._json(_remote_post(parts[2], body))
+            elif u.path == "/api/update/apply":
+                self._json(_update_apply())
             elif u.path == "/api/version/check":
                 try:
                     self._json({"ok": True, **updates.check()})
@@ -500,11 +583,18 @@ def main() -> None:
                     log.warning("No se pudo prender %s: %s", s.label, e)
             else:
                 log.info("%s ya estaba corriendo", s.label)
+        if remote.load()["enabled"]:  # el acceso remoto quedó prendido la última vez
+            try:
+                _remote_start()
+                log.info("Acceso remoto prendido (túnel de Cloudflare)")
+            except Exception as e:
+                log.warning("No se pudo prender el acceso remoto: %s", e)
 
     url = f"http://127.0.0.1:{args.port}"
     log.info("Dashboard en %s  (Ctrl+C apaga todo lo que prendió)", url)
     if not args.no_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
+    _SERVER["srv"] = srv
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
@@ -512,6 +602,10 @@ def main() -> None:
     finally:
         log.info("Apagando servicios…")
         stop_all()
+        srv.server_close()
+    if _SERVER["restart"]:
+        log.info("Cerrando para actualizar; el lanzador vuelve a abrir brain.")
+        sys.exit(RESTART_CODE)
 
 
 if __name__ == "__main__":

@@ -76,6 +76,64 @@ El usuario quiere sumar un server MCP a las Conexiones de brain. Pasos:
 No inventes paquetes ni URLs: si la documentación no alcanza para saber el comando, decilo y preguntá."""
 
 
+# Contexto fijo sobre cómo funciona brain: va siempre en el system prompt (antes de las instrucciones del
+# usuario), así el chat puede explicar la app y guiar al usuario. No se edita: Ajustes → Chat lo muestra
+# plegado, de solo lectura. Si cambia algo visible de la app (vistas, comandos, tools), actualizarlo acá.
+APP_GUIDE = {
+    "es": """# Cómo funciona brain (contexto fijo de la app)
+brain es la base de conocimiento local del usuario: corre en su computadora (macOS, Linux o Windows) y le da la
+misma memoria a todos sus agentes de IA por MCP. Todo vive en su máquina: el vault (notas en Markdown) en vault/
+y los índices, el historial y los ajustes en data/.
+- Vault: BRAIN.md (índice corto), profile.md (perfil), memory/<categoría>.md (un hecho por viñeta, con fecha),
+  projects/, skills/ (skills reutilizables) y knowledge/sources/ (páginas web guardadas con save_url).
+- Cada escritura queda en el historial: file_history + restore_file deshacen cualquier cambio.
+- Búsqueda híbrida (search_knowledge): semántica con Ollama + Chroma, y por palabra (SQLite FTS5).
+- Vistas del dashboard (http://127.0.0.1:8765): Panel (servicios Chroma, Ollama e Inspector, métricas y salud),
+  Chat (este chat), Perfil (datos del usuario, importar memoria de otro chatbot, Reflect), Conectar agente
+  (Claude, ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, Manus Studio, y el acceso
+  remoto por URL), Conexiones (servers MCP de otros servicios cuyas tools brain usa y guarda), Grafo,
+  Conocimiento (guardar y buscar URLs, frescura de fuentes) y Logs. El engranaje abre Ajustes.
+- Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
+  menú, modelo y contexto del chat, instrucciones propias para el chat, notificaciones del sistema, backup y
+  restauración, y colores del grafo.
+- Acceso remoto: Conectar agente → «Acceso remoto por URL» publica el server MCP con un túnel de Cloudflare.
+  La URL lleva un token secreto (es como una contraseña); se puede regenerar y poner en solo lectura. Así se
+  conectan agentes en la nube como Manus Studio, Claude.ai o ChatGPT.
+- Comandos del chat: /organize (ordenar el vault), /reflect (revisar la memoria), /compact (resumir la
+  conversación), /add-mcp (proponer un conector), /new (chat nuevo), y /<skill> para usar un skill guardado en
+  skills/.
+- Conectores: propose_connection solo propone; el usuario los aprueba con un click. Vos no podés agregarlos.
+Si el usuario pregunta cómo hacer algo en brain, explicale dónde está en el dashboard con estos nombres.""",
+    "en": """# How brain works (fixed app context)
+brain is the user's local knowledge base: it runs on their computer (macOS, Linux or Windows) and gives all
+their AI agents the same memory over MCP. Everything stays on their machine: the vault (Markdown notes) in
+vault/ and the indexes, history and settings in data/.
+- Vault: BRAIN.md (short index), profile.md, memory/<category>.md (one dated fact per bullet), projects/,
+  skills/ (reusable skills) and knowledge/sources/ (web pages saved with save_url).
+- Every write is kept in history: file_history + restore_file undo any change.
+- Hybrid search (search_knowledge): semantic with Ollama + Chroma, and keyword (SQLite FTS5).
+- Dashboard views (http://127.0.0.1:8765): Dashboard (Chroma, Ollama and Inspector services, metrics, health),
+  Chat (this chat), Profile (user details, import memory from another chatbot, Reflect), Connect agent (Claude,
+  ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, Manus Studio, and remote access by URL),
+  Connections (other services' MCP servers whose tools brain uses and saves), Graph, Knowledge (save and
+  search URLs, source freshness) and Logs. The gear opens Settings.
+- Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
+  and context, custom chat instructions, system notifications, backup and restore, and graph colors.
+- Remote access: Connect agent → "Remote access by URL" publishes the MCP server through a Cloudflare tunnel.
+  The URL carries a secret token (treat it like a password); it can be regenerated and set to read-only. Cloud
+  agents such as Manus Studio, Claude.ai or ChatGPT connect this way.
+- Chat commands: /organize (tidy the vault), /reflect (review memory), /compact (summarize the conversation),
+  /add-mcp (propose a connector), /new (new chat), and /<skill> to use a skill saved in skills/.
+- Connectors: propose_connection only proposes; the user approves with one click. You can't add them yourself.
+If the user asks how to do something in brain, tell them where it is in the dashboard using these names.""",
+}
+MAX_SKILL_CHARS = 12000
+
+
+def app_guide() -> dict:
+    return {"es": APP_GUIDE["es"], "en": APP_GUIDE["en"]}
+
+
 class ChatError(RuntimeError):
     def __init__(self, code: str, detail: str = ""):
         super().__init__(detail or code)
@@ -328,15 +386,46 @@ def _transcript(summary: str, msgs: list[dict]) -> str:
     return "\n\n".join(out)
 
 
+def skills() -> list[dict]:
+    """Skills del vault (skills/**.md) para usar con /<nombre>: los que guardaron los agentes (distill_skill +
+    write_file) o el usuario. Un skill que se llame igual que un comando de brain queda tapado por el comando."""
+    out = []
+    for f in vault.list_files("skills"):
+        name = f["path"][len("skills/"):-len(".md")]
+        if name and name not in COMMANDS and name != "new":
+            out.append({"name": name, "description": f["description"], "path": f["path"]})
+    return out
+
+
 def parse_command(text: str) -> tuple[str, str]:
-    """"/organize y los proyectos" → ("organize", "y los proyectos"). Sin comando: ("", text)."""
-    m = re.match(r"^/([a-z][a-z-]*)(?![\w-])\s*(.*)$", text.strip(), re.S)
-    if m and m.group(1) in COMMANDS:
+    """"/organize y los proyectos" → ("organize", "y los proyectos"); "/mi-skill algo" → ("skill:mi-skill",
+    "algo") si existe skills/mi-skill.md. Sin comando: ("", text)."""
+    m = re.match(r"^/([A-Za-z0-9][\w./-]*)(?![\w./-])\s*(.*)$", text.strip(), re.S)
+    if not m:
+        return "", text
+    if m.group(1) in COMMANDS:
         return m.group(1), m.group(2).strip()
+    if any(sk["name"] == m.group(1) for sk in skills()):
+        return f"skill:{m.group(1)}", m.group(2).strip()
     return "", text
 
 
+def _command_request(cmd: str, rest: str = "") -> str:
+    """Lo que le llega al modelo en lugar de "/comando": el pedido en palabras."""
+    if cmd.startswith("skill:"):
+        name = cmd[len("skill:"):]
+        return (f"Aplicá mi skill «{name}» a esto: {rest}" if rest else
+                f"Quiero usar mi skill «{name}». Decime qué necesitás para aplicarlo.")
+    return COMMANDS[cmd] + (f" {rest}" if rest else "")
+
+
 def _command_prompt(cmd: str) -> str:
+    if cmd.startswith("skill:"):
+        name = cmd[len("skill:"):]
+        body = vault.read_file(f"skills/{name}.md")
+        return (f"# Skill del usuario: {name}\nEl usuario eligió este skill, guardado en su vault (skills/{name}.md). "
+                "Seguí sus instrucciones en esta conversación; si necesita datos que no tenés, preguntá.\n\n"
+                + body[:MAX_SKILL_CHARS])
     if cmd == "add-mcp":
         return ADD_MCP_PROMPT
     if cmd == "organize":
@@ -385,6 +474,7 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         "file_history + restore_file. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. "
         "No inventes datos: si algo no está en el contexto ni en el vault, decilo. "
         f"{reply_lang}, salvo que el usuario escriba en otro idioma.",
+        APP_GUIDE["es"],
         "# Perfil (profile.md)\n" + (f"Nombre: {p['name']}\nEn una línea: {p['headline']}\n\n{p['about']}"
                                      if p["exists"] else "(todavía no cargó su perfil)"),
         "# Memoria del usuario (memory/)\n" + ("\n\n".join(mem_lines) or "(todavía no hay memorias)"),
@@ -634,7 +724,8 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
         return
 
     cmd, rest = parse_command(text)
-    title = (CMD_TITLES[lang if lang in ("es", "en") else "es"].get(cmd) if cmd else None) or text.splitlines()[0][:60]
+    title = (CMD_TITLES[lang if lang in ("es", "en") else "es"].get(cmd) if cmd else None) \
+        or (f"Skill: {cmd[6:]}" if cmd.startswith("skill:") else None) or text.splitlines()[0][:60]
     mode_cmd = "" if cmd == "compact" else cmd  # /compact no deja el chat en un modo
     history, created, saved_ok, command = [], _now(), True, mode_cmd
     if chat_id:
@@ -653,7 +744,7 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
 
     user_msg = {"role": "user", "content": text, "ts": _now()}
     # lo que ve el modelo: un comando solo ("/organize") se traduce a un pedido en palabras
-    to_model = (COMMANDS[cmd] + (f" {rest}" if rest else "")) if cmd else text
+    to_model = _command_request(cmd, rest) if cmd else text
     try:
         system = _context(text, chat_id, lang, user_system, command)
     except Exception as e:
@@ -677,7 +768,7 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
         if summary:
             sys_ += "\n\n# Resumen de la conversación hasta ahora (se compactó con /compact)\n" + summary
         ms = [{"role": "system", "content": sys_}]
-        ms += [{"role": m["role"], "content": (COMMANDS[parse_command(m["content"])[0]] if m["role"] == "user"
+        ms += [{"role": m["role"], "content": (_command_request(*parse_command(m["content"])) if m["role"] == "user"
                                                and parse_command(m["content"])[0] else m["content"])}
                for m in recent[-MAX_HISTORY:]]
         ms.append({"role": "user", "content": to_model})
