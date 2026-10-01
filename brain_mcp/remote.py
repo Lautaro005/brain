@@ -259,17 +259,33 @@ def install_cloudflared() -> dict:
                         tmp.write(chunk)
             except requests.RequestException as e:
                 raise RemoteError("download", str(e)) from e
-        if h.hexdigest() != expected:
-            raise RemoteError("checksum", asset)
         dest = _local_bin()
         if asset.endswith(".tgz"):
-            with tarfile.open(tmp_path) as tf:
+            # macOS: Cloudflare publica, con el nombre del .tgz, el SHA256 del binario que trae adentro (no el
+            # del .tgz). Se acepta cualquiera de los dos, y el binario se verifica antes de instalarlo.
+            try:
+                tf = tarfile.open(tmp_path)
+            except tarfile.TarError as e:
+                raise RemoteError("checksum", asset) from e
+            with tf:
                 member = next((m for m in tf.getmembers() if m.isfile() and Path(m.name).name == "cloudflared"), None)
                 if member is None:
                     raise RemoteError("download", "el .tgz no trae cloudflared")
-                with tf.extractfile(member) as src, open(dest, "wb") as out:
-                    shutil.copyfileobj(src, out)
+                inner = hashlib.sha256()
+                part = dest.with_name(dest.name + ".part")
+                try:
+                    with tf.extractfile(member) as src, open(part, "wb") as out:
+                        for chunk in iter(lambda: src.read(1 << 20), b""):
+                            inner.update(chunk)
+                            out.write(chunk)
+                    if expected not in (h.hexdigest(), inner.hexdigest()):
+                        raise RemoteError("checksum", asset)
+                    os.replace(part, dest)
+                finally:
+                    part.unlink(missing_ok=True)
         else:
+            if h.hexdigest() != expected:
+                raise RemoteError("checksum", asset)
             os.replace(tmp_path, dest)
         if os.name != "nt":
             dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

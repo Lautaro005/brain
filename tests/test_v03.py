@@ -149,11 +149,13 @@ def test_openmausbot_and_manus(tmp_path, monkeypatch):
     assert st["connected"] and data["apiKey"] == "k" and "otro" in data["mcpServers"]
     assert data["mcpServers"]["brain"]["args"][-1] == "server.py"
     assert cfg.with_name("config.json.bak-brain").exists()
-    m = agents.status("manus")
-    assert m["kind"] == "url" and m["installed"] and not m["connected"] and not m["auto"]
+    m = agents.status("manus")  # local, con su formulario: no hay archivo que escribir
+    assert m["kind"] == "form" and m["group"] == "desktop" and not m["connected"] and not m["auto"] and not m["detected"]
     with pytest.raises(agents.AgentError) as e:
         agents.set_connected("manus", True)
-    assert e.value.code == "url_only"
+    assert e.value.code == "form_only"
+    monkeypatch.setattr(agents, "_seen", lambda key: key == "manus")  # Manus ya usó brain (handshake MCP)
+    assert agents.status("manus")["detected"]
 
 
 # ---------- chat: skills con "/" y contexto fijo ----------
@@ -348,3 +350,79 @@ def test_remote_config_cache_sees_new_token():
     assert remote.load()["token"] == tok
     new = remote.regenerate()
     assert remote.load()["token"] == new != tok  # mismo tamaño de archivo: el cache no puede quedarse con el viejo
+
+
+
+# ---------- v0.03.0.1 ----------
+
+def test_deepseek_harness_patch_layer(tmp_path, monkeypatch):
+    """brain se agrega a ~/.dsh/cordis.patch.yml como un bloque propio, sin tocar el resto (comentarios y !!js)."""
+    import yaml
+    from brain_mcp import agents
+
+    path = tmp_path / ".dsh/cordis.patch.yml"
+    path.parent.mkdir()
+    original = "# mis parches\n- id: tools\n  config:\n    token: !!js process.env.X\n"
+    path.write_text(original)
+    monkeypatch.setitem(agents.CLIENTS["deepseek_harness"], "path", path)
+    st = agents.set_connected("deepseek_harness", True)
+    text = path.read_text()
+    assert st["connected"] and not st["elsewhere"] and text.startswith(original)
+    assert path.with_name("cordis.patch.yml.bak-brain").read_text() == original
+    patches = yaml.load(text, Loader=agents._DshLoader)
+    row = patches[-1]["insert"][0]
+    assert row["name"] == "@deepseek-ai/dsh-mcp-client" and row["config"]["transport"] == "stdio"
+    assert row["config"]["serverName"] == "brain" and row["config"]["args"][-1] == "server.py"
+    agents.set_connected("deepseek_harness", True)  # reconectar no duplica
+    assert path.read_text().count("dsh-mcp-client") == 1
+    agents.set_connected("deepseek_harness", False)
+    assert path.read_text() == original
+    for bad in ("{a: 1}\n", "- [unclosed\n"):  # dsh no lo podría leer: no se toca
+        path.write_text(bad)
+        with pytest.raises(agents.AgentError) as e:
+            agents.set_connected("deepseek_harness", True)
+        assert e.value.code == "bad_config" and path.read_text() == bad
+    path.write_text("[]\n")
+    agents.set_connected("deepseek_harness", True)
+    assert agents.status("deepseek_harness")["connected"]
+
+
+def test_cloudflared_macos_checksum_is_of_the_inner_binary(monkeypatch, tmp_path):
+    """En macOS Cloudflare publica el SHA256 del binario dentro del .tgz, con el nombre del .tgz."""
+    import hashlib
+    import io
+    import tarfile
+
+    import requests
+    from brain_mcp import remote
+
+    binary = b"#!/bin/sh\necho cloudflared\n" * 100
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        info = tarfile.TarInfo("cloudflared")
+        info.size = len(binary)
+        tf.addfile(info, io.BytesIO(binary))
+    tgz = buf.getvalue()
+
+    class R:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def iter_content(self, n):
+            yield tgz
+    monkeypatch.setattr(requests, "get", lambda *a, **k: R())
+    monkeypatch.setattr(remote, "_asset", lambda: "cloudflared-darwin-arm64.tgz")
+    for published in (hashlib.sha256(binary).hexdigest(), hashlib.sha256(tgz).hexdigest()):
+        monkeypatch.setattr(remote, "_expected_sha256", lambda a, h=published: h)
+        r = remote.install_cloudflared()
+        assert remote._local_bin().read_bytes() == binary and r["sha256"] == published
+    remote._local_bin().unlink()
+    monkeypatch.setattr(remote, "_expected_sha256", lambda a: "0" * 64)
+    with pytest.raises(remote.RemoteError) as e:
+        remote.install_cloudflared()
+    assert e.value.code == "checksum" and list(remote.BIN.iterdir()) == []

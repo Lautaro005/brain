@@ -577,3 +577,41 @@ Pedido del usuario, siete puntos: exponer el MCP por URL con Cloudflare; Manus S
 - **Comandos con puntuación pegada** ("/organize.", "/compact,") se reconocen otra vez. Los nombres de skill tienen que ser ASCII sin espacios (`chat.SKILL_NAME`); los demás no se listan porque no se pueden invocar. El front usa la misma regla (`cmdOf`).
 - **Rendimiento y limpieza**: `skills()` se calcula una vez por mensaje. `remote.load()` se cachea por inodo, mtime y tamaño. Una descarga fallida de cloudflared ya no deja el archivo a medias en `data/bin/`.
 - 6 tests nuevos (33 en total), entre ellos una redirección a localhost bloqueada y la conexión a la IP validada con el Host original.
+
+## 2026-10-01 — v0.03.0.1: cloudflared en macOS, Manus en local, DeepSeek Harness
+
+Pedido del usuario: el error "The downloaded file doesn't match the published SHA256" al instalar cloudflared, Manus Studio de nuevo en local (lo tenía configurado así y lo usaba) y DeepSeek Harness con un botón como el resto.
+
+**Qué cambió**
+1. **cloudflared en macOS** (`remote.py`).
+   - **Causa**: en las notas del release, Cloudflare publica para `cloudflared-darwin-*.tgz` el SHA256 del binario que viene adentro, no el del `.tgz`. Linux y Windows publican el del archivo. Por eso en macOS siempre fallaba.
+   - Comprobado con el release 2026.9.3: el `.tgz` de arm64 da `587c2c…` y el binario de adentro da `5472c1…`, que es lo publicado. En Linux y Windows coincide el archivo.
+   - **Arreglo**: para un `.tgz` se acepta el hash del archivo o el del binario de adentro. El binario se extrae a `cloudflared.part`, se verifica y recién ahí reemplaza al instalado. Un `.tgz` roto da `checksum`, no un error 500.
+2. **Manus Studio en local** (`agents.py`, `dashboard.html`).
+   - Pasa de `kind: "url"` (v0.03.0) a `kind: "form"` en "Apps de escritorio".
+   - Manus agrega servers locales con su formulario "Run a command" y no tiene un archivo de config documentado. Por eso la tarjeta muestra el comando y los argumentos para copiar, y pasa a "Detectado" cuando Manus usa brain (clientInfo del handshake).
+   - Se sacó todo lo de "Manus por URL": `urlAgentCard`, `url_only` y la grilla vacía de la sección Por URL. El acceso remoto sigue para Manus en la web, Claude.ai y ChatGPT.
+3. **DeepSeek Harness** (`agents.py`, `kind: "dsh"`).
+   - Un click agrega brain a `~/.dsh/cordis.patch.yml` (o `$DSH_HOME/cordis.patch.yml`). Es la capa de parches del usuario que dsh compone sobre todos los perfiles (escritorio `~/.dsh/profiles/desktop`, CLI y web) y que su HMR recarga sin reiniciar.
+   - Formato: un `- insert:` con la fila `brain-mcp` de `@deepseek-ai/dsh-mcp-client` (`serverName: brain`, `transport: stdio`, `command`/`args` absolutos). Las tools aparecen como `mcp__brain__…`.
+   - El bloque va entre marcas y desconectar saca solo eso, con backup `.bak-brain`.
+   - Se valida antes y después con un loader YAML que no evalúa `!!js`. Si dsh no podría leer el archivo, `bad_config` y no se toca.
+   - Detección: `DeepSeek Harness.app`, el comando `dsh` o que exista `~/.dsh`.
+4. **Textos**: `chat.APP_GUIDE` (es/en), la tarjeta del acceso remoto ("Manus en la web"), docs (Conectar agentes y Acceso remoto), README, landing (DeepSeek Harness en un click, Manus en escritorio con "Copiar y pegar"), changelog, SECURITY.md (`v0.03.0.1`), `VERSION` y CLAUDE.md.
+
+**Por qué así**
+- Lo de DeepSeek Harness salió de leer su código (repo `deepseek-ai/deepseek-harness`), porque las docs no se podían abrir desde acá:
+  - `packages/util/home-paths`: `$DSH_HOME` o `~/.dsh`, igual en los tres sistemas;
+  - `apps/desktop/src/paths.ts`: el perfil de escritorio vive en `~/.dsh/profiles/desktop`;
+  - `packages/boot/app-boot/src/profile-context.ts`: suma `$DSH_HOME/cordis.patch.yml` como capa del usuario;
+  - `packages/boot/hmr`: lo vigila;
+  - el template `templates/mcp/cordis.patch.yml` y el README de `packages/mcp/mcp-client` (stdio: `command`/`args`/`env`/`cwd`).
+- Se edita como texto entre marcas (como el TOML de Codex) porque el usuario y dsh pueden tener `!!js` y comentarios en ese archivo.
+
+**Verificado**
+- pytest 35/35. Dos tests nuevos:
+  - DeepSeek Harness: agrega sin tocar `!!js` ni comentarios, no duplica, al sacar queda idéntico, rechaza YAML inválido o que no es lista, y acepta `[]`.
+  - cloudflared en macOS: acepta el hash del binario interno o el del `.tgz`; con un hash que no coincide no deja nada.
+- Instalación real del `.tgz` de macOS arm64 desde GitHub con el SHA256 publicado: instala, y con un hash falso no instala.
+- Tarjetas en Chromium.
+- No probado con la app real de DeepSeek Harness ni con Manus.

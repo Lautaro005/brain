@@ -11,8 +11,14 @@ Casos especiales:
 - Claude Code se maneja con su CLI (`claude mcp add/remove -s user`).
 - OpenMausBot guarda sus servers en ~/.openmausbot/config.json (mcpServers, como Claude) y solo los lee
   al abrirse: se escribe con la app cerrada y se vuelve a abrir.
-- Manus Studio corre en la nube: no tiene archivo de config ni puede lanzar un comando en esta máquina.
-  Se conecta por URL con el acceso remoto (remote.py); la tarjeta muestra la URL y los pasos.
+- Manus Studio (la app de escritorio) agrega servers locales con su formulario ("Run a command") y no tiene
+  un archivo de config documentado: kind "form", la tarjeta muestra el comando y los argumentos para copiar
+  y se marca "Detectado" (status.detected) cuando Manus usa brain (clientInfo del handshake, clients.py).
+- DeepSeek Harness (dsh, app de escritorio y CLI) compone su config con parches YAML de Cordis; la capa del
+  usuario es ~/.dsh/cordis.patch.yml ($DSH_HOME), que comparten el escritorio, el CLI y la web, y que dsh
+  recarga solo al cambiar. brain agrega ahí un bloque propio entre marcas (`- insert:` de
+  @deepseek-ai/dsh-mcp-client con transport stdio) y para desconectar saca solo ese bloque: el archivo
+  puede tener expresiones `!!js` y comentarios que no se pueden reescribir con un parser.
 """
 import json
 import os
@@ -23,6 +29,8 @@ import sys
 import time
 import tomllib
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVER = "brain"
@@ -82,8 +90,15 @@ CLIENTS = {
         "win_exe": "Programs/OpenMausBot/OpenMausBot.exe",
     },
     "manus": {
-        # en la nube: se conecta con la URL del acceso remoto (Settings → Connectors → Custom MCP)
-        "group": "remote", "name": "Manus Studio", "kind": "url", "path": None,
+        # sin archivo de config documentado: se agrega con su formulario "Run a command" (valores para copiar)
+        "group": "desktop", "name": "Manus Studio", "kind": "form", "path": None, "app": "Manus.app",
+    },
+    "deepseek_harness": {
+        # capa de parches del usuario, compartida por el escritorio, el CLI y la web; dsh la recarga sola
+        "group": "desktop", "name": "DeepSeek Harness", "kind": "dsh",
+        "path": (Path(os.environ["DSH_HOME"]) if os.environ.get("DSH_HOME", "").strip() and not os.environ.get("BRAIN_AGENTS_HOME")
+                 else HOME / ".dsh") / "cordis.patch.yml",
+        "app": "DeepSeek Harness.app", "cli": "dsh",
     },
     "claude_code": {
         "group": "other", "name": "Claude Code", "kind": "cli", "path": HOME / ".claude.json", "key": "mcpServers",
@@ -114,13 +129,13 @@ CLIENTS = {
 
 
 def _installed(c: dict) -> bool:
-    if c["kind"] == "url":
-        return True  # es una web: no hay nada que instalar
+    if c["path"] is not None and c["kind"] == "dsh" and c["path"].parent.is_dir():
+        return True  # ~/.dsh existe: dsh corrió alguna vez (escritorio o CLI)
     if c.get("app") and ((APPS / c["app"]).exists() or (HOME / "Applications" / c["app"]).exists()):
         return True
     if c.get("cli") and shutil.which(c["cli"]):
         return True
-    return c["path"].exists()  # si ya tiene config, está instalado aunque no lo encontremos
+    return c["path"] is not None and c["path"].exists()  # si ya tiene config, está instalado aunque no lo encontremos
 
 
 def _read_json(path: Path) -> dict:
@@ -136,10 +151,98 @@ def _read_json(path: Path) -> dict:
     return data
 
 
+# ---------- DeepSeek Harness (parches YAML de Cordis) ----------
+DSH_ROW_ID = "brain-mcp"
+_DSH_BEGIN = "# >>> brain: server MCP (lo agrega y lo saca el dashboard de brain; no editar a mano)"
+_DSH_END = "# <<< brain"
+
+
+class _DshLoader(yaml.SafeLoader):
+    """Lee el YAML de dsh sin evaluar nada: `!!js` y otros tags propios quedan como texto."""
+
+
+_DshLoader.add_multi_constructor("", lambda loader, suffix, node: loader.construct_scalar(node)
+                                 if isinstance(node, yaml.ScalarNode) else None)
+
+
+def _dsh_parse(text: str, path: Path) -> list:
+    try:
+        data = yaml.load(text, Loader=_DshLoader) if text.strip() else []
+    except yaml.YAMLError as e:
+        raise AgentError("bad_config", f"{path}: {e}") from e
+    if data is None:
+        return []
+    if not isinstance(data, list):
+        raise AgentError("bad_config", f"{path}: dsh espera una lista YAML de parches")
+    return data
+
+
+def _dsh_row(patches: list) -> dict | None:
+    for p in patches:
+        if isinstance(p, dict):
+            for row in p.get("insert") or []:
+                if isinstance(row, dict) and row.get("id") == DSH_ROW_ID:
+                    return row.get("config") or {}
+    return None
+
+
+def _dsh_strip(text: str) -> str:
+    out, skipping = [], False
+    for line in text.splitlines(keepends=True):
+        if line.rstrip() == _DSH_BEGIN:
+            skipping = True
+            continue
+        if skipping:
+            if line.rstrip() == _DSH_END:
+                skipping = False
+            continue
+        out.append(line)
+    return "".join(out)
+
+
+def _dsh_block() -> str:
+    spec = server_spec()
+    q = json.dumps  # un string JSON es un escalar YAML válido (comillas dobles), también con barras de Windows
+    return "\n".join([
+        _DSH_BEGIN,
+        "- insert:",
+        f"    - id: {DSH_ROW_ID}",
+        "      name: '@deepseek-ai/dsh-mcp-client'",
+        "      config:",
+        f"        serverName: {SERVER}",
+        "        transport: stdio",
+        f"        command: {q(spec['command'])}",
+        f"        args: [{', '.join(q(a) for a in spec['args'])}]",
+        _DSH_END,
+    ]) + "\n"
+
+
+def _write_dsh(c: dict, add: bool) -> None:
+    path = c["path"]
+    text = path.read_text() if path.exists() else ""
+    _dsh_parse(text, path)  # nunca tocar un archivo que dsh tampoco podría leer
+    new = _dsh_strip(text)
+    if add:
+        base = "" if new.strip() in ("", "[]") else new.rstrip("\n") + "\n\n"
+        new = base + _dsh_block()
+    elif new == text:
+        return
+    else:
+        new = new.rstrip("\n") + "\n" if new.strip() else ""
+    patches = _dsh_parse(new, path)
+    if add and _dsh_row(patches) is None:  # p. ej. el archivo era una lista en estilo flujo
+        raise AgentError("bad_config", f"{path}: no se pudo agregar brain sin riesgo")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _backup(path)
+    path.write_text(new)
+
+
 def _entry(c: dict) -> dict | None:
     """La entrada 'brain' actual en la config del cliente, o None."""
     try:
-        if c["kind"] == "url":
+        if c["kind"] == "dsh":
+            return _dsh_row(_dsh_parse(c["path"].read_text(), c["path"])) if c["path"].exists() else None
+        if c["kind"] == "form":
             return None
         if c["kind"] == "toml":
             if not c["path"].exists():
@@ -162,6 +265,14 @@ def _app_running(c: dict) -> bool:
         return False
 
 
+def _seen(key: str) -> bool:
+    from . import clients  # el handshake MCP anota qué apps usaron brain (data/clients.json)
+    try:
+        return any(x.get("key") == key for x in clients.load()["seen"].values())
+    except Exception:
+        return False
+
+
 def status(key: str) -> dict:
     c = CLIENTS[key]
     entry = _entry(c)
@@ -172,10 +283,12 @@ def status(key: str) -> dict:
         # conectado pero apuntando a otra carpeta (ej. una instalación vieja)
         "elsewhere": entry is not None and str(ROOT) not in [str(a) for a in args],
         "kind": c["kind"],
+        # apps que se conectan con su formulario: no hay config que leer, pero sí se ve si ya usaron brain
+        "detected": c["kind"] == "form" and _seen(key),
         "config_path": str(c["path"]).replace(str(HOME), "~", 1) if c["path"] else "",
         "shares": c.get("shares"),
         "app_running": _app_running(c),
-        "auto": c["kind"] in ("json", "toml") or (c["kind"] == "cli" and bool(shutil.which(c.get("cli", "")))),
+        "auto": c["kind"] in ("json", "toml", "dsh") or (c["kind"] == "cli" and bool(shutil.which(c.get("cli", "")))),
     }
 
 
@@ -301,8 +414,8 @@ def set_connected(key: str, connected: bool, restart_app: bool = False) -> dict:
     if key not in CLIENTS:
         raise AgentError("unknown", key)
     c = CLIENTS[key]
-    if c["kind"] == "url":
-        raise AgentError("url_only", c["name"])  # se conecta pegando la URL del acceso remoto en la app
+    if c["kind"] == "form":
+        raise AgentError("form_only", c["name"])  # se agrega en la app con su formulario (valores en la tarjeta)
     reopen = False
     if c.get("process") and _app_running(c):
         if not restart_app:
@@ -313,6 +426,8 @@ def set_connected(key: str, connected: bool, restart_app: bool = False) -> dict:
         _write_json(c, connected)
     elif c["kind"] == "toml":
         _write_toml(c, connected)
+    elif c["kind"] == "dsh":
+        _write_dsh(c, connected)
     else:
         _cli(c, connected)
     if reopen:
