@@ -2,7 +2,7 @@
 
 **Your local second brain for Claude, ChatGPT and any AI agent.**
 
-brain is an [MCP](https://modelcontextprotocol.io) server that runs on your computer (macOS, Linux or Windows) and gives your AI agents a shared memory: your notes, your projects, what they know about you and the web pages you saved, with semantic search. Connect it once to Claude, ChatGPT, Cursor or whatever agent you use, and they all read and write the same knowledge base. Everything stays on your computer.
+brain is an [MCP](https://modelcontextprotocol.io) server that runs on your computer (macOS, Linux or Windows) and gives your AI agents a shared memory: your notes, your projects, what they know about you and the web pages you saved, with semantic search. Connect it once to Claude, ChatGPT, Cursor or whatever agent you use, and they all read and write the same knowledge base. Everything stays on your computer; agents in the cloud (Manus, Claude.ai…) can reach it through an optional private URL.
 
 It ships with a web dashboard so you never have to touch the terminal: turn services on and off, fill in your profile, import the memory other chatbots have about you, connect agents, explore the connection graph and search what you saved.
 
@@ -100,9 +100,9 @@ ollama pull nomic-embed-text
 | Tab | What it's for |
 |---|---|
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
-| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click) when you start a chat; it then stays with that chat. A circle next to the send button fills up as the chat uses the model's context window. Rename a chat with the pencil next to its title. Type `/` for commands: **`/organize`** tidies up the vault and its graph with a built-in skill (adapted from [file-organizer](https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md)): it asks how you want it organized, proposes a plan and changes only what you approve; **`/add-mcp`** sets up a connector from a URL or instructions (you approve it with one click before anything runs); `/compact` summarizes the conversation so far to free up context and keep going in the same chat; `/reflect` brings Reflect's suggestions into the chat; `/new` starts a new chat. Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
+| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click) when you start a chat; it then stays with that chat. A circle next to the send button fills up as the chat uses the model's context window. Rename a chat with the pencil next to its title. Type `/` for commands: **`/organize`** tidies up the vault and its graph with a built-in skill (adapted from [file-organizer](https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md)): it asks how you want it organized, proposes a plan and changes only what you approve; **`/add-mcp`** sets up a connector from a URL or instructions (you approve it with one click before anything runs); `/compact` summarizes the conversation so far to free up context and keep going in the same chat; `/reflect` brings Reflect's suggestions into the chat; `/new` starts a new chat. Below the commands, under **Your skills**, come the skills saved in your vault's `skills/` (usually written by your agents): `/<skill>` loads it into the chat. The chat always gets a fixed guide to how brain works, so it can tell you where things are. Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
 | **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. **Reflect** reviews your memory and suggests fixes (duplicates, contradictions, notes without entities) without changing anything. |
-| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
+| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, OpenMausBot, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, **remote access by URL** for agents in the cloud such as Manus Studio, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
 | **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. Servers that need a login (OAuth) show **Sign in**: it opens the service's own sign-in page and brain keeps the token. Connections an agent proposed (`/add-mcp` in the chat) wait here for you to approve them. |
 | **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders, tags and entities. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
 | **Knowledge** | Save a URL (optionally forcing JavaScript rendering), hybrid search (semantic score, or a *keyword* tag for exact matches), a button to rebuild the keyword index, and the list of saved sources with how old their content is and when they were last checked. **Refresh** re-downloads one source or all of them; if a refresh fails, the last good copy is kept and the error is shown. |
@@ -110,12 +110,13 @@ ollama pull nomic-embed-text
 
 The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**), an **i** button that lists the services (Chroma, Ollama, MCP Inspector) and their state, and **Settings** (the gear), a full view where you can:
 
-- see the installed **version** and **check for updates**: brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click the button. If there's a newer one, Settings shows it with a link to the release notes (update with `brain update`) and the gear turns green until you update;
+- see the installed **version** and **check for updates**: brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click the button. If there's a newer one, Settings shows it with a link to the release notes and the gear turns green; the green **Update and restart** button next to *Check for updates* closes brain, updates it and reopens it (the page reloads by itself), or run `brain update`;
 - reorder the **sidebar** and hide the views you don't use (a hidden view is still reachable by its URL, e.g. `#logs`);
 - pick the **default chat model**, used when the chat opens and on every new chat;
 - set the chat's **context window**: each model's maximum with a cap for all (16k by default), everything each model supports, or a value per model, with a table of the detected models and what they support;
 - make a **backup** of everything local (vault, history, settings, connections and what's indexed in Chroma, embeddings included) and **restore** it; credentials are left out unless you tick the box, and restoring first saves a backup of the current state;
-- write a **system prompt** for the chat: how you want it to answer (tone, format, language, focus), added to brain's own instructions;
+- write a **system prompt** for the chat: how you want it to answer (tone, format, language, focus), added to brain's own instructions; the chat's fixed app context is shown below it, read-only;
+- turn on **system notifications** for uploads, changes and deletions in your vault, whether an agent, the chat or you made them;
 - give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags, Entities) its own color, or go back to black and white.
 
 The button next to the logo collapses the sidebar into a narrow rail of icons.
@@ -136,13 +137,24 @@ Each agent keeps its list of MCP servers in its own file. When you click *Connec
 | **VS Code** (Copilot, agent mode) | `~/Library/Application Support/Code/User/mcp.json` | |
 | **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | |
 | **Gemini CLI** | `~/.gemini/settings.json` | |
+| **OpenMausBot** | `~/.openmausbot/config.json` | Reads its MCP servers when it opens, so it's edited with the app closed; the dashboard offers to quit, connect and reopen it. |
+| **Manus Studio** | by URL | Runs in the cloud: turn on [remote access](#remote-access-by-url) and paste the URL in *Settings → Connectors → Add connectors → Custom MCP → Add custom MCP server → Direct configuration*. |
 | **Anything else** | | The dashboard gives you ready-to-copy config as JSON, TOML, a command, or field by field. |
 
-All of them launch the same server (`uv run --directory ~/.brain python server.py`) with absolute paths, so they work from any folder.
+Paths are the macOS ones; on Windows they're under `%APPDATA%` and on Linux under `~/.config`. All the local agents launch the same server (`uv run --directory ~/.brain python server.py`) with absolute paths, so they work from any folder.
+
+### Remote access by URL
+
+For agents that run in the cloud or on another computer (Manus Studio, Claude.ai custom connectors, ChatGPT developer mode…), **Connect agent → By URL** publishes brain's MCP server through a [Cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). Off by default.
+
+- brain runs `server.py --http` on `127.0.0.1:8770` and `cloudflared` publishes it; no ports are opened on your router. The first time, *Install cloudflared* downloads it from Cloudflare's GitHub release and checks the published SHA256 (or brain uses the one you installed with brew, winget or apt).
+- The URL is `https://…/<token>/mcp`; without the token every request gets `404`. Apps that prefer a header can use `…/mcp` with `Authorization: Bearer <token>`. **Generate a new URL** cuts off the old one right away, and **Read-only** leaves only the tools that read and search.
+- Without a Cloudflare account the URL is a `*.trycloudflare.com` address that changes each time it starts. For a fixed one, create a tunnel in your account pointing to `http://localhost:8770` and paste its hostname and token under *Fixed URL with your Cloudflare account*.
+- Through the URL, `save_url` and `read_url` only fetch public addresses, never your computer or local network.
 
 ### Apps with an "Add MCP server" form
 
-Many apps have a dialog with two options, **Run a command** and **Connect to a URL**. Choose **Run a command**: brain is a local (stdio) server and doesn't expose a URL, so "Connect to a URL" won't work. Pointing it at the dashboard's address returns `403`, because the dashboard only accepts requests from its own page.
+Many apps have a dialog with two options, **Run a command** and **Connect to a URL**. Choose **Run a command**. If the app only takes a URL, use [remote access](#remote-access-by-url): pointing it at the dashboard's address returns `403`, because the dashboard only accepts requests from its own page.
 
 | Field | Value |
 |---|---|
@@ -199,7 +211,7 @@ flowchart LR
 
 **Pieces:**
 
-- **MCP server (`server.py`).** Each agent launches its own process and talks to it over stdio (MCP's standard for local servers). It exposes the [tools](#mcp-tools) and tells the model to read `BRAIN.md`, your profile and your memory first.
+- **MCP server (`server.py`).** Each agent launches its own process and talks to it over stdio (MCP's standard for local servers). It exposes the [tools](#mcp-tools) and tells the model to read `BRAIN.md`, your profile and your memory first. With remote access on, the dashboard also runs one copy over streamable HTTP (`server.py --http`, `127.0.0.1:8770`) behind a Cloudflare tunnel.
 - **Vault (`~/.brain/vault/`).** Markdown files with YAML frontmatter:
   - `BRAIN.md`: a short index the agent reads first.
   - `profile.md`: your profile.
@@ -268,7 +280,7 @@ brain                 opens the dashboard and starts Ollama and Chroma
 brain --port 8766     dashboard on another port
 brain --no-autostart  don't start Ollama/Chroma automatically
 brain --no-browser    don't open the browser
-brain update          updates to the latest version
+brain update          updates to the latest version (Settings → Update and restart does it from the dashboard)
 brain path            shows where it's installed
 brain uninstall       removes the command (keeps your data)
 brain help            help
@@ -277,8 +289,9 @@ brain help            help
 ## Data, privacy and security
 
 - **Everything is local.** Your data lives in `~/.brain/vault/` and `~/.brain/data/`. Both folders are in `.gitignore`, so they're never uploaded anywhere, not even if you fork the repo.
-- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, or checks GitHub for a new version (it only reads the latest release number). Composio, if you use it, keeps your app tokens in its cloud.
+- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, checks GitHub for a new version (it only reads the latest release number), or keeps the Cloudflare tunnel open if you turn on remote access. Composio, if you use it, keeps your app tokens in its cloud.
 - **The dashboard only accepts requests from your own machine.** It listens on `127.0.0.1`, rejects requests with any other `Host` (DNS-rebinding protection), and its actions require a custom header browsers won't send from other pages. No website you have open can start processes or write to your vault.
+- **Remote access is opt-in and locked with a token.** The URL carries a secret token (regenerate it any time), can be set to read-only, and the server behind it listens only on `127.0.0.1`. The token is in `~/.brain/data/remote.json` (`600`).
 - **Agents can't leave the vault.** The tools reject paths with `..`, absolute paths, hidden files and symlinks that point outside.
 - **Secrets stay out of the vault and the repo.** Connection tokens and API keys are in `~/.brain/.env`, and OAuth sign-ins in `~/.brain/data/oauth.json` (both permissions `600`, gitignored); the dashboard never shows them back, and backups leave them out unless you ask.
 - **Agents can propose, not install.** An agent (or the chat's `/add-mcp`) can only *propose* a new connection; nothing runs until you click *Add* and see the exact command or URL.

@@ -17,6 +17,7 @@ import urllib.request
 from collections import deque
 from pathlib import Path
 
+from . import remote
 from .chroma_store import CHROMA_HOST, CHROMA_PORT
 
 log = logging.getLogger(__name__)
@@ -53,6 +54,8 @@ def _find_ollama() -> str | None:
 
 
 class Service:
+    group = "core"  # "remote": los del acceso remoto, que el dashboard muestra aparte
+
     def __init__(self, key: str, label: str, description: str, port: int, cmd, env=None):
         self.key, self.label, self.description, self.port = key, label, description, port
         self._cmd, self._env = cmd, env or {}
@@ -85,7 +88,7 @@ class Service:
     def info(self) -> dict:
         st = self.status()
         return {
-            "key": self.key, "label": self.label, "description": self.description,
+            "key": self.key, "label": self.label, "description": self.description, "group": self.group,
             "port": self.port, "status": st, "managed": self.ours(),
             "uptime": int(time.time() - self.started_at) if self.ours() and self.started_at else None,
             "exit_code": self.last_exit if st == "error" else None,
@@ -100,12 +103,13 @@ class Service:
             if self.healthy():
                 raise RuntimeError(f"{self.label} ya está corriendo por fuera del dashboard.")
             cmd = list(self._cmd() if callable(self._cmd) else self._cmd)
+            env = self._env() if callable(self._env) else self._env
             # path completo del ejecutable: en Windows "npx" es npx.cmd y "uv" puede no estar en el PATH del proceso
             cmd[0] = shutil.which(cmd[0]) or cmd[0]
             self.logs.append(f"$ {' '.join(cmd)}")
             self.last_exit = None
             self.proc = subprocess.Popen(
-                cmd, cwd=ROOT, env={**os.environ, **self._env},
+                cmd, cwd=ROOT, env={**os.environ, **env},
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                 text=True, bufsize=1, **_GROUP,
             )
@@ -173,6 +177,35 @@ class Inspector(Service):
         return "http://localhost:6274/"
 
 
+class RemoteMCP(Service):
+    """server.py --http: el server MCP por URL, solo en 127.0.0.1 (lo publica el túnel)."""
+    group = "remote"
+
+
+class Tunnel(Service):
+    """cloudflared: publica el server MCP por HTTP en internet (ver remote.py)."""
+    group = "remote"
+
+    def healthy(self) -> bool:
+        # cloudflared no abre un puerto propio: está listo cuando ya tiene la URL pública
+        return self.ours() and self.link() is not None
+
+    def link(self) -> str | None:
+        return remote.tunnel_url(self.logs)
+
+    def start(self) -> None:
+        self.logs.clear()  # si no, la URL de la vez anterior (quick cambia en cada arranque) parecería lista
+        super().start()
+
+
+def _tunnel_cmd() -> list[str]:
+    return remote.tunnel_command()[0]
+
+
+def _tunnel_env() -> dict:
+    return remote.tunnel_command()[1]
+
+
 def _ollama_cmd() -> list[str]:
     exe = _find_ollama()
     if not exe:
@@ -192,6 +225,9 @@ SERVICES: dict[str, Service] = {
         Inspector("inspector", "Inspector MCP", "Probar las tools a mano en el navegador", 6274,
                   ["npx", "-y", "@modelcontextprotocol/inspector", "uv", "run", "python", "server.py"],
                   env={"MCP_AUTO_OPEN_ENABLED": "false"}),
+        RemoteMCP("remote_mcp", "MCP por URL", "El server MCP por HTTP, solo en esta máquina", remote.PORT,
+                  ["uv", "run", "python", "server.py", "--http"], env={"BRAIN_REMOTE": "1"}),
+        Tunnel("tunnel", "Túnel de Cloudflare", "Publica el MCP por URL en internet", remote.PORT, _tunnel_cmd, env=_tunnel_env),
     )
 }
 

@@ -547,7 +547,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Dashboard</td><td>Switches for Chroma, Ollama and the MCP Inspector; vault metrics, 30-day activity, sources by domain, system health, recent changes.</td></tr>
     <tr><td>Chat</td><td>A local Ollama model with your memory as context and the same tools as your agents. See <a href="#chat">Chat</a>.</td></tr>
     <tr><td>Profile</td><td>Your profile, your memory (filterable, delete per item), the memory importer and <b>Reflect</b>.</td></tr>
-    <tr><td>Connect agent</td><td>One-click connect/disconnect for each supported agent, manual config for anything else, and <b>My connections</b>.</td></tr>
+    <tr><td>Connect agent</td><td>One-click connect/disconnect for each supported agent, <a href="#remote">remote access by URL</a> for agents in the cloud, manual config for anything else, and <b>My connections</b>.</td></tr>
     <tr><td>Connections</td><td>Other MCP servers brain uses for you, sign-in for the ones that need it, and connections proposed by agents. See <a href="#connections">Connections</a>.</td></tr>
     <tr><td>Graph</td><td>The <a href="#graph">graph</a>.</td></tr>
     <tr><td>Knowledge</td><td>Save a URL, hybrid search, rebuild the keyword index, list of sources with how old their content is and when they were last checked, and <i>Refresh</i> (one or all; a failed refresh keeps the last good copy and shows the error).</td></tr>
@@ -559,13 +559,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language, <b>services</b> (the <b>i</b> button: Chroma, Ollama and the MCP Inspector with their state; it gets a red dot if one fails) and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>).</p>
   <p>Anything that deletes or disconnects asks first in brain's own dialog, and the dropdowns are brain's too (keyboard: arrows, Enter, Esc).</p>
   <h2>Settings</h2>
-  <p>A full view (<code>#ajustes</code>) with seven sections:</p>
+  <p>A full view (<code>#ajustes</code>) with eight sections:</p>
   <ul>
-    <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click it. If there's a newer one, Settings shows it with a link to the release notes, and the gear turns green until you update with <code>brain update</code>.</li>
+    <li><b>Version</b>: the installed version and a <i>Check for updates</i> button. brain asks GitHub for the latest release when the dashboard opens, every 3 hours while it's open, and when you click it. If there's a newer one, Settings shows it with a link to the release notes, the gear turns green, and a green <i>Update and restart</i> button appears next to <i>Check for updates</i>: brain closes, runs the update and reopens in the same terminal, and the page reloads by itself. You can also run <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reorder the views with the arrows and hide the ones you don't use. A hidden view is still reachable by its URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: the default model, selected when the chat opens and on every new chat. "The last one I used" keeps the previous behavior.</li>
     <li><b>Context</b>: how much of each model's context window the chat uses. Either each model's maximum with a cap for all of them (16k by default), or everything each model supports, plus an optional value per model. The table lists the detected models, what they support and what they'll use. Saved in <code>data/chat_settings.json</code>.</li>
-    <li><b>System prompt</b>: your own instructions for the chat (tone, format, language, what to focus on, up to 4000 characters). They're added to brain's instructions on every reply; they don't change what the tools can do.</li>
+    <li><b>System prompt</b>: your own instructions for the chat (tone, format, language, what to focus on, up to 4000 characters). They're added to brain's instructions on every reply; they don't change what the tools can do. Below them, folded, is the chat's <b>fixed app context</b> (how brain works), read-only.</li>
+    <li><b>Notifications</b>: system notifications when something changes in the vault, whether an agent, the chat or you did it. Turn on the ones you want: uploads (new files and sources), changes (edits, restores, moves) and deletions. They arrive while the dashboard is open, even in a background tab; the browser asks for permission the first time.</li>
     <li><b>Backup</b>: <i>Create backup</i> downloads a <code>.zip</code> with the vault, the version history, settings, connections and what's indexed in Chroma (with the embeddings, so restoring doesn't need Ollama); copies stay in <code>data/backups</code>. Credentials (<code>.env</code>, OAuth sign-ins) are only included if you tick the box. <i>Restore</i> (from the list or from a file) first saves the current state as <code>before-restore-….zip</code>, replaces everything, and rebuilds what the backup didn't bring (the keyword index always; Chroma from the vault if it wasn't exported). <i>Rebuild indexes</i> does that rebuild on its own.</li>
     <li><b>Graph colors</b>: a color per node type, or back to black and white.</li>
   </ul>
@@ -579,7 +580,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Panel</td><td>Switches de Chroma, Ollama y el Inspector MCP; métricas del vault, actividad de 30 días, fuentes por dominio, salud del sistema, últimos cambios.</td></tr>
     <tr><td>Chat</td><td>Un modelo local de Ollama con tu memoria como contexto y las mismas tools que tus agentes. Ver <a href="#chat">Chat</a>.</td></tr>
     <tr><td>Perfil</td><td>Tu perfil, tu memoria (filtrable, se borra por ítem), el importador y <b>Reflect</b>.</td></tr>
-    <tr><td>Conectar agente</td><td>Conectar y desconectar cada agente soportado en un click, config manual para cualquier otro, y <b>Mis conexiones</b>.</td></tr>
+    <tr><td>Conectar agente</td><td>Conectar y desconectar cada agente soportado en un click, <a href="#remote">acceso remoto por URL</a> para agentes en la nube, config manual para cualquier otro, y <b>Mis conexiones</b>.</td></tr>
     <tr><td>Conexiones</td><td>Otros servers MCP que brain usa por vos, el login de los que lo piden y las conexiones que propusieron los agentes. Ver <a href="#connections">Conexiones</a>.</td></tr>
     <tr><td>Grafo</td><td>El <a href="#graph">grafo</a>.</td></tr>
     <tr><td>Conocimiento</td><td>Guardar una URL, búsqueda híbrida, reindexar la búsqueda por palabra, lista de fuentes con de cuándo es su contenido y cuándo se revisaron, y <i>Actualizar</i> (una o todas; si falla, queda la última copia buena y se muestra el error).</td></tr>
@@ -591,13 +592,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma, <b>servicios</b> (el botón <b>i</b>: Chroma, Ollama y el Inspector MCP con su estado; lleva un punto rojo si alguno falla) y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
   <p>Todo lo que borra o desconecta pregunta antes en una ventana propia de brain, y los desplegables también son propios (teclado: flechas, Enter, Esc).</p>
   <h2>Ajustes</h2>
-  <p>Una vista completa (<code>#ajustes</code>) con siete secciones:</p>
+  <p>Una vista completa (<code>#ajustes</code>) con ocho secciones:</p>
   <ul>
-    <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release al abrir el dashboard, cada 3 horas mientras está abierto y cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades y el engranaje se pone en verde hasta que actualices con <code>brain update</code>.</li>
+    <li><b>Versión</b>: la versión instalada y un botón <i>Buscar actualizaciones</i>. brain le pregunta a GitHub por el último release al abrir el dashboard, cada 3 horas mientras está abierto y cuando lo tocás. Si hay uno más nuevo, Ajustes lo muestra con un link a las novedades, el engranaje se pone en verde y aparece un botón verde <i>Actualizar y reiniciar</i> al lado de <i>Buscar actualizaciones</i>: brain se cierra, se actualiza y se vuelve a abrir en la misma terminal, y la página se recarga sola. También podés correr <code>brain update</code>.</li>
     <li><b>Sidebar</b>: reordená las vistas con las flechas y ocultá las que no uses. Una vista oculta sigue accesible por su URL (<code>#logs</code>, <code>#grafo</code>…).</li>
     <li><b>Chat</b>: el modelo por defecto, que se elige al abrir el chat y en cada chat nuevo. "El último que usé" mantiene el comportamiento de antes.</li>
     <li><b>Contexto</b>: cuánto de la ventana de contexto de cada modelo usa el chat. El máximo de cada modelo con un tope para todos (16k por defecto), o todo lo que soporta cada uno, más un valor propio opcional por modelo. La tabla lista los modelos detectados, cuánto soportan y cuánto van a usar. Se guarda en <code>data/chat_settings.json</code>.</li>
-    <li><b>System prompt</b>: tus instrucciones para el chat (tono, formato, idioma, en qué enfocarse; hasta 4000 caracteres). Se suman a las de brain en cada respuesta; no cambian lo que pueden hacer las tools.</li>
+    <li><b>System prompt</b>: tus instrucciones para el chat (tono, formato, idioma, en qué enfocarse; hasta 4000 caracteres). Se suman a las de brain en cada respuesta; no cambian lo que pueden hacer las tools. Debajo, plegado, está el <b>contexto fijo de la app</b> del chat (cómo funciona brain), de solo lectura.</li>
+    <li><b>Notificaciones</b>: notificaciones del sistema cuando cambia algo en el vault, lo haga un agente, el chat o vos. Prendé las que quieras: cargas (archivos y fuentes nuevas), modificaciones (ediciones, restauraciones, movimientos) y eliminaciones. Llegan mientras el dashboard esté abierto, aunque esté en otra pestaña; la primera vez el navegador pide permiso.</li>
     <li><b>Backup</b>: <i>Crear backup</i> descarga un <code>.zip</code> con el vault, el historial de versiones, los ajustes, las conexiones y lo indexado en Chroma (con los embeddings, así restaurar no necesita a Ollama); las copias quedan en <code>data/backups</code>. Las credenciales (<code>.env</code>, sesiones OAuth) solo van si marcás la casilla. <i>Restaurar</i> (de la lista o desde un archivo) primero guarda el estado actual como <code>before-restore-….zip</code>, reemplaza todo y reconstruye lo que el backup no trae (el índice por palabra siempre; Chroma desde el vault si no venía exportado). <i>Reconstruir índices</i> hace solo esa reconstrucción.</li>
     <li><b>Colores del grafo</b>: un color por tipo de nodo, o volver a blanco y negro.</li>
   </ul>
@@ -609,7 +611,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h1>Chat</h1>
   <p class="lead">Talk to a local Ollama model that already knows your profile and memory, and can look things up and edit your vault with the same tools your agents have.</p>
   <h2>Context</h2>
-  <p>The system prompt includes <code>profile.md</code>, all your active memories (up to ~12k characters), <code>BRAIN.md</code> and the fragments of past chats most similar to your question.</p>
+  <p>The system prompt includes a fixed guide to how brain works (so the chat can tell you where things are in the app; you can read it in <b>Settings → System prompt</b>), <code>profile.md</code>, all your active memories (up to ~12k characters), <code>BRAIN.md</code>, the fragments of past chats most similar to your question, and your own instructions from Settings.</p>
   <h2>Tools</h2>
   <p>The chat gets exactly the tools your agents get, including your connections'. Every call is listed under the answer; expand it to see the arguments and the result. Up to 6 rounds of tool calls per answer.</p>
   <p>Models that can't take native tools (common with GGUF models pulled from Hugging Face, which fail with "Unable to generate parser for this template") switch to <b>text mode</b>: the tools are described in the prompt and the model asks for them with <code>&lt;tool_call&gt;{…}&lt;/tool_call&gt;</code>. The mode is remembered per model while the dashboard runs.</p>
@@ -632,12 +634,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>/reflect</code></td><td>Brings <a href="#reflect-skills">Reflect</a>'s suggestions into the chat (duplicates, contradictions, notes without entities) and applies only the ones you confirm.</td></tr>
     <tr><td><code>/new</code></td><td>Starts a new chat.</td></tr>
   </table>
+  <h2>Your skills</h2>
+  <p>Below brain's commands, under <b>Your skills</b> and with a <i>skill</i> tag, the menu lists the skills saved in <code>skills/</code> of your vault, usually written by your agents with <code>distill_skill</code> + <code>write_file</code>. Type to filter. <code>/name</code> loads that skill's instructions into the chat and keeps it in that mode; add text after it to apply it right away: <code>/write-emails ask Juan for the report</code>. A skill named like one of brain's commands stays hidden behind the command.</p>
 </div>
 <div class="l-es">
   <h1>Chat</h1>
   <p class="lead">Hablá con un modelo local de Ollama que ya conoce tu perfil y tu memoria, y que puede consultar y editar tu vault con las mismas tools que tus agentes.</p>
   <h2>Contexto</h2>
-  <p>El system prompt incluye <code>profile.md</code>, todas tus memorias activas (hasta ~12k caracteres), <code>BRAIN.md</code> y los fragmentos de chats anteriores más parecidos a tu pregunta.</p>
+  <p>El system prompt incluye una guía fija de cómo funciona brain (así el chat te puede decir dónde está cada cosa en la app; la podés leer en <b>Ajustes → System prompt</b>), <code>profile.md</code>, todas tus memorias activas (hasta ~12k caracteres), <code>BRAIN.md</code>, los fragmentos de chats anteriores más parecidos a tu pregunta y tus instrucciones de Ajustes.</p>
   <h2>Tools</h2>
   <p>El chat recibe exactamente las tools de tus agentes, incluidas las de tus conexiones. Cada llamada aparece debajo de la respuesta; desplegala para ver los argumentos y el resultado. Hasta 6 vueltas de tools por respuesta.</p>
   <p>Los modelos que no aceptan tools nativas (típico de GGUF bajados de Hugging Face, que fallan con "Unable to generate parser for this template") pasan al <b>modo texto</b>: las tools van descritas en el prompt y el modelo las pide con <code>&lt;tool_call&gt;{…}&lt;/tool_call&gt;</code>. El modo se recuerda por modelo mientras corre el dashboard.</p>
@@ -660,6 +664,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>/reflect</code></td><td>Trae al chat las sugerencias de <a href="#reflect-skills">Reflect</a> (duplicados, contradicciones, notas sin entidades) y aplica solo las que confirmes.</td></tr>
     <tr><td><code>/new</code></td><td>Empieza un chat nuevo.</td></tr>
   </table>
+  <h2>Tus skills</h2>
+  <p>Debajo de los comandos de brain, en <b>Tus skills</b> y con la etiqueta <i>skill</i>, el menú lista los skills guardados en <code>skills/</code> de tu vault, que suelen escribir tus agentes con <code>distill_skill</code> + <code>write_file</code>. Escribí para filtrar. <code>/nombre</code> carga las instrucciones de ese skill en el chat y lo deja en ese modo; sumá texto después para aplicarlo de una: <code>/escribir-mails pedile a Juan el informe</code>. Un skill que se llame igual que un comando de brain queda tapado por el comando.</p>
 </div>
 </section>
 
@@ -678,11 +684,13 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>VS Code (Copilot)</td><td><code>~/Library/Application Support/Code/User/mcp.json</code></td><td>If the file has comments (JSONC) it isn't rewritten; you get the snippet to paste.</td></tr>
     <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td></td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
+    <tr><td>OpenMausBot</td><td><code>~/.openmausbot/config.json</code></td><td>It reads its MCP servers when it opens, so it's edited with the app closed; the dashboard offers to quit, connect and reopen it.</td></tr>
+    <tr><td>Manus Studio</td><td>by URL</td><td>Runs in the cloud and can't launch a command on your computer: turn on <a href="#remote">remote access</a> and paste the URL in Manus (<i>Settings → Connectors → Add connectors → Custom MCP → Add custom MCP server → Direct configuration</i>).</td></tr>
   </table>
-  <p>All of them launch the same command with absolute paths, so they work from any folder:</p>
+  <p>Paths are the macOS ones; on Windows they're under <code>%APPDATA%</code> and on Linux under <code>~/.config</code>, and the dashboard shows the right one for your system. All local agents launch the same command with absolute paths, so they work from any folder:</p>
   <pre>/Users/you/.local/bin/uv run --directory /Users/you/.brain python server.py</pre>
   <h2>Apps with an "Add MCP server" form</h2>
-  <p>Choose <b>Run a command</b>, not "Connect to a URL": brain is a local (stdio) server and doesn't expose an MCP URL. Pointing an app at the dashboard's address returns <code>403</code>.</p>
+  <p>Choose <b>Run a command</b>. If the app only accepts a URL (or runs in the cloud), use <a href="#remote">remote access</a>: pointing an app at the dashboard's address returns <code>403</code>.</p>
   <table>
     <tr><th>Field</th><th>Value</th></tr>
     <tr><td>Name</td><td><code>brain</code></td></tr>
@@ -707,11 +715,13 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>VS Code (Copilot)</td><td><code>~/Library/Application Support/Code/User/mcp.json</code></td><td>Si el archivo tiene comentarios (JSONC) no se reescribe; te da el fragmento para pegar.</td></tr>
     <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td></td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
+    <tr><td>OpenMausBot</td><td><code>~/.openmausbot/config.json</code></td><td>Lee sus servers MCP al abrirse, así que se edita con la app cerrada; el dashboard ofrece cerrarla, conectar y volver a abrirla.</td></tr>
+    <tr><td>Manus Studio</td><td>por URL</td><td>Corre en la nube y no puede lanzar un comando en tu computadora: prendé el <a href="#remote">acceso remoto</a> y pegá la URL en Manus (<i>Settings → Connectors → Add connectors → Custom MCP → Add custom MCP server → Direct configuration</i>).</td></tr>
   </table>
-  <p>Todos lanzan el mismo comando con paths absolutos, así funcionan desde cualquier carpeta:</p>
+  <p>Los paths son los de macOS; en Windows están en <code>%APPDATA%</code> y en Linux en <code>~/.config</code>, y el dashboard muestra el de tu sistema. Todos los agentes locales lanzan el mismo comando con paths absolutos, así funcionan desde cualquier carpeta:</p>
   <pre>/Users/vos/.local/bin/uv run --directory /Users/vos/.brain python server.py</pre>
   <h2>Apps con formulario "Add MCP server"</h2>
-  <p>Elegí <b>Run a command</b>, no "Connect to a URL": brain es un server local (stdio) y no expone una URL MCP. Apuntar una app a la dirección del dashboard devuelve <code>403</code>.</p>
+  <p>Elegí <b>Run a command</b>. Si la app solo acepta una URL (o corre en la nube), usá el <a href="#remote">acceso remoto</a>: apuntar una app a la dirección del dashboard devuelve <code>403</code>.</p>
   <table>
     <tr><th>Campo</th><th>Valor</th></tr>
     <tr><td>Nombre</td><td><code>brain</code></td></tr>
@@ -721,6 +731,53 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>La pestaña Conectar agente muestra estos valores completos para tu máquina, con botones de copiar.</p>
   <h2>Mis conexiones</h2>
   <p>Lista los agentes que configuró brain, más cada app que usó brain: brain anota el nombre de cliente que manda cada app en el handshake MCP (<code>data/clients.json</code>), así las apps que agregaste con un formulario aparecen la primera vez que lo usan. También podés anotar una app a mano.</p>
+</div>
+</section>
+
+<section class="page" id="remote" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Remote access by URL" data-title-es="Acceso remoto por URL">
+<div class="l-en">
+  <h1>Remote access by URL</h1>
+  <p class="lead">Publishes brain's MCP server at an internet URL through a Cloudflare tunnel, so agents in the cloud or on another computer can use your memory. Off by default.</p>
+  <h2>Turning it on</h2>
+  <p>In <b>Connect agent → By URL</b>, flip the <i>Remote access by URL</i> switch. The first time, <i>Install cloudflared</i> downloads Cloudflare's program from its official GitHub release into <code>data/bin/</code> and checks it against the SHA256 Cloudflare publishes (if you already have <code>cloudflared</code> installed with brew, winget or apt, brain uses that one). brain then starts two processes:</p>
+  <ul>
+    <li><code>server.py --http</code>: the same MCP server your local agents use, over streamable HTTP, listening only on <code>127.0.0.1:8770</code>.</li>
+    <li><code>cloudflared</code>: an outbound tunnel that publishes that port. No ports are opened on your router.</li>
+  </ul>
+  <p>When the tunnel is ready the card shows the URL to copy. It stays on across restarts until you turn it off; it only works while the dashboard is open.</p>
+  <h2>The URL and its token</h2>
+  <p>The URL looks like <code>https://…/&lt;token&gt;/mcp</code>. Without the token every request gets a <code>404</code>. Apps that prefer a header can use <code>https://…/mcp</code> with <code>Authorization: Bearer &lt;token&gt;</code> (the card shows both). Treat the URL like a password:</p>
+  <ul>
+    <li><b>Generate a new URL</b> changes the token: the old URL stops working right away, without restarting anything.</li>
+    <li><b>Read-only</b> leaves agents using the URL with the tools that read and search (<code>read_file</code>, <code>search_knowledge</code>, <code>list_vault</code>…); writing, deleting and your connections' tools are hidden and refused.</li>
+    <li>Through the URL, <code>save_url</code> and <code>read_url</code> only fetch public addresses, never your computer or local network.</li>
+  </ul>
+  <h2>Quick or fixed URL</h2>
+  <p>Without a Cloudflare account the tunnel is a <b>quick tunnel</b>: a <code>*.trycloudflare.com</code> address that changes every time it starts, so you have to paste it again in each agent. For a fixed address, create a tunnel in your Cloudflare account (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), point its public hostname to <code>http://localhost:8770</code>, and paste the hostname and the tunnel token under <i>Fixed URL with your Cloudflare account</i>. The token is passed to <code>cloudflared</code> as an environment variable and stored in <code>data/remote.json</code> (<code>600</code>).</p>
+  <h2>Which agents</h2>
+  <p>Any MCP client that connects to a URL with streamable HTTP: <b>Manus Studio</b> (steps on its card), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT in developer mode, or a local agent on another computer. They show up in <b>My connections</b> once they use brain.</p>
+</div>
+<div class="l-es">
+  <h1>Acceso remoto por URL</h1>
+  <p class="lead">Publica el server MCP de brain en una URL de internet con un túnel de Cloudflare, así agentes en la nube o en otra computadora pueden usar tu memoria. Viene apagado.</p>
+  <h2>Prenderlo</h2>
+  <p>En <b>Conectar agente → Por URL</b>, prendé el switch de <i>Acceso remoto por URL</i>. La primera vez, <i>Instalar cloudflared</i> baja el programa de Cloudflare de su release oficial en GitHub a <code>data/bin/</code> y lo verifica con el SHA256 que publica Cloudflare (si ya tenés <code>cloudflared</code> instalado con brew, winget o apt, brain usa ese). Después brain prende dos procesos:</p>
+  <ul>
+    <li><code>server.py --http</code>: el mismo server MCP que usan tus agentes locales, por streamable HTTP, escuchando solo en <code>127.0.0.1:8770</code>.</li>
+    <li><code>cloudflared</code>: un túnel de salida que publica ese puerto. No se abren puertos en tu router.</li>
+  </ul>
+  <p>Cuando el túnel está listo, la tarjeta muestra la URL para copiar. Queda prendido entre reinicios hasta que lo apagues; solo funciona mientras el dashboard esté abierto.</p>
+  <h2>La URL y su token</h2>
+  <p>La URL tiene la forma <code>https://…/&lt;token&gt;/mcp</code>. Sin el token, todo pedido recibe un <code>404</code>. Las apps que prefieren un header pueden usar <code>https://…/mcp</code> con <code>Authorization: Bearer &lt;token&gt;</code> (la tarjeta muestra las dos). Tratá la URL como una contraseña:</p>
+  <ul>
+    <li><b>Generar otra URL</b> cambia el token: la URL vieja deja de andar en el acto, sin reiniciar nada.</li>
+    <li><b>Solo lectura</b> deja a los agentes por URL con las tools que leen y buscan (<code>read_file</code>, <code>search_knowledge</code>, <code>list_vault</code>…); escribir, borrar y las tools de tus conexiones quedan ocultas y se rechazan.</li>
+    <li>Por la URL, <code>save_url</code> y <code>read_url</code> solo leen direcciones públicas, nunca tu computadora ni tu red local.</li>
+  </ul>
+  <h2>URL rápida o fija</h2>
+  <p>Sin cuenta de Cloudflare el túnel es un <b>quick tunnel</b>: una dirección <code>*.trycloudflare.com</code> que cambia cada vez que se prende, así que hay que volver a pegarla en cada agente. Para una dirección fija, creá un túnel en tu cuenta de Cloudflare (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), apuntá su hostname público a <code>http://localhost:8770</code> y pegá el hostname y el token del túnel en <i>URL fija con tu cuenta de Cloudflare</i>. El token le llega a <code>cloudflared</code> por una variable de entorno y se guarda en <code>data/remote.json</code> (<code>600</code>).</p>
+  <h2>Qué agentes</h2>
+  <p>Cualquier cliente MCP que se conecte a una URL con streamable HTTP: <b>Manus Studio</b> (pasos en su tarjeta), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT en modo desarrollador, o un agente local en otra computadora. Aparecen en <b>Mis conexiones</b> apenas usan brain.</p>
 </div>
 </section>
 
@@ -936,10 +993,12 @@ brain update          updates to the latest version (git pull + uv sync)
 brain path            shows where it's installed
 brain uninstall       removes the command (keeps your data)
 brain help            help</pre>
+  <p>While the dashboard runs, <b>Settings → Update and restart</b> does the same as <code>brain update</code> without leaving it: the dashboard exits with code 75, the <code>brain</code> command runs the update and reopens it in the same terminal (without opening another browser tab). If the update fails it reopens the installed version and says so. A dashboard started with <code>python dashboard.py</code> instead of <code>brain</code> can't restart itself.</p>
   <h2>Standalone scripts</h2>
   <p>For when you need a piece without the dashboard:</p>
   <pre>./chroma_server.sh    # Chroma alone on 127.0.0.1:8055
 ./start.sh            # MCP server over stdio (normally launched by the client)
+uv run python server.py --http   # MCP server over HTTP on 127.0.0.1:8770, with the token (what remote access runs)
 npx @modelcontextprotocol/inspector uv run python server.py   # MCP Inspector</pre>
 </div>
 <div class="l-es">
@@ -953,10 +1012,12 @@ brain update          actualiza a la última versión (git pull + uv sync)
 brain path            muestra dónde está instalado
 brain uninstall       saca el comando (tus datos quedan)
 brain help            ayuda</pre>
+  <p>Con el dashboard abierto, <b>Ajustes → Actualizar y reiniciar</b> hace lo mismo que <code>brain update</code> sin salir: el dashboard sale con el código 75, el comando <code>brain</code> actualiza y lo vuelve a abrir en la misma terminal (sin abrir otra pestaña del navegador). Si la actualización falla, vuelve a abrir la versión instalada y lo avisa. Un dashboard abierto con <code>python dashboard.py</code> en vez de <code>brain</code> no se puede reiniciar solo.</p>
   <h2>Scripts sueltos</h2>
   <p>Para cuando necesitás una pieza sin el dashboard:</p>
   <pre>./chroma_server.sh    # solo Chroma en 127.0.0.1:8055
 ./start.sh            # server MCP por stdio (normalmente lo lanza el cliente)
+uv run python server.py --http   # server MCP por HTTP en 127.0.0.1:8770, con el token (lo que corre el acceso remoto)
 npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</pre>
 </div>
 </section>
@@ -972,6 +1033,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>BRAIN_SUMMARY_MODEL</code></td><td><code>llama3.2</code> if installed, otherwise the first chat model</td><td>Ollama chat model used for <code>abstract</code> and <code>entities</code>. <code>off</code> disables both.</td></tr>
     <tr><td><code>BRAIN_LLM_TIMEOUT</code></td><td><code>45</code></td><td>Seconds to wait for a summary or entity list before giving up (the note is saved anyway).</td></tr>
     <tr><td><code>BRAIN_CHAT_CTX</code></td><td><code>16384</code></td><td>Default cap for the chat's context window, until you change it in Settings → Context (which takes precedence).</td></tr>
+    <tr><td><code>BRAIN_REMOTE_PORT</code></td><td><code>8770</code></td><td>Local port of the MCP-by-URL server that remote access publishes.</td></tr>
   </table>
   <h2>Ports</h2>
   <table>
@@ -980,6 +1042,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>8055</code></td><td>Chroma</td></tr>
     <tr><td><code>11434</code></td><td>Ollama</td></tr>
     <tr><td><code>6274</code> / <code>6275</code></td><td>MCP Inspector</td></tr>
+    <tr><td><code>8770</code></td><td>MCP by URL for <a href="#remote">remote access</a>, local only (<code>BRAIN_REMOTE_PORT</code> to change)</td></tr>
   </table>
   <h2>Files</h2>
   <table>
@@ -990,6 +1053,8 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>data/chroma/</code></td><td>Vector index</td></tr>
     <tr><td><code>data/connections.json</code>, <code>connections_tools.json</code></td><td>Connections and their cached tools</td></tr>
     <tr><td><code>data/clients.json</code></td><td>Apps detected through the MCP handshake</td></tr>
+    <tr><td><code>data/remote.json</code></td><td>Remote access settings, URL token and tunnel token (permissions <code>600</code>)</td></tr>
+    <tr><td><code>data/bin/</code></td><td><code>cloudflared</code>, if brain downloaded it</td></tr>
     <tr><td><code>.env</code></td><td>Secrets (permissions <code>600</code>)</td></tr>
   </table>
   <p><code>vault/</code>, <code>data/</code> and <code>.env</code> are in <code>.gitignore</code>. To start from scratch, close the dashboard and your agents, delete <code>vault/</code> and <code>data/</code>, and open brain again.</p>
@@ -1004,6 +1069,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>BRAIN_SUMMARY_MODEL</code></td><td><code>llama3.2</code> si está instalado, si no el primer modelo de chat</td><td>Modelo de chat de Ollama para <code>abstract</code> y <code>entities</code>. <code>off</code> apaga los dos.</td></tr>
     <tr><td><code>BRAIN_LLM_TIMEOUT</code></td><td><code>45</code></td><td>Segundos de espera para un resumen o una lista de entidades antes de abandonar (la nota se guarda igual).</td></tr>
     <tr><td><code>BRAIN_CHAT_CTX</code></td><td><code>16384</code></td><td>Tope por defecto de la ventana de contexto del chat, hasta que lo cambies en Ajustes → Contexto (que manda).</td></tr>
+    <tr><td><code>BRAIN_REMOTE_PORT</code></td><td><code>8770</code></td><td>Puerto local del server MCP por URL que publica el acceso remoto.</td></tr>
   </table>
   <h2>Puertos</h2>
   <table>
@@ -1012,6 +1078,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>8055</code></td><td>Chroma</td></tr>
     <tr><td><code>11434</code></td><td>Ollama</td></tr>
     <tr><td><code>6274</code> / <code>6275</code></td><td>Inspector MCP</td></tr>
+    <tr><td><code>8770</code></td><td>MCP por URL del <a href="#remote">acceso remoto</a>, solo local (<code>BRAIN_REMOTE_PORT</code> para cambiarlo)</td></tr>
   </table>
   <h2>Archivos</h2>
   <table>
@@ -1022,6 +1089,8 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <tr><td><code>data/chroma/</code></td><td>Índice vectorial</td></tr>
     <tr><td><code>data/connections.json</code>, <code>connections_tools.json</code></td><td>Conexiones y el caché de sus tools</td></tr>
     <tr><td><code>data/clients.json</code></td><td>Apps detectadas por el handshake MCP</td></tr>
+    <tr><td><code>data/remote.json</code></td><td>Ajustes del acceso remoto, token de la URL y del túnel (permisos <code>600</code>)</td></tr>
+    <tr><td><code>data/bin/</code></td><td><code>cloudflared</code>, si lo bajó brain</td></tr>
     <tr><td><code>.env</code></td><td>Secretos (permisos <code>600</code>)</td></tr>
   </table>
   <p><code>vault/</code>, <code>data/</code> y <code>.env</code> están en el <code>.gitignore</code>. Para arrancar de cero, cerrá el dashboard y tus agentes, borrá <code>vault/</code> y <code>data/</code>, y abrí brain de nuevo.</p>
@@ -1038,7 +1107,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Embeddings, summaries and entities are computed by Ollama on your machine.</li>
     <li>Composio, if you use it, keeps your app tokens in its cloud; everything it fetches is saved locally.</li>
     <li>Sign-ins to MCP servers (OAuth) stay in <code>~/.brain/data/oauth.json</code> (permissions <code>600</code>).</li>
-    <li>brain goes online on its own only to check GitHub for a new version (it reads the latest release number and sends nothing about you).</li>
+    <li>brain goes online on its own only to check GitHub for a new version (it reads the latest release number and sends nothing about you), and, if you turn on remote access, to keep the Cloudflare tunnel open.</li>
     <li>Backups leave credentials out unless you tick <i>Include credentials</i>.</li>
   </ul>
   <h2>The dashboard</h2>
@@ -1054,6 +1123,12 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Agent configs are never rewritten without a backup, and other entries are never removed.</li>
     <li>Agents can only <i>propose</i> a connection (<code>propose_connection</code>). Nothing runs until you click <i>Add</i> on a card that shows the exact command or URL.</li>
   </ul>
+  <h2>Remote access</h2>
+  <ul>
+    <li><a href="#remote">Remote access by URL</a> is off until you turn it on. While it's on, your vault is reachable from the internet by anyone who has the URL: it carries a secret token, can be regenerated at any time and can be set to read-only.</li>
+    <li>The MCP server behind it listens only on <code>127.0.0.1</code>; the Cloudflare tunnel is outbound and opens no ports.</li>
+    <li>Through the URL, brain never fetches addresses on your computer or local network.</li>
+  </ul>
   <h2>Reporting a vulnerability</h2>
   <p>Please don't open a public issue. Use GitHub's private reporting: <a href="https://github.com/Lautaro005/brain/security/advisories/new">Security → Report a vulnerability</a>. Scope and response times are in <a href="https://github.com/Lautaro005/brain/blob/main/SECURITY.md">SECURITY.md</a>.</p>
 </div>
@@ -1066,7 +1141,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Los embeddings, resúmenes y entidades los calcula Ollama en tu máquina.</li>
     <li>Composio, si lo usás, guarda los tokens de tus apps en su nube; todo lo que trae se guarda local.</li>
     <li>Las sesiones iniciadas en servers MCP (OAuth) quedan en <code>~/.brain/data/oauth.json</code> (permisos <code>600</code>).</li>
-    <li>brain sale a internet por su cuenta solo para fijarse en GitHub si hay una versión nueva (lee el número del último release y no manda nada tuyo).</li>
+    <li>brain sale a internet por su cuenta solo para fijarse en GitHub si hay una versión nueva (lee el número del último release y no manda nada tuyo) y, si prendés el acceso remoto, para mantener abierto el túnel de Cloudflare.</li>
     <li>Los backups dejan afuera las credenciales salvo que marques <i>Incluir credenciales</i>.</li>
   </ul>
   <h2>El dashboard</h2>
@@ -1081,6 +1156,12 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Cada escritura queda versionada y se puede deshacer.</li>
     <li>Las configs de los agentes nunca se reescriben sin backup, y nunca se borran entradas ajenas.</li>
     <li>Los agentes solo pueden <i>proponer</i> una conexión (<code>propose_connection</code>). No se ejecuta nada hasta que tocás <i>Agregar</i> en una tarjeta que muestra el comando o la URL exactos.</li>
+  </ul>
+  <h2>Acceso remoto</h2>
+  <ul>
+    <li>El <a href="#remote">acceso remoto por URL</a> está apagado hasta que lo prendas. Mientras está prendido, tu vault es accesible desde internet para quien tenga la URL: lleva un token secreto, se puede regenerar cuando quieras y se puede poner en solo lectura.</li>
+    <li>El server MCP detrás escucha solo en <code>127.0.0.1</code>; el túnel de Cloudflare es de salida y no abre puertos.</li>
+    <li>Por la URL, brain nunca lee direcciones de tu computadora ni de tu red local.</li>
   </ul>
   <h2>Reportar una vulnerabilidad</h2>
   <p>Por favor no abras un issue público. Usá el reporte privado de GitHub: <a href="https://github.com/Lautaro005/brain/security/advisories/new">Security → Report a vulnerability</a>. El alcance y los tiempos de respuesta están en <a href="https://github.com/Lautaro005/brain/blob/main/SECURITY.md">SECURITY.md</a>.</p>

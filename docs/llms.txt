@@ -26,6 +26,7 @@
 - [Dashboard](https://lautaro005.github.io/brain/docs/#dashboard): The local web app at http://127.0.0.1:8765, opened with brain. English or Spanish, light, dark or system theme.
 - [Chat](https://lautaro005.github.io/brain/docs/#chat): Talk to a local Ollama model that already knows your profile and memory, and can look things up and edit your vault with the same tools your agents have.
 - [Connecting agents](https://lautaro005.github.io/brain/docs/#agents): Each agent keeps its list of MCP servers in its own file. Connect adds brain's entry without touching anything else, after saving a backup (<file>.bak-brain).
+- [Remote access by URL](https://lautaro005.github.io/brain/docs/#remote): Publishes brain's MCP server at an internet URL through a Cloudflare tunnel, so agents in the cloud or on another computer can use your memory. Off by default.
 - [Connections](https://lautaro005.github.io/brain/docs/#connections): brain is also an MCP client. Add other MCP servers (GitHub, Notion, Gmail…) and their tools show up in every agent you connected, with their results saved to your memory.
 - [Reflect and skills](https://lautaro005.github.io/brain/docs/#reflect-skills): Two ways to make stored memory more useful: Reflect reviews it and suggests fixes, and distill_skill turns everything on a topic into a reusable skill.
 

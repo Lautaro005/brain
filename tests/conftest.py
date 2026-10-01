@@ -13,7 +13,7 @@ os.environ.setdefault("BRAIN_CHROMA_PORT", "59999")  # un puerto donde no hay na
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
-    from brain_mcp import backup, chat, connectors, graph, history, keyword_store, oauth, vault
+    from brain_mcp import backup, chat, connectors, graph, history, keyword_store, oauth, remote, vault
 
     data = tmp_path / "data"
     v = (tmp_path / "vault")
@@ -30,6 +30,9 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(connectors, "PROPOSALS", data / "connection_proposals.json")
     monkeypatch.setattr(connectors, "ENV_PATH", tmp_path / ".env")
     monkeypatch.setattr(oauth, "DATA", data)
+    monkeypatch.setattr(remote, "DATA", data)
+    monkeypatch.setattr(remote, "CONFIG", data / "remote.json")
+    monkeypatch.setattr(remote, "BIN", data / "bin")
     monkeypatch.setattr(backup, "ROOT", tmp_path)
     monkeypatch.setattr(chat, "OLLAMA", "http://127.0.0.1:59998")  # Ollama "apagado"
     chat._MAX.clear()

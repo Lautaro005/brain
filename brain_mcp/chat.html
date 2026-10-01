@@ -179,6 +179,10 @@
   .cmds li.on { background: var(--soft); }
   .cmds b { font: 700 13.5px/1.3 "Courier Prime", monospace; }
   .cmds span { font-size: 13.5px; color: var(--text-2); }
+  .cmds { max-height: min(360px, 55vh); overflow-y: auto; }
+  .cmds .cmds-h.sep { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .cmds .skill-tag { font: 700 10px/1 "Courier Prime", monospace; font-style: normal; letter-spacing: .06em; text-transform: uppercase;
+    border: 1px solid var(--line-strong); border-radius: 3px; padding: 2px 4px; margin-left: 6px; color: var(--text-2); vertical-align: 1px; }
   .cmds .cmds-h { display: block; padding: 4px 12px 6px; font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); cursor: default; }
   .pop .cmds, .narrow .cmds { left: 10px; right: 10px; }
   .narrow .cmds li, .pop .cmds li { grid-template-columns: 1fr; }
@@ -251,7 +255,7 @@ const I18N = {
   es: {
     chats: "Chats", newTitle: "Chat nuevo", search: "Buscar chats", noChats: "Todavía no hay chats guardados.",
     brain: "brain", send: "Enviar", stop: "Parar", ph: "Preguntá, pedí que guarde algo o que edite una nota", phShort: "Escribí un mensaje",
-    hint: "Enter envía · Shift+Enter salto de línea · / comandos",
+    hint: "Enter envía · Shift+Enter salto de línea · / comandos y skills",
     pop: "Flotante", popTitle: "Abrir el chat en una ventana flotante, siempre visible", hist: "Historial",
     emptyT: "Hablá con tu memoria", emptyP: "Corre en tu máquina con Ollama. Conoce tu perfil y tu memoria, y puede buscar, guardar y editar notas del vault por vos.",
     sugs: ["¿Qué sabés de mí?", "Resumí mis proyectos", "Guardá que prefiero respuestas cortas", "¿Qué fuentes guardé últimamente?"],
@@ -271,7 +275,7 @@ const I18N = {
     ctxTip: (u, c, mx) => `Contexto: ${num(u)} de ${num(c)} tokens (${Math.round(u / c * 100)}%)` + (mx > c ? `\nEl modelo soporta ${num(mx)}; brain usa ${num(c)}.` : ""),
     ctxFull: "Casi lleno: el modelo empieza a olvidar lo primero del chat. Conviene uno nuevo.",
     ctxNone: "Contexto: se calcula al enviar el primer mensaje.",
-    cmdsTitle: "Comandos",
+    cmdsTitle: "Comandos de brain", skillsTitle: "Tus skills", skillTag: "skill", skillNoDesc: "Skill guardado en tu vault.",
     cmds: { organize: "Ordenar el vault y el grafo (carpetas, tags, relaciones, duplicados). Pregunta antes de mover nada.",
       reflect: "Revisar la memoria: duplicados, contradicciones y notas sin entidades.", new: "Empezar un chat nuevo.",
       compact: "Compactar la sesión: resume lo hablado para liberar contexto y seguir en este chat.",
@@ -285,7 +289,7 @@ const I18N = {
   en: {
     chats: "Chats", newTitle: "New chat", search: "Search chats", noChats: "No saved chats yet.",
     brain: "brain", send: "Send", stop: "Stop", ph: "Ask, or have it save something or edit a note", phShort: "Write a message",
-    hint: "Enter sends · Shift+Enter new line · / commands",
+    hint: "Enter sends · Shift+Enter new line · / commands and skills",
     pop: "Float", popTitle: "Open the chat in a floating window that stays on top", hist: "History",
     emptyT: "Talk to your memory", emptyP: "Runs on your machine with Ollama. It knows your profile and memory, and can search, save and edit vault notes for you.",
     sugs: ["What do you know about me?", "Summarize my projects", "Remember that I prefer short answers", "What sources did I save lately?"],
@@ -305,7 +309,7 @@ const I18N = {
     ctxTip: (u, c, mx) => `Context: ${num(u)} of ${num(c)} tokens (${Math.round(u / c * 100)}%)` + (mx > c ? `\nThe model supports ${num(mx)}; brain uses ${num(c)}.` : ""),
     ctxFull: "Almost full: the model starts forgetting the beginning of the chat. Better start a new one.",
     ctxNone: "Context: measured when you send the first message.",
-    cmdsTitle: "Commands",
+    cmdsTitle: "brain commands", skillsTitle: "Your skills", skillTag: "skill", skillNoDesc: "Skill saved in your vault.",
     cmds: { organize: "Organize the vault and graph (folders, tags, links, duplicates). Asks before moving anything.",
       reflect: "Review your memory: duplicates, contradictions and notes without entities.", new: "Start a new chat.",
       compact: "Compact the session: summarize the conversation to free up context and keep going in this chat.",
@@ -348,6 +352,22 @@ let chats = [], current = null, messages = [], busy = false, controller = null, 
 let chatModel = "";                 // modelo con el que arrancó el chat abierto (queda fijo)
 let usage = { tokens: 0, ctx: 0, max: 0 };  // ventana de contexto del chat abierto
 const COMMANDS = ["organize", "add-mcp", "compact", "reflect", "new"];
+let skills = [], skillsAt = 0;      // skills del vault (skills/*.md) para el menú de "/"
+async function loadSkills(force = false) {
+  if (!force && Date.now() - skillsAt < 15000) return false;
+  skillsAt = Date.now();
+  try { skills = (await api("/api/chat/commands")).skills || []; } catch (e) { /* sin vault: solo comandos */ }
+  return true;
+}
+loadSkills(true);
+const isCmd = name => COMMANDS.includes(name) || skills.some(k => k.name === name);
+// "/organize. y algo" → ["/organize", "organize", ". y algo"]: igual que chat.parse_command (sin "." ni "/" al final)
+function cmdOf(text) {
+  const m = /^\/([A-Za-z0-9][\w./-]*)([\s\S]*)$/.exec(text || "");
+  if (!m) return null;
+  const name = m[1].replace(/[./]+$/, "");
+  return [m[0], name, text.slice(1 + name.length).replace(/^\s+/, "")];
+}
 
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify(body) };
@@ -577,8 +597,8 @@ function callHtml(t, i, open) {
 }
 function msgHtml(m, i, open = new Set()) {
   if (m.role === "user") {
-    const c = /^\/([a-z][a-z-]*)(?![\w-])\s*([\s\S]*)$/.exec(m.content || "");
-    return c && COMMANDS.includes(c[1]) ? `<div class="msg user"><span class="cmd-chip">/${esc(c[1])}</span>${esc(c[2])}</div>` : `<div class="msg user">${esc(m.content)}</div>`;
+    const c = cmdOf(m.content);
+    return c && isCmd(c[1]) ? `<div class="msg user"><span class="cmd-chip">/${esc(c[1])}</span>${esc(c[2])}</div>` : `<div class="msg user">${esc(m.content)}</div>`;
   }
   const tools = m.tools || [];
   const trace = tools.length ? `<div class="trace"><div class="trace-h">${esc(T.actions(tools.length))}</div>${tools.map((t, j) => callHtml(t, j, open)).join("")}</div>` : "";
@@ -686,30 +706,43 @@ $("#text").addEventListener("input", () => { autosize(); updateCmds(); });
 
 // ================= comandos (/) =================
 let cmdList = [], cmdOn = 0, cmdDismissed = null;
+// cmdList: [{name, skill, desc}]: primero los comandos de brain y después los skills del vault, cada grupo
+// con su título, así se distingue lo que trae brain de lo que guardaron tus agentes.
 function updateCmds() {
-  const v = $("#text").value, m = /^\/([a-z-]*)$/.exec(v);
+  const v = $("#text").value, m = /^\/([\w./-]*)$/.exec(v);
   if (!m || v === cmdDismissed) return hideCmds();
-  cmdList = COMMANDS.filter(c => c.startsWith(m[1]));
+  if (v === "/") loadSkills().then(got => { if (got && $("#text").value.startsWith("/")) updateCmds(); });
+  const q = m[1].toLowerCase();
+  cmdList = [
+    ...COMMANDS.filter(c => c.startsWith(q)).map(c => ({ name: c, skill: false, desc: T.cmds[c] })),
+    ...skills.filter(k => k.name.toLowerCase().includes(q)).map(k => ({ name: k.name, skill: true, desc: k.description || T.skillNoDesc })),
+  ];
   if (!cmdList.length) return hideCmds();
   cmdOn = Math.min(cmdOn, cmdList.length - 1);
   renderCmds();
 }
+const cmdId = c => `cmd-${c.skill ? "s-" : ""}${c.name.replace(/[^\w-]/g, "_")}`;
 function renderCmds() {
   const box = $("#cmds");
-  box.innerHTML = `<li class="cmds-h" role="presentation">${esc(T.cmdsTitle)}</li>` + cmdList.map((c, i) =>
-    `<li role="option" id="cmd-${c}" data-cmd="${c}" class="${i === cmdOn ? "on" : ""}" aria-selected="${i === cmdOn}"><b>/${c}</b><span>${esc(T.cmds[c])}</span></li>`).join("");
+  const li = (c, i) => `<li role="option" id="${cmdId(c)}" data-i="${i}" class="${i === cmdOn ? "on" : ""}" aria-selected="${i === cmdOn}">
+    <b>/${esc(c.name)}${c.skill ? ` <em class="skill-tag">${esc(T.skillTag)}</em>` : ""}</b><span>${esc(c.desc)}</span></li>`;
+  const own = cmdList.findIndex(c => c.skill);
+  box.innerHTML = cmdList.map((c, i) =>
+    (i === 0 && !c.skill ? `<li class="cmds-h" role="presentation">${esc(T.cmdsTitle)}</li>` : "")
+    + (i === own ? `<li class="cmds-h${i ? " sep" : ""}" role="presentation">${esc(T.skillsTitle)}</li>` : "") + li(c, i)).join("");
   box.hidden = false;
-  $("#text").setAttribute("aria-activedescendant", `cmd-${cmdList[cmdOn]}`);
-  box.querySelectorAll("[data-cmd]").forEach(li => {
+  box.querySelector("li.on")?.scrollIntoView({ block: "nearest" });
+  $("#text").setAttribute("aria-activedescendant", cmdId(cmdList[cmdOn]));
+  box.querySelectorAll("[data-i]").forEach(li => {
     li.onmousedown = e => e.preventDefault();
-    li.onclick = () => pickCmd(li.dataset.cmd);
+    li.onclick = () => pickCmd(cmdList[+li.dataset.i]);
   });
 }
 function hideCmds() { $("#cmds").hidden = true; cmdList = []; $("#text").removeAttribute("aria-activedescendant"); }
 function pickCmd(c) {
   hideCmds();
-  if (c === "new") { $("#text").value = ""; autosize(); newChat(); return; }
-  $("#text").value = `/${c} `; cmdDismissed = null; autosize(); $("#text").focus();
+  if (!c.skill && c.name === "new") { $("#text").value = ""; autosize(); newChat(); return; }
+  $("#text").value = `/${c.name} `; cmdDismissed = null; autosize(); $("#text").focus();
 }
 
 // ================= título editable =================

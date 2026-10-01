@@ -491,6 +491,43 @@
   .color-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; padding: 4px 0; border-bottom: 1px solid var(--line); }
   .color-row input[type=color] { width: 34px; height: 26px; padding: 0 2px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface); cursor: pointer; flex: none; }
   .color-row .mono { margin-left: auto; font-size: 12px; color: var(--text-3); }
+  /* actualizar y reiniciar: el botón verde junto a "Buscar actualizaciones" (misma excepción al monocromo) */
+  .update-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .update-row .btn[hidden] { display: none; }
+  .btn.update-go { background: var(--update); color: #fff; border-color: var(--update); }
+  :root[data-theme="dark"] .btn.update-go { color: #0a0a0a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.update-go { color: #0a0a0a; } }
+  .btn.update-go:hover { filter: brightness(1.08); }
+  .btn.update-go:disabled { opacity: .6; cursor: progress; }
+  .updating { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(10,10,10,.45); padding: 16px; }
+  .updating > div { background: var(--surface); color: var(--text); border: 1.5px solid var(--update); border-radius: 4px; padding: 20px 22px; max-width: 420px; display: grid; gap: 8px; }
+  .updating b { color: var(--update); font-size: 16px; }
+  /* ajustes: contexto fijo de la app y notificaciones */
+  .app-ctx { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .app-ctx summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  .app-ctx summary .muted { font-weight: 400; font-size: 12.5px; }
+  .app-ctx-text { white-space: pre-wrap; font-size: 12px; line-height: 1.45; max-height: 280px; overflow: auto; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; margin: 8px 0 0; }
+  .notify-kinds { display: grid; gap: 8px; margin: 10px 0 0 26px; }
+  .notify-kinds.off { opacity: .45; }
+  /* conectar agente: acceso remoto por URL */
+  .remote-card .card-b { display: grid; gap: 12px; }
+  .remote-top { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; }
+  .remote-top h2 { margin: 0 0 4px; font-size: 16px; }
+  .remote-top p { margin: 0; font-size: 13.5px; color: var(--text-2); max-width: 70ch; }
+  .remote-state { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--text-2); }
+  .remote-url .code-block { margin-bottom: 4px; }
+  .remote-url pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+  .remote-warn { font-size: 12.5px; color: var(--text-2); border-left: 3px solid var(--text); padding: 4px 0 4px 10px; }
+  .remote-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .remote-adv summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  .remote-adv .form-grid { display: grid; gap: 10px; margin-top: 10px; }
+  .remote-adv .input { width: 100%; }
+  .agent-steps { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--text-2); display: grid; gap: 3px; }
+  .manual-form { grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 14px; }
+  .manual-form > div { min-width: 0; }
+  #log-tabs { max-width: 100%; overflow-x: auto; }
+  @media (max-width: 760px) { .remote-top { flex-direction: column; } .manual-form { grid-template-columns: 1fr; } }
   @media (max-width: 760px) {
     .color-grid { grid-template-columns: 1fr; }
     .collapse-btn { display: none; }
@@ -627,6 +664,9 @@
         <div class="grid agents" id="agents-desktop"></div>
         <div class="section-title" data-i18n="agents.others"></div>
         <div class="grid agents" id="agents-other"></div>
+        <div class="section-title" id="remote-section" data-i18n="agents.remoteSection"></div>
+        <div class="card remote-card" id="remote-card"></div>
+        <div class="grid agents" id="agents-remote" style="margin-top:16px"></div>
         <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="agents.manualTitle"></h2><span class="sub" data-i18n="agents.manualSub"></span></div>
           <div class="card-b"><p class="muted" style="margin:0 0 10px;font-size:13px" data-i18n="agents.manualText"></p><div id="agents-manual"></div></div></div>
       </div>
@@ -747,7 +787,10 @@
             <div class="card-b">
               <div class="update-note" id="update-note" hidden></div>
               <p class="form-hint" style="margin-top:0" data-i18n="settings.versionHint"></p>
-              <button class="btn" type="button" id="update-btn" data-i18n="settings.check"></button>
+              <div class="update-row">
+                <button class="btn" type="button" id="update-btn" data-i18n="settings.check"></button>
+                <button class="btn update-go" type="button" id="update-apply" data-i18n="settings.updateNow" hidden></button>
+              </div>
               <div class="result" id="update-result"></div>
             </div></div>
           <div class="card"><div class="card-h"><h2 data-i18n="settings.sidebar"></h2><span class="sub" data-i18n="settings.sidebarSub"></span></div>
@@ -789,6 +832,25 @@
                 <span class="muted mono" id="system-count" style="margin-left:auto;font-size:12px"></span>
               </div>
               <div class="result" id="system-result"></div>
+              <details class="app-ctx" id="app-ctx">
+                <summary><span data-i18n="settings.appCtx"></span> <span class="muted" data-i18n="settings.appCtxSub"></span></summary>
+                <p class="form-hint" data-i18n="settings.appCtxHint"></p>
+                <pre class="mono app-ctx-text" id="app-ctx-text"></pre>
+              </details>
+            </div></div>
+          <div class="card" id="notify-card"><div class="card-h"><h2 data-i18n="settings.notify"></h2><span class="sub" data-i18n="settings.notifySub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.notifyHint"></p>
+              <label class="check"><input type="checkbox" id="notify-on"> <span data-i18n="settings.notifyOn"></span></label>
+              <div class="notify-kinds" id="notify-kinds">
+                <label class="check"><input type="checkbox" data-notify="create"> <span data-i18n="settings.notifyCreate"></span></label>
+                <label class="check"><input type="checkbox" data-notify="update"> <span data-i18n="settings.notifyUpdate"></span></label>
+                <label class="check"><input type="checkbox" data-notify="delete"> <span data-i18n="settings.notifyDelete"></span></label>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn" type="button" id="notify-test" data-i18n="settings.notifyTest"></button>
+              </div>
+              <div class="result" id="notify-result"></div>
             </div></div>
           <div class="card" id="backup-card"><div class="card-h"><h2 data-i18n="settings.backup"></h2><span class="sub" data-i18n="settings.backupSub"></span></div>
             <div class="card-b">
@@ -885,6 +947,8 @@ const I18N = {
         vscode: "VS Code con GitHub Copilot en modo agente.",
         windsurf: "El editor Windsurf.",
         gemini_cli: "El CLI de Gemini de Google.",
+        openmausbot: "La app de escritorio de OpenMausBot. Lee sus servers MCP al abrirse: brain la cierra, conecta y la vuelve a abrir.",
+        manus: "El agente de Manus en la nube. No puede lanzar programas en tu computadora: se conecta por la URL del acceso remoto.",
       },
       after: {
         claude_desktop: "Listo. Si Claude estaba cerrado, abrilo: brain aparece en el menú de herramientas (+).",
@@ -895,18 +959,25 @@ const I18N = {
         vscode: "Listo. En VS Code, abrí el chat de Copilot en modo agente: brain aparece en las herramientas.",
         windsurf: "Listo. Reiniciá Windsurf o recargá los MCP desde Cascade.",
         gemini_cli: "Listo. La próxima sesión de gemini ya carga brain.",
+        openmausbot: "Listo. En OpenMausBot, brain aparece en la lista de servers MCP.",
       },
       removed: "Desconectado.",
       restartConfirm: n => `${n} está abierto y tiene que estar cerrado para cambiar su configuración. ¿Lo cierro, conecto brain y lo vuelvo a abrir?\n\nOjo: si estás corriendo brain desde la terminal de ${n}, se va a cortar.`,
       err: { app_running: n => `${n} está abierto. Cerralo y probá de nuevo.`, app_still_running: n => `${n} no se cerró. Cerralo a mano (Cmd+Q) y probá de nuevo.`,
         bad_config: "El archivo de configuración tiene un formato que no puedo editar sin riesgo (por ejemplo, comentarios). Agregá brain a mano con la config de abajo.",
-        no_cli: c => `No encontré el comando «${c}». Instalalo o usá la config manual de abajo.`, cli_failed: "El CLI devolvió un error:", other: "Error" },
+        no_cli: c => `No encontré el comando «${c}». Instalalo o usá la config manual de abajo.`, cli_failed: "El CLI devolvió un error:",
+        url_only: n => `${n} se conecta por URL: copiá la del acceso remoto.`, other: "Error" },
+      remoteSection: "Por URL · agentes en la nube y otras máquinas",
+      byUrl: "Por URL", urlReady: "URL lista", urlOff: "Prendé el acceso remoto",
+      manusSteps: ["En Manus: Settings → Connectors → Add connectors.", "Pestaña «Custom MCP» → «Add custom MCP server» → «Direct configuration».",
+        "Nombre: brain. Transporte: HTTP. Pegá la URL del acceso remoto (lleva el token, no hace falta header)."],
+      copyUrl: "Copiar URL", goRemote: "Prender el acceso remoto",
       manualTitle: "Cualquier otro cliente MCP", manualSub: "configuración manual",
       manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
-      formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» (no «Connect to a URL»: brain no expone una URL) y completá cada campo con estos valores.",
+      formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» y completá cada campo con estos valores. Si la app solo acepta una URL, usá el acceso remoto de arriba.",
       fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (uno por línea)", fEnv: "Environment", fEnvEmpty: "(vacío: no hace falta nada)",
       installPath: p => `Estos valores son los de esta instalación de brain (${p}) y se adaptan solos a la carpeta y al usuario de cada Mac.`,
-      jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini y la mayoría)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Comando", copy: "Copiar", copied: "Copiado ✓",
+      jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini, OpenMausBot y la mayoría)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Comando", copy: "Copiar", copied: "Copiado ✓",
       mineEmpty: "Todavía no conectaste brain a ningún agente. Hacelo desde la pestaña Conectar, o agregalo en tu app con el formulario «Add MCP server»: aparece acá apenas la app lo use.",
       detected: "Detectado", manualPill: "Anotado a mano", detectedLong: n => `Detectado al usar brain (${n})`, manualLong: "Lo anotaste a mano",
       lastUse: t => `último uso ${t}`, neverUsed: "todavía no lo usó", removeFromList: "Quitar de la lista",
@@ -921,6 +992,8 @@ const I18N = {
       chroma: ["Chroma", "Base vectorial compartida por todos los clientes MCP"],
       ollama: ["Ollama", "Embeddings con nomic-embed-text"],
       inspector: ["Inspector MCP", "Probar las tools a mano en el navegador"],
+      remote_mcp: ["MCP por URL", "El server MCP por HTTP, solo en esta máquina"],
+      tunnel: ["Túnel de Cloudflare", "Publica el MCP por URL en internet"],
     },
     st: { running: "Corriendo", external: "Externo", starting: "Iniciando", stopped: "Apagado", error: "Error" },
     port: p => `puerto ${p}`, since: u => `hace ${u}`, externalMeta: "manejado por fuera", exitCode: c => `salió con código ${c}`,
@@ -984,11 +1057,11 @@ const I18N = {
     theme: { system: "Tema: sistema", light: "Tema: claro", dark: "Tema: oscuro" },
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
-    settings: { title: "Ajustes", sub: "Versión, sidebar, chat, system prompt y colores del grafo. Todo queda guardado en este navegador.",
+    settings: { title: "Ajustes", sub: "Versión, sidebar, chat, notificaciones, backup y colores del grafo.",
       version: "Versión", versionHint: "brain se fija en GitHub si hay una versión nueva al abrirse y cada 3 horas mientras está abierto (solo pide el número del último release). El botón chequea ahora.",
       check: "Buscar actualizaciones", checking: "Buscando…", upToDate: v => `Estás al día: ${v} es la última versión.`,
       noReleases: "Todavía no hay versiones publicadas en GitHub.", offline: "No se pudo conectar con GitHub. Revisá tu conexión.",
-      available: v => `Hay una versión nueva: ${v}`, howTo: "Para instalarla, corré en la terminal", notes: "Ver novedades",
+      available: v => `Hay una versión nueva: ${v}`, howTo: "Para instalarla, tocá «Actualizar y reiniciar» o corré en la terminal", howToCli: "Para instalarla, corré en la terminal", notes: "Ver novedades",
       badge: v => `Ajustes · hay una versión nueva (${v})`,
       sidebar: "Sidebar", sidebarSub: "orden y vistas visibles", show: "Visible",
       up: l => `Subir ${l}`, down: l => `Bajar ${l}`, navReset: "Restablecer orden", lastOne: "Tiene que quedar al menos una vista visible.",
@@ -1025,9 +1098,47 @@ const I18N = {
       ctxModel: "Modelo", ctxModelMax: "Soporta", ctxUses: "Usa", ctxOwn: "Propio", ctxOwnPh: "general",
       ctxSave: "Guardar", ctxReset: "Volver a 16k para todos", ctxSaved: "Guardado: se usa desde el próximo mensaje.",
       ctxBad: (a, b) => `Los valores van de ${a} a ${b} tokens.`, ctxNoOllama: "Ollama no está corriendo: prendelo para ver tus modelos. La regla general se puede guardar igual.",
-      ctxNoModels: "No hay modelos de chat instalados.", ctxRam: "Ojo: más de 32k tokens puede no entrar en la RAM de una Mac con 8-16 GB." },
+      ctxNoModels: "No hay modelos de chat instalados.", ctxRam: "Ojo: más de 32k tokens puede no entrar en la RAM de una Mac con 8-16 GB.",
+      updateNow: "Actualizar y reiniciar", updateConfirm: v => `¿Actualizar a ${v}? brain se cierra, se actualiza y se vuelve a abrir solo (tarda un minuto). Se apagan y se vuelven a prender los servicios; un chat que esté respondiendo se corta.`,
+      updatingT: v => `Actualizando a ${v}…`, updatingP: "brain se cerró para actualizarse. Esta página se recarga sola cuando vuelve a abrir.",
+      updateDone: v => `Listo: brain ya está en ${v}.`, updateFailed: "No se pudo actualizar (¿sin internet o cambios locales en la carpeta?). Sigue abierta la versión instalada; probá con brain update en la terminal.",
+      updateSyncFailed: "Se bajó la versión nueva, pero no se pudieron instalar sus dependencias (¿un agente usando brain en Windows?). Cerrá tus agentes y corré brain update en la terminal.",
+      updateNoLauncher: "Este dashboard no se abrió con el comando brain, así que no se puede reiniciar solo. Cerralo y corré brain update.",
+      updateSlow: "Está tardando más de lo normal. Si no vuelve, abrí la terminal donde corre brain.",
+      appCtx: "Contexto fijo de la app", appCtxSub: "· solo lectura",
+      appCtxHint: "Esto va siempre en el chat, antes de tus instrucciones, para que sepa cómo funciona brain y te pueda guiar. No se puede editar: lo tuyo va en el campo de arriba.",
+      notify: "Notificaciones", notifySub: "del sistema",
+      notifyHint: "Te avisa con una notificación del sistema cuando cambia algo en tu vault, lo haga un agente, el chat o vos: cargas (archivos o fuentes nuevas), modificaciones y eliminaciones. Llegan mientras el dashboard esté abierto, aunque esté en otra pestaña. Queda en este navegador.",
+      notifyOn: "Activar notificaciones", notifyCreate: "Cargas: archivos y fuentes nuevas", notifyUpdate: "Modificaciones: ediciones, restauraciones y movimientos", notifyDelete: "Eliminaciones",
+      notifyTest: "Probar", notifyTestT: "brain", notifyTestB: "Así se ven las notificaciones de brain.",
+      notifyDenied: "El navegador bloqueó las notificaciones para 127.0.0.1. Habilitalas en la configuración del sitio (el candado de la barra de direcciones) y probá de nuevo.",
+      notifyUnsupported: "Este navegador no soporta notificaciones del sistema.", notifyOk: "Notificaciones activadas.", notifyOff: "Notificaciones apagadas.",
+      notifyOs: "Si no aparecen, revisá que el sistema permita notificaciones de tu navegador (macOS: Ajustes → Notificaciones).",
+      nCreate: p => `Nuevo: ${p}`, nUpdate: p => `Modificado: ${p}`, nDelete: p => `Eliminado: ${p}`, nMove: p => `Movido: ${p}`,
+      nMany: n => `${n} cambios en tu vault`, nTitle: "brain · vault" },
     dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
+    remote: { title: "Acceso remoto por URL", sub: "túnel de Cloudflare",
+      text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Manus Studio, Claude.ai → Conectores, ChatGPT en modo desarrollador…). Usa un túnel de Cloudflare: no abre puertos en tu router.",
+      on: "Prender", off: "Apagar", st: { off: "Apagado", starting: "Abriendo el túnel…", on: "Publicado", error: "Error" },
+      url: "URL del server MCP (con el token)", copy: "Copiar", copied: "Copiado ✓",
+      bearer: "Si tu app pide la URL sin el token y un header aparte:", bearerUrl: "URL", bearerHeader: "Header",
+      warn: "La URL lleva un token secreto: quien la tenga puede leer y, si no está en solo lectura, cambiar tu vault. Tratala como una contraseña.",
+      readOnly: "Solo lectura (los agentes por URL pueden leer y buscar, pero no escribir, borrar ni usar tus conexiones)",
+      regenerate: "Generar otra URL", regenConfirm: "¿Generar una URL nueva? La actual deja de funcionar en el acto: vas a tener que pegar la nueva en cada agente.", regenerated: "Listo: URL nueva. La anterior ya no funciona.",
+      quickNote: "Sin cuenta de Cloudflare la URL es *.trycloudflare.com y cambia cada vez que se prende. Para una fija, usá tu cuenta:",
+      adv: "URL fija con tu cuenta de Cloudflare", mode: "Tipo de túnel", modeQuick: "Rápido (sin cuenta, la URL cambia)", modeNamed: "Con nombre (tu cuenta, URL fija)",
+      namedHelp: "En Cloudflare: Zero Trust → Networks → Tunnels → Create a tunnel (cloudflared). Copiá el token y, en Public Hostname, apuntá tu dominio a http://localhost:{port}.",
+      hostname: "Hostname público (ej. brain.tudominio.com)", tunnelToken: "Token del túnel", tokenSaved: "guardado: dejalo vacío para conservarlo",
+      save: "Guardar", saved: "Guardado.",
+      noCf: "Falta cloudflared, el programa de Cloudflare que abre el túnel.", install: "Instalar cloudflared", installing: "Bajando cloudflared del release oficial y verificando su SHA256…",
+      installed: "cloudflared instalado.", cfAt: p => `cloudflared: ${p}`,
+      local: "Local (sin túnel)", logs: "Logs",
+      err: { no_cloudflared: "Falta cloudflared: instalalo con el botón.", named_incomplete: "Para el túnel con nombre hacen falta el hostname y el token.",
+        bad_hostname: "Ese hostname no es válido.", bad_tunnel_token: "Ese token no parece un token de túnel de Cloudflare.", bad_mode: "Tipo de túnel desconocido.",
+        no_checksum: "No pude leer el SHA256 publicado por Cloudflare, así que no instalé nada. Probá más tarde o instalalo vos (brew install cloudflared / winget install Cloudflare.cloudflared).",
+        checksum: "El archivo bajado no coincide con el SHA256 publicado: no se instaló.", download: "No se pudo bajar cloudflared:", unsupported_os: "Sistema no soportado:",
+        busy: "El puerto del MCP por URL está ocupado por otro programa:", other: "Error" } },
   },
   en: {
     nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
@@ -1070,6 +1181,8 @@ const I18N = {
         vscode: "VS Code with GitHub Copilot in agent mode.",
         windsurf: "The Windsurf editor.",
         gemini_cli: "Google's Gemini CLI.",
+        openmausbot: "The OpenMausBot desktop app. It reads its MCP servers when it opens: brain quits it, connects and reopens it.",
+        manus: "Manus's cloud agent. It can't launch programs on your computer: it connects with the remote access URL.",
       },
       after: {
         claude_desktop: "Done. If Claude was closed, open it: brain shows up in the tools menu (+).",
@@ -1080,18 +1193,25 @@ const I18N = {
         vscode: "Done. In VS Code, open Copilot chat in agent mode: brain shows up in the tools.",
         windsurf: "Done. Restart Windsurf or reload MCP servers from Cascade.",
         gemini_cli: "Done. Your next gemini session loads brain.",
+        openmausbot: "Done. In OpenMausBot, brain shows up in the MCP servers list.",
       },
       removed: "Disconnected.",
       restartConfirm: n => `${n} is open and has to be closed to change its configuration. Should I quit it, connect brain and reopen it?\n\nNote: if you're running brain from ${n}'s terminal, it will stop.`,
       err: { app_running: n => `${n} is open. Quit it and try again.`, app_still_running: n => `${n} didn't quit. Quit it by hand (Cmd+Q) and try again.`,
         bad_config: "The config file has a format I can't edit safely (for example, comments). Add brain by hand with the config below.",
-        no_cli: c => `Couldn't find the “${c}” command. Install it or use the manual config below.`, cli_failed: "The CLI returned an error:", other: "Error" },
+        no_cli: c => `Couldn't find the “${c}” command. Install it or use the manual config below.`, cli_failed: "The CLI returned an error:",
+        url_only: n => `${n} connects by URL: copy the remote access one.`, other: "Error" },
+      remoteSection: "By URL · cloud agents and other computers",
+      byUrl: "By URL", urlReady: "URL ready", urlOff: "Turn on remote access",
+      manusSteps: ["In Manus: Settings → Connectors → Add connectors.", "“Custom MCP” tab → “Add custom MCP server” → “Direct configuration”.",
+        "Name: brain. Transport: HTTP. Paste the remote access URL (it carries the token, no header needed)."],
+      copyUrl: "Copy URL", goRemote: "Turn on remote access",
       manualTitle: "Any other MCP client", manualSub: "manual configuration",
       manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
-      formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” (not “Connect to a URL”: brain doesn't expose a URL) and fill each field with these values.",
+      formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” and fill each field with these values. If the app only takes a URL, use remote access above.",
       fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (one per line)", fEnv: "Environment", fEnvEmpty: "(empty: nothing needed)",
       installPath: p => `These values belong to this brain install (${p}) and adapt automatically to each Mac's folder and user.`,
-      jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini and most others)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Command", copy: "Copy", copied: "Copied ✓",
+      jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini, OpenMausBot and most others)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Command", copy: "Copy", copied: "Copied ✓",
       mineEmpty: "You haven't connected brain to any agent yet. Do it from the Connect tab, or add it in your app with the “Add MCP server” form: it shows up here as soon as the app uses it.",
       detected: "Detected", manualPill: "Added by hand", detectedLong: n => `Detected when it used brain (${n})`, manualLong: "You added it by hand",
       lastUse: t => `last used ${t}`, neverUsed: "not used yet", removeFromList: "Remove from list",
@@ -1106,6 +1226,8 @@ const I18N = {
       chroma: ["Chroma", "Vector database shared by every MCP client"],
       ollama: ["Ollama", "Embeddings with nomic-embed-text"],
       inspector: ["MCP Inspector", "Try the tools by hand in the browser"],
+      remote_mcp: ["MCP by URL", "The MCP server over HTTP, on this computer only"],
+      tunnel: ["Cloudflare tunnel", "Publishes the MCP URL on the internet"],
     },
     st: { running: "Running", external: "External", starting: "Starting", stopped: "Stopped", error: "Error" },
     port: p => `port ${p}`, since: u => `up ${u}`, externalMeta: "managed elsewhere", exitCode: c => `exited with code ${c}`,
@@ -1169,11 +1291,11 @@ const I18N = {
     theme: { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" },
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
-    settings: { title: "Settings", sub: "Version, sidebar, chat, system prompt and graph colors. Everything is saved in this browser.",
+    settings: { title: "Settings", sub: "Version, sidebar, chat, notifications, backup and graph colors.",
       version: "Version", versionHint: "brain checks GitHub for a newer version when it opens and every 3 hours while it's open (it only asks for the latest release number). The button checks now.",
       check: "Check for updates", checking: "Checking…", upToDate: v => `You're up to date: ${v} is the latest version.`,
       noReleases: "There are no published versions on GitHub yet.", offline: "Couldn't reach GitHub. Check your connection.",
-      available: v => `A new version is available: ${v}`, howTo: "To install it, run in the terminal", notes: "See what's new",
+      available: v => `A new version is available: ${v}`, howTo: "To install it, click “Update and restart” or run in the terminal", howToCli: "To install it, run in the terminal", notes: "See what's new",
       badge: v => `Settings · new version available (${v})`,
       sidebar: "Sidebar", sidebarSub: "order and visible views", show: "Visible",
       up: l => `Move ${l} up`, down: l => `Move ${l} down`, navReset: "Reset order", lastOne: "At least one view has to stay visible.",
@@ -1210,9 +1332,47 @@ const I18N = {
       ctxModel: "Model", ctxModelMax: "Supports", ctxUses: "Uses", ctxOwn: "Own", ctxOwnPh: "general",
       ctxSave: "Save", ctxReset: "Back to 16k for all", ctxSaved: "Saved: applies from your next message.",
       ctxBad: (a, b) => `Values go from ${a} to ${b} tokens.`, ctxNoOllama: "Ollama isn't running: turn it on to see your models. You can still save the general rule.",
-      ctxNoModels: "No chat models installed.", ctxRam: "Careful: more than 32k tokens may not fit in the RAM of an 8-16 GB Mac." },
+      ctxNoModels: "No chat models installed.", ctxRam: "Careful: more than 32k tokens may not fit in the RAM of an 8-16 GB Mac.",
+      updateNow: "Update and restart", updateConfirm: v => `Update to ${v}? brain quits, updates and reopens by itself (about a minute). Services are turned off and back on; a chat reply in progress is cut off.`,
+      updatingT: v => `Updating to ${v}…`, updatingP: "brain closed to update. This page reloads by itself when it's back.",
+      updateDone: v => `Done: brain is now on ${v}.`, updateFailed: "Couldn't update (no internet, or local changes in the folder?). The installed version is still open; try brain update in the terminal.",
+      updateSyncFailed: "The new version was downloaded, but its dependencies couldn't be installed (an agent using brain on Windows?). Close your agents and run brain update in the terminal.",
+      updateNoLauncher: "This dashboard wasn't opened with the brain command, so it can't restart by itself. Close it and run brain update.",
+      updateSlow: "This is taking longer than usual. If it doesn't come back, check the terminal where brain runs.",
+      appCtx: "Fixed app context", appCtxSub: "· read-only",
+      appCtxHint: "This always goes into the chat, before your instructions, so it knows how brain works and can guide you. It can't be edited: yours go in the field above.",
+      notify: "Notifications", notifySub: "system",
+      notifyHint: "Shows a system notification when something changes in your vault, whether an agent, the chat or you did it: uploads (new files or sources), changes and deletions. They arrive while the dashboard is open, even in another tab. Saved in this browser.",
+      notifyOn: "Turn on notifications", notifyCreate: "Uploads: new files and sources", notifyUpdate: "Changes: edits, restores and moves", notifyDelete: "Deletions",
+      notifyTest: "Test", notifyTestT: "brain", notifyTestB: "This is what brain's notifications look like.",
+      notifyDenied: "The browser blocked notifications for 127.0.0.1. Allow them in the site settings (the lock in the address bar) and try again.",
+      notifyUnsupported: "This browser doesn't support system notifications.", notifyOk: "Notifications on.", notifyOff: "Notifications off.",
+      notifyOs: "If they don't show up, check that your system allows notifications from your browser (macOS: Settings → Notifications).",
+      nCreate: p => `New: ${p}`, nUpdate: p => `Changed: ${p}`, nDelete: p => `Deleted: ${p}`, nMove: p => `Moved: ${p}`,
+      nMany: n => `${n} changes in your vault`, nTitle: "brain · vault" },
     dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
+    remote: { title: "Remote access by URL", sub: "Cloudflare tunnel",
+      text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Manus Studio, Claude.ai → Connectors, ChatGPT in developer mode…). It uses a Cloudflare tunnel: no ports are opened on your router.",
+      on: "Turn on", off: "Turn off", st: { off: "Off", starting: "Opening the tunnel…", on: "Published", error: "Error" },
+      url: "MCP server URL (with the token)", copy: "Copy", copied: "Copied ✓",
+      bearer: "If your app wants the URL without the token plus a separate header:", bearerUrl: "URL", bearerHeader: "Header",
+      warn: "The URL carries a secret token: anyone who has it can read and, unless it's read-only, change your vault. Treat it like a password.",
+      readOnly: "Read-only (agents using the URL can read and search, but can't write, delete or use your connections)",
+      regenerate: "Generate a new URL", regenConfirm: "Generate a new URL? The current one stops working right away: you'll have to paste the new one into each agent.", regenerated: "Done: new URL. The old one no longer works.",
+      quickNote: "Without a Cloudflare account the URL is *.trycloudflare.com and changes every time it starts. For a fixed one, use your account:",
+      adv: "Fixed URL with your Cloudflare account", mode: "Tunnel type", modeQuick: "Quick (no account, the URL changes)", modeNamed: "Named (your account, fixed URL)",
+      namedHelp: "In Cloudflare: Zero Trust → Networks → Tunnels → Create a tunnel (cloudflared). Copy the token and, under Public Hostname, point your domain to http://localhost:{port}.",
+      hostname: "Public hostname (e.g. brain.yourdomain.com)", tunnelToken: "Tunnel token", tokenSaved: "saved: leave it empty to keep it",
+      save: "Save", saved: "Saved.",
+      noCf: "cloudflared is missing: Cloudflare's program that opens the tunnel.", install: "Install cloudflared", installing: "Downloading cloudflared from the official release and checking its SHA256…",
+      installed: "cloudflared installed.", cfAt: p => `cloudflared: ${p}`,
+      local: "Local (no tunnel)", logs: "Logs",
+      err: { no_cloudflared: "cloudflared is missing: install it with the button.", named_incomplete: "A named tunnel needs both the hostname and the token.",
+        bad_hostname: "That hostname isn't valid.", bad_tunnel_token: "That doesn't look like a Cloudflare tunnel token.", bad_mode: "Unknown tunnel type.",
+        no_checksum: "Couldn't read the SHA256 Cloudflare publishes, so nothing was installed. Try later or install it yourself (brew install cloudflared / winget install Cloudflare.cloudflared).",
+        checksum: "The downloaded file doesn't match the published SHA256: it wasn't installed.", download: "Couldn't download cloudflared:", unsupported_os: "Unsupported system:",
+        busy: "The MCP-by-URL port is taken by another program:", other: "Error" } },
   },
 };
 let lang = "es";
@@ -1332,12 +1492,12 @@ $("#settings-btn").onclick = () => go("ajustes");
 // ================= sidebar: servicios en el botón (i) =================
 function renderSideSvcs() {
   const box = $("#side-svcs");
-  box.innerHTML = `<div class="info-h">${esc(T.info.title)}</div>` + status.services.map(s =>
+  box.innerHTML = `<div class="info-h">${esc(T.info.title)}</div>` + coreSvcs().map(s =>
     `<div class="side-svc"><span class="dot" style="background:${STATUS_COLOR[s.status]}"></span>${esc(svcLabel(s))}<span class="muted" style="margin-left:auto">${esc(T.st[s.status])}</span></div>`).join("")
     + `<button class="info-link" type="button" id="info-manage">${esc(T.info.manage)}</button>`;
   $("#info-manage").onclick = () => { toggleInfo(false); go("panel"); };
   if (!box.hidden) placeInfo();
-  const err = status.services.some(s => s.status === "error");
+  const err = coreSvcs().some(s => s.status === "error");
   $("#info-btn").classList.toggle("has-err", err);
   $("#info-btn").title = err ? `${T.info.title} · ${T.info.err}` : T.info.title;
 }
@@ -1366,7 +1526,7 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAppCtx(); renderNotify(); }
 
 // ================= ajustes: backup y restauración (brain_mcp/backup.py) =================
 const fmtSize = n => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -1511,6 +1671,69 @@ $("#system-clear").onclick = () => {
   try { localStorage.removeItem("brain-chat-system"); } catch (e) {}
   showResult($("#system-result"), "ok", T.settings.systemCleared);
 };
+// el contexto fijo sobre cómo funciona brain (chat.APP_GUIDE): solo se muestra, no se edita
+let appCtx = null;
+async function loadAppCtx() {
+  if (!appCtx) { try { appCtx = (await api("/api/chat/app_context")).text; } catch (e) { return; } }
+  $("#app-ctx-text").textContent = appCtx[lang] || appCtx.es;
+}
+
+// ================= notificaciones del sistema =================
+// localStorage "brain-notify" = {on, create, update, delete}. El dashboard consulta el historial del vault
+// (/api/activity) cada 5 s y avisa con la Notification API: los cambios de agentes, del chat o del usuario.
+const NOTIFY_DEFAULT = { on: false, create: true, update: true, delete: true };
+const canNotify = () => "Notification" in window && Notification.permission === "granted";
+function notifyPrefs() {
+  try { return { ...NOTIFY_DEFAULT, ...JSON.parse(localStorage.getItem("brain-notify") || "{}") }; } catch (e) { return { ...NOTIFY_DEFAULT }; }
+}
+function saveNotify(p) { try { localStorage.setItem("brain-notify", JSON.stringify(p)); } catch (e) {} }
+function renderNotify() {
+  const p = notifyPrefs(), on = p.on && canNotify();
+  $("#notify-on").checked = on;
+  $("#notify-kinds").classList.toggle("off", !on);
+  document.querySelectorAll("[data-notify]").forEach(cb => { cb.checked = !!p[cb.dataset.notify]; cb.disabled = !on; });
+  $("#notify-test").disabled = !on;
+}
+$("#notify-on").onchange = async e => {
+  const p = notifyPrefs(), out = $("#notify-result");
+  if (!e.target.checked) { p.on = false; saveNotify(p); renderNotify(); return showResult(out, "ok", T.settings.notifyOff); }
+  if (!("Notification" in window)) { e.target.checked = false; return showResult(out, "err", T.settings.notifyUnsupported); }
+  let perm = Notification.permission;
+  if (perm === "default") { try { perm = await Notification.requestPermission(); } catch (err) { perm = "denied"; } }
+  if (perm !== "granted") { e.target.checked = false; return showResult(out, "err", T.settings.notifyDenied); }
+  p.on = true; saveNotify(p); renderNotify(); activityLast = null; pollActivity();
+  showResult(out, "ok", `${T.settings.notifyOk} ${T.settings.notifyOs}`);
+};
+document.querySelectorAll("[data-notify]").forEach(cb => cb.onchange = () => { const p = notifyPrefs(); p[cb.dataset.notify] = cb.checked; saveNotify(p); });
+$("#notify-test").onclick = () => { if (canNotify()) new Notification(T.settings.notifyTestT, { body: T.settings.notifyTestB, tag: "brain-test" }); };
+let activityLast = null;
+const changeKind = c => c.op === "delete" ? "delete" : c.op === "create" ? "create" : "update";
+function changeText(c) {
+  const S = T.settings;
+  return c.op === "move" ? S.nMove(c.path) : ({ create: S.nCreate, update: S.nUpdate, delete: S.nDelete })[changeKind(c)](c.path);
+}
+async function pollActivity() {
+  const p = notifyPrefs();
+  if (!p.on || !canNotify()) { activityLast = null; return; }
+  let r; try { r = await api(`/api/activity?after=${activityLast ?? -1}`); } catch (e) { return; }
+  const first = activityLast === null;
+  // muchos cambios de golpe (más de los que entran en una consulta): un solo aviso con el total y se salta al último
+  activityLast = r.total > r.changes.length ? r.max_id : r.last_id;
+  if (first) return;  // al abrir no se avisa de lo viejo
+  // un movimiento deja dos registros (origen y destino): alcanza con el destino
+  const items = r.changes.filter(c => !(c.op === "move" && !c.was_new)).filter(c => p[changeKind(c)]);
+  const show = (body, tag) => {
+    // tag: si hay varias pestañas abiertas, la misma notificación se reemplaza en vez de repetirse
+    const n = new Notification(T.settings.nTitle, { body, tag });
+    n.onclick = () => { window.focus(); n.close(); };
+  };
+  if (r.total > r.changes.length) show(T.settings.nMany(r.total), `brain-${r.max_id}`);
+  else if (items.length > 3) show(`${T.settings.nMany(items.length)}\n${items.slice(-3).map(c => c.path).join("\n")}`, `brain-${r.last_id}`);
+  else items.forEach(c => show(changeText(c), `brain-${c.id}`));
+}
+setInterval(pollActivity, 5000);
+pollActivity();
+addEventListener("storage", e => { if (e.key === "brain-notify" && view === "ajustes") renderNotify(); });
 
 // ================= ajustes: sidebar (orden y visibilidad) =================
 // localStorage "brain-nav" = {order: [vistas], hidden: [vistas]}. Una vista oculta sigue accesible
@@ -1587,7 +1810,7 @@ $("#default-model").onchange = e => {
 // ================= ajustes: versión y actualizaciones =================
 // El chequeo va a GitHub solo cuando se toca el botón. El resultado queda en localStorage
 // ("brain-update" = {latest, url}) para que el engranaje siga en verde hasta actualizar.
-let appVersion = null;
+let appVersion = null, canUpdate = false, updateFailed = false;
 const verNum = v => (String(v || "").split("-")[0].match(/\d+/g) || ["0"]).map(Number);
 const newer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function pendingUpdate() {
@@ -1600,13 +1823,53 @@ function renderUpdateBadge() {
   if (u) { b.title = T.settings.badge(u.latest); b.setAttribute("aria-label", T.settings.badge(u.latest)); }
   const note = $("#update-note");
   note.hidden = !u;
-  if (u) note.innerHTML = `<b>${esc(T.settings.available(u.latest))}</b><br>${esc(T.settings.howTo)} <code>brain update</code> · <a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(T.settings.notes)}</a>`;
+  $("#update-apply").hidden = !(u && canUpdate);
+  if (u) note.innerHTML = `<b>${esc(T.settings.available(u.latest))}</b><br>${esc(canUpdate ? T.settings.howTo : T.settings.howToCli)} <code>brain update</code> · <a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(T.settings.notes)}</a>`;
 }
 async function loadVersion() {
-  try { appVersion = (await api("/api/version")).current; } catch (e) {}
+  try {
+    const v = await api("/api/version");
+    appVersion = v.current; canUpdate = !!v.can_update; updateFailed = v.update_failed || "";
+  } catch (e) {}
   $("#ver-current").textContent = appVersion || "";
   renderUpdateBadge();
+  // volvimos de "Actualizar y reiniciar": contar cómo salió
+  let up = null; try { up = JSON.parse(sessionStorage.getItem("brain-updating") || "null"); sessionStorage.removeItem("brain-updating"); } catch (e) {}
+  if (up && appVersion) {
+    if (appVersion !== up.from && updateFailed === "sync") { showResult($("#update-result"), "err", T.settings.updateSyncFailed); go("ajustes"); }
+    else if (appVersion !== up.from) { showResult($("#update-result"), "ok", T.settings.updateDone(appVersion)); toast(T.settings.updateDone(appVersion)); }
+    else if (updateFailed) { showResult($("#update-result"), "err", updateFailed === "sync" ? T.settings.updateSyncFailed : T.settings.updateFailed); go("ajustes"); }
+    else showResult($("#update-result"), "info", T.settings.upToDate(appVersion));
+  }
 }
+// "Actualizar y reiniciar": el dashboard se cierra, el lanzador (brain.sh / brain.ps1) actualiza y lo vuelve a
+// abrir; esta página espera a que vuelva a responder y se recarga.
+$("#update-apply").onclick = async () => {
+  const u = pendingUpdate(), out = $("#update-result"), btn = $("#update-apply");
+  if (!u) return;
+  if (!(await ask(T.settings.updateConfirm(u.latest), { ok: T.settings.updateNow }))) return;
+  btn.disabled = true;
+  let r;
+  try { r = await api("/api/update/apply", {}); }
+  catch (e) { btn.disabled = false; return showResult(out, "err", e.message); }
+  if (!r.ok) { btn.disabled = false; return showResult(out, "err", r.code === "no_launcher" ? T.settings.updateNoLauncher : T.err.other); }
+  try { sessionStorage.setItem("brain-updating", JSON.stringify({ from: r.current, to: u.latest })); } catch (e) {}
+  const ov = document.createElement("div");
+  ov.className = "updating"; ov.setAttribute("role", "alertdialog"); ov.setAttribute("aria-live", "polite");
+  ov.innerHTML = `<div><b>${esc(T.settings.updatingT(u.latest))}</b><span>${esc(T.settings.updatingP)}</span><span class="muted" id="updating-slow"></span></div>`;
+  document.body.appendChild(ov);
+  const t0 = Date.now();
+  let wentDown = false;
+  const tick = async () => {
+    try {
+      const res = await fetch("/api/version", { cache: "no-store" });
+      if (res.ok && (wentDown || Date.now() - t0 > 20000)) return location.reload();
+    } catch (e) { wentDown = true; }
+    if (Date.now() - t0 > 120000) $("#updating-slow").textContent = T.settings.updateSlow;
+    setTimeout(tick, 1500);
+  };
+  setTimeout(tick, 1500);
+};
 $("#update-btn").onclick = async () => {
   const btn = $("#update-btn"), out = $("#update-result");
   btn.disabled = true; showResult(out, "info", T.settings.checking, true);
@@ -1702,9 +1965,11 @@ function uptime(s) {
   if (s < 3600) return `${Math.floor(s / 60)} min`;
   return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
 }
+// los del acceso remoto (MCP por URL y túnel) se manejan desde Conectar agente, no desde el Panel
+const coreSvcs = () => (status ? status.services : []).filter(s => s.group !== "remote");
 function renderServices() {
   const box = $("#services");
-  box.innerHTML = status.services.map(s => {
+  box.innerHTML = coreSvcs().map(s => {
     const on = ["running", "starting", "external"].includes(s.status);
     const locked = s.status === "external";
     const [name, desc] = T.svc[s.key] || [s.label, s.description];
@@ -2019,7 +2284,22 @@ function agentPill(a) {
   if (a.connected) return `<span class="pill ${a.elsewhere ? "st-starting" : "st-running"}">${a.elsewhere ? ICON.alert : ICON.check}${esc(a.elsewhere ? T.agents.elsewhere : T.agents.connected)}</span>`;
   return `<span class="pill ${a.installed ? "st-stopped" : "st-none"}">${ICON.dot}${esc(a.installed ? T.agents.notConnected : T.agents.notInstalled)}</span>`;
 }
+function urlAgentCard(a) {
+  // agentes en la nube (Manus): no hay config que escribir, se pega la URL del acceso remoto
+  const url = remoteData && remoteData.url;
+  const pill = url ? `<span class="pill st-running">${ICON.check}${esc(T.agents.urlReady)}</span>`
+                   : `<span class="pill st-stopped">${ICON.globe}${esc(T.agents.byUrl)}</span>`;
+  const steps = T.agents[`${a.key}Steps`] || [];
+  return `<div class="card agent">
+    <div class="agent-top"><div class="agent-name">${esc(a.name)}</div>${pill}</div>
+    <div class="agent-desc">${esc(T.agents.desc[a.key] || "")}</div>
+    ${steps.length ? `<ol class="agent-steps">${steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
+    <div class="agent-actions">${url ? `<button class="btn primary" data-copy-url>${esc(T.agents.copyUrl)}</button>`
+      : `<button class="btn" data-go-remote>${esc(T.agents.goRemote)}</button>`}</div>
+  </div>`;
+}
 function agentCard(a) {
+  if (a.kind === "url") return urlAgentCard(a);
   const share = a.shares ? agentsData.agents.find(x => x.key === a.shares) : null;
   const btn = a.connected && !a.elsewhere
     ? `<button class="btn" data-agent="${a.key}" data-act="disconnect">${esc(T.agents.disconnect)}</button>`
@@ -2046,10 +2326,13 @@ function renderAgents() {
   $("#agents-mine").hidden = agentTab !== "mine";
   $("#agents-desktop").innerHTML = list.filter(a => a.group === "desktop").map(agentCard).join("");
   $("#agents-other").innerHTML = list.filter(a => a.group === "other").map(agentCard).join("");
+  $("#agents-remote").innerHTML = list.filter(a => a.group === "remote").map(agentCard).join("");
+  $("#agents-remote").querySelectorAll("[data-copy-url]").forEach(b => b.onclick = () => copyText(remoteData.url, b, T.agents.copyUrl));
+  $("#agents-remote").querySelectorAll("[data-go-remote]").forEach(b => b.onclick = () => $("#remote-card").scrollIntoView({ behavior: "smooth", block: "center" }));
   const m = agentsData.manual;
   $("#agents-manual").innerHTML = `<p class="install-path">${esc(T.agents.installPath(m.install_path))}</p><div class="code-label" style="margin-bottom:6px">${esc(T.agents.formLabel)}</div>
     <p class="muted" style="margin:0 0 10px;font-size:12.5px">${esc(T.agents.formHint)}</p>
-    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:14px">
+    <div class="grid manual-form">
       <div>${codeBlock(T.agents.fName, m.form.name, "snip-f-name")}</div><div>${codeBlock(T.agents.fCommand, m.form.command, "snip-f-cmd")}</div>
       <div>${codeBlock(T.agents.fArgs, m.form.args, "snip-f-args")}</div><div>${codeBlock(T.agents.fEnv, T.agents.fEnvEmpty, "snip-f-env")}</div>
     </div>` + codeBlock(T.agents.jsonLabel, m.json, "snip-json") + codeBlock(T.agents.tomlLabel, m.toml, "snip-toml") + codeBlock(T.agents.cmdLabel, m.command, "snip-cmd");
@@ -2108,6 +2391,102 @@ $("#client-add-form").onsubmit = async e => {
 };
 async function loadAgents() {
   try { agentsData = await api("/api/agents"); renderAgents(); } catch (e) { /* reintenta */ }
+  loadRemote();
+}
+async function copyText(text, btn, label) {
+  try { await navigator.clipboard.writeText(text); btn.textContent = T.agents.copied; setTimeout(() => btn.textContent = label, 1500); }
+  catch (e) { toast(e.message); }
+}
+
+// ================= acceso remoto por URL (Cloudflare) =================
+let remoteData = null, remoteBusy = false, remoteMsg = null;
+async function loadRemote() {
+  try { remoteData = await api("/api/remote"); } catch (e) { return; }
+  renderRemote();
+  if (agentsData) renderAgents();
+}
+function remoteState(r) {
+  const t = r.tunnel.status;
+  if (t === "running") return "on";
+  if (!r.enabled) return "off";  // apagado a propósito: un error viejo del túnel ya no importa
+  if (t === "starting" || (r.mcp.status === "starting" && r.enabled)) return "starting";
+  if (t === "error" || r.mcp.status === "error") return "error";
+  return "off";
+}
+const remoteErr = r => { const e = T.remote.err[r.code]; return `${e || T.remote.err.other} ${["download", "unsupported_os", "busy", "other"].includes(r.code) || !e ? (r.detail || "") : ""}`.trim(); };
+function renderRemote() {
+  const r = remoteData, box = $("#remote-card");
+  if (!r) return;
+  // no pisar lo que el usuario está escribiendo en el formulario del túnel con nombre
+  const a = document.activeElement;
+  if (box.contains(a) && a.matches("input.input")) return;
+  const advOpen = box.querySelector("details.remote-adv")?.open || false;
+  // con error sigue "prendido" (enabled): así el switch sirve para apagarlo
+  const st = remoteState(r), on = st !== "off";
+  const pillCls = { on: "st-running", starting: "st-starting", error: "st-error", off: "st-stopped" }[st];
+  const pillIcon = st === "starting" ? statusIcon("starting") : st === "error" ? ICON.alert : st === "on" ? ICON.check : ICON.dot;
+  const host = r.url ? new URL(r.url).origin : "";
+  const bearerBase = r.base_url ? `${r.base_url.replace(/\/$/, "")}/mcp` : "";
+  box.innerHTML = `<div class="card-b">
+    <div class="remote-top">
+      <div><h2>${esc(T.remote.title)} <span class="sub">· ${esc(T.remote.sub)}</span></h2><p>${esc(T.remote.text)}</p></div>
+      <label class="switch ${remoteBusy ? "busy" : ""}" title="${esc(on ? T.remote.off : T.remote.on)}">
+        <input type="checkbox" role="switch" id="remote-switch" aria-label="${esc(T.remote.title)}" ${on ? "checked" : ""} ${remoteBusy ? "disabled" : ""}>
+        <span class="track"></span></label>
+    </div>
+    <div class="remote-state"><span class="pill ${pillCls}">${pillIcon}${esc(T.remote.st[st])}</span>
+      ${r.cloudflared ? `<span class="mono" style="font-size:12px">${esc(T.remote.cfAt(r.cloudflared))}</span>` : ""}
+      ${r.tunnel.managed || st === "error" ? `<button class="btn" type="button" data-logs="tunnel">${ICON.logs}${esc(T.remote.logs)}</button>` : ""}</div>
+    ${st === "error" && r.error ? `<div class="src-err mono" style="overflow-wrap:anywhere">${esc(r.error)}</div>` : ""}
+    ${!r.cloudflared ? `<div class="remote-row"><span class="muted" style="font-size:13px">${esc(T.remote.noCf)}</span>
+      <button class="btn primary" type="button" id="remote-install">${esc(T.remote.install)}</button></div>` : ""}
+    ${r.url ? `<div class="remote-url">${codeBlock(T.remote.url, r.url, "remote-url-text")}
+      <details><summary class="muted" style="font-size:12.5px;cursor:pointer">${esc(T.remote.bearer)}</summary>
+        ${codeBlock(T.remote.bearerUrl, bearerBase, "remote-bearer-url")}${codeBlock(T.remote.bearerHeader, `Authorization: Bearer ${r.token}`, "remote-bearer-h")}</details></div>` : ""}
+    <div class="remote-warn">${esc(T.remote.warn)}</div>
+    <label class="check"><input type="checkbox" id="remote-ro" ${r.read_only ? "checked" : ""}> <span>${esc(T.remote.readOnly)}</span></label>
+    <div class="remote-row"><button class="btn" type="button" id="remote-regen">${esc(T.remote.regenerate)}</button></div>
+    <details class="remote-adv" ${advOpen ? "open" : ""}><summary>${esc(T.remote.adv)}</summary>
+      <p class="form-hint">${esc(T.remote.quickNote)}</p>
+      <div class="form-grid">
+        <div class="seg" id="remote-mode" role="radiogroup" aria-label="${esc(T.remote.mode)}">
+          <button type="button" data-mode="quick" class="${r.mode === "quick" ? "on" : ""}">${esc(T.remote.modeQuick)}</button>
+          <button type="button" data-mode="named" class="${r.mode === "named" ? "on" : ""}">${esc(T.remote.modeNamed)}</button></div>
+        <p class="form-hint" style="margin:0">${esc(T.remote.namedHelp.replace("{port}", r.port))}</p>
+        <label class="code-label" for="remote-host">${esc(T.remote.hostname)}</label>
+        <input class="input mono" id="remote-host" value="${esc(r.hostname)}" placeholder="brain.example.com" autocomplete="off" spellcheck="false">
+        <label class="code-label" for="remote-ttoken">${esc(T.remote.tunnelToken)}${r.has_tunnel_token ? ` · ${esc(T.remote.tokenSaved)}` : ""}</label>
+        <input class="input mono" id="remote-ttoken" type="password" autocomplete="off" spellcheck="false">
+        <div><button class="btn primary" type="button" id="remote-save">${esc(T.remote.save)}</button></div>
+      </div></details>
+    <div class="result ${remoteMsg ? `show ${remoteMsg.kind}` : ""}" id="remote-result">${remoteMsg ? `${remoteMsg.kind === "info" ? '<span class="spin"></span>' : remoteMsg.kind === "ok" ? ICON.check : ICON.alert}<span>${esc(remoteMsg.text)}</span>` : ""}</div>
+  </div>`;
+  box.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copyText($("#" + b.dataset.copy).textContent, b, T.agents.copy));
+  box.querySelectorAll("[data-logs]").forEach(b => b.onclick = () => { logSvc = b.dataset.logs; go("logs"); });
+  $("#remote-switch").onchange = e => remoteAction(e.target.checked ? "start" : "stop");
+  if ($("#remote-install")) $("#remote-install").onclick = () => remoteAction("install", {}, T.remote.installing, T.remote.installed);
+  $("#remote-ro").onchange = e => remoteAction("settings", { read_only: e.target.checked }, null, T.remote.saved);
+  $("#remote-regen").onclick = async () => {
+    if (!(await ask(T.remote.regenConfirm, { ok: T.remote.regenerate, danger: true }))) return;
+    remoteAction("regenerate", {}, null, T.remote.regenerated);
+  };
+  let mode = r.mode;
+  box.querySelectorAll("#remote-mode button").forEach(b => b.onclick = () => {
+    mode = b.dataset.mode; box.querySelectorAll("#remote-mode button").forEach(x => x.classList.toggle("on", x === b));
+  });
+  $("#remote-save").onclick = () => remoteAction("settings", { mode, hostname: $("#remote-host").value, tunnel_token: $("#remote-ttoken").value }, null, T.remote.saved);
+}
+async function remoteAction(action, body = {}, wait = null, okText = null) {
+  remoteBusy = true; remoteMsg = wait ? { kind: "info", text: wait } : null; renderRemote();
+  try {
+    const r = await api(`/api/remote/${action}`, body);
+    if (r.ok) { remoteData = r; remoteMsg = okText ? { kind: "ok", text: okText } : null; }
+    else remoteMsg = { kind: "err", text: remoteErr(r) };
+  } catch (e) { remoteMsg = { kind: "err", text: e.message }; }
+  remoteBusy = false;
+  if (document.activeElement && $("#remote-card").contains(document.activeElement)) document.activeElement.blur();
+  renderRemote(); if (agentsData) renderAgents();
+  if (remoteMsg && remoteMsg.kind === "ok") setTimeout(() => { remoteMsg = null; renderRemote(); }, 4000);
 }
 
 // ================= conexiones =================
@@ -2388,6 +2767,8 @@ setInterval(loadStatus, 2500);
 setInterval(() => { if (view === "panel" || view === "conocimiento") loadStats(); }, 5000);
 setInterval(() => { if (view === "logs") loadLogs(); }, 1500);
 setInterval(() => { if (view === "agentes") loadAgents(); }, 5000);
+// mientras el túnel arranca, la URL aparece en unos segundos: se consulta más seguido
+setInterval(() => { if (view === "agentes" && remoteData && remoteState(remoteData) === "starting") loadRemote(); }, 1500);
 setInterval(() => { if (view === "conexiones" && !connEditing) loadConnections(); }, 8000);
 </script>
 </body>

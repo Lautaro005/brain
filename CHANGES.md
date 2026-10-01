@@ -533,3 +533,47 @@ Pedido del usuario: las seis mejoras de un mail ("Brain — lista limpia de mejo
 - Pedido del usuario. El pedido listaba "changelog" en las dos columnas del footer; se dejó Docs + Changelog en la primera y en la segunda política de privacidad, llms.txt y sitemap.xml (que también pidió sumar al footer), para no repetir el link.
 
 **Verificado**: `check_site.py` en verde (4 páginas, archivos generados al día, URLs del sitemap existentes); en Chromium, las 4 páginas con los 7 links del footer, el texto en español en docs, y 0 px de scroll horizontal a 1440 y 390 px; pytest sigue en 16/16.
+
+## 2026-10-01 — v0.03.0: acceso remoto por URL (Cloudflare), Manus y OpenMausBot, skills con "/", contexto fijo, notificaciones, actualizar y reiniciar
+
+Pedido del usuario, siete puntos: exponer el MCP por URL con Cloudflare; Manus Studio y OpenMausBot en Conectar agente; los skills guardados en el vault con "/" en el chat, distinguidos de los de brain; un contexto fijo sobre la app (oculto en Ajustes) más instrucciones propias; notificaciones del sistema configurables (cargas, modificaciones, eliminaciones); un botón verde para cerrar, actualizar y volver a abrir; y versión, SECURITY.md y changelog.
+
+**Qué cambió**
+1. **Acceso remoto por URL** — `brain_mcp/remote.py` (nuevo), `services.py`, `server.py`, `scrape.py`, `dashboard.py`, `dashboard.html`, `backup.py`.
+   - `server.py --http` sirve el mismo `BrainServer` por streamable HTTP (`json_response`) en `127.0.0.1:8770`, envuelto por `remote.protect()`: sin el token (en `/<token>/mcp` o `Authorization: Bearer`) responde 404 a todo. El token vive en `data/remote.json` (600) y se lee en cada pedido: **Generar otra URL** corta la vieja sin reiniciar. Sin access log (llevaría el token).
+   - `cloudflared` publica ese puerto: túnel rápido (`*.trycloudflare.com`, sin cuenta, la URL cambia en cada arranque) o con nombre (token del túnel + hostname propio, URL fija; el token va por la variable `TUNNEL_TOKEN`). Si no está instalado, **Instalar cloudflared** lo baja del release oficial de GitHub a `data/bin/` y lo verifica con el SHA256 que Cloudflare publica en las notas del release; sin checksum no instala.
+   - Dos servicios nuevos (`RemoteMCP`, `Tunnel`, `group = "remote"`) que el Panel y el popover no muestran; sí Logs. Tarjeta en Conectar agente → Por URL: switch, estado (con la última línea de error de cloudflared), URL para copiar y variante con header, solo lectura, regenerar, y el formulario del túnel con nombre. Queda prendido entre reinicios (`enabled`).
+   - **Solo lectura**: con `BRAIN_REMOTE=1` solo se listan y se pueden llamar `server.READ_ONLY_TOOLS` (sin tools proxeadas).
+   - **SSRF**: por la URL, `save_url`/`read_url`/refresh rechazan direcciones no públicas (`scrape.check_public`).
+   - `remote.json` va al backup solo con *Incluir credenciales*.
+2. **Agentes** — `agents.py`, `clients.py`, `dashboard.html`. OpenMausBot (`~/.openmausbot/config.json`, `mcpServers`, como Claude: se escribe con la app cerrada y se vuelve a abrir). Manus Studio como `kind: "url"`: no hay archivo de config (corre en la nube), la tarjeta muestra los pasos de Manus y copia la URL del acceso remoto. `_open_app` en Windows usa `win_exe` por cliente.
+3. **Skills con "/"** — `chat.py`, `chat.html`, `dashboard.py`. `chat.skills()` lista `skills/**.md`; `/<nombre>` deja el chat en modo `skill:<nombre>` y suma el skill al system prompt; al modelo le llega "Aplicá mi skill «…» a esto: …". El menú muestra "Comandos de brain" y "Tus skills" (con etiqueta *skill* y la description del frontmatter), filtra mientras escribís y hace scroll.
+4. **Contexto fijo de la app** — `chat.APP_GUIDE` (es/en) va siempre en el system prompt, antes del perfil y de las instrucciones del usuario. Ajustes → System prompt lo muestra plegado y de solo lectura debajo de las instrucciones propias (que ya existían).
+5. **Notificaciones del sistema** — `history.since()`, `GET /api/activity`, Ajustes → Notificaciones (activar pide permiso al navegador; cargas, modificaciones y eliminaciones por separado; botón Probar). El dashboard consulta cada 5 s; agrupa si hay más de 3 cambios.
+6. **Actualizar y reiniciar** — `dashboard.py`, `brain.sh`, `brain.ps1`, `dashboard.html`. Botón verde al lado de "Buscar actualizaciones" cuando hay versión nueva. El dashboard apaga su server y sale con código 75; el lanzador corre `git pull --ff-only` + `uv sync` y lo vuelve a abrir en la misma terminal con `--no-browser`; la página muestra "Actualizando…", espera a que vuelva y se recarga, y después dice cómo salió (versión nueva, ya al día o error).
+7. `VERSION` → `v0.03.0`; SECURITY.md (alcance: acceso remoto, actualizar y reiniciar; fuera de alcance: compartir la URL); changelog; docs (página nueva "Acceso remoto por URL", más Conectar agentes, Chat, Dashboard/Ajustes, comando brain, Configuración y Privacidad); landing (OpenMausBot, grupo "En la nube, por URL", privacidad); README; CLAUDE.md; `llms.txt`/`sitemap.xml` regenerados.
+- Arreglos de paso: Conectar agente (la grilla del formulario manual) y Logs (pestañas) se desbordaban a lo ancho en celular.
+
+**Decisiones**
+- El token va en la URL (además del header) porque Manus, Claude.ai y ChatGPT aceptan una URL sin auth o con OAuth, y no todos dejan poner headers. Se descartó OAuth propio para esta versión (necesitaría un authorization server en brain).
+- Protección de DNS rebinding del SDK apagada a propósito en `--http` (el Host es el del túnel); compensa el token y escuchar solo en 127.0.0.1.
+- `cloudflared` se baja a pedido (un click) en vez de en el instalador: es opcional, pesa ~40 MB y así no hay que tocar `install.sh`/`install.ps1`.
+- "Actualizar y reiniciar" depende del lanzador (código 75) en vez de un proceso aparte: así el dashboard vuelve en la misma terminal y Ctrl+C sigue funcionando.
+- Notificaciones con la Notification API del navegador (llegan como notificaciones del sistema) mientras el dashboard está abierto; no hay un proceso en segundo plano aparte.
+- OpenMausBot se trata como Claude Desktop (escribir con la app cerrada) porque su documentación pide reiniciar la app al editar la config a mano.
+
+**Verificado**
+- pytest 27/27 (11 nuevos: token y reescritura de la URL, regenerar, validación de ajustes, URL del túnel y comando sin el token, parseo del SHA256 con el formato real de Cloudflare, solo lectura, SSRF, backup sin/con `remote.json`, OpenMausBot con backup y sin pisar entradas, Manus `url_only`, skills y contexto fijo, `history.since`, API del dashboard incluida "Actualizar y reiniciar" con y sin lanzador).
+- `scripts/smoke_mcp.py` ahora también arranca `server.py --http`: 404 sin token, 26 tools con el token (lo corre el CI en los tres sistemas).
+- En Chromium contra el dashboard real (lanzado con `brain.sh`): tarjeta de acceso remoto, túnel con nombre (validación y normalización del hostname y del token pegado como comando), solo lectura, estados apagado → abriendo → error → apagado; menú de "/" con los dos grupos, filtro, teclado; un skill llega al modelo (Ollama falso) en el system prompt junto con el contexto fijo; notificación al cambiar el vault; "Actualizar y reiniciar" de punta a punta (el dashboard se cerró, `brain.sh` hizo el pull, lo reabrió y la página se recargó sola); 390 px sin scroll horizontal; EN/ES.
+- No se pudo probar acá un túnel real: la red del sandbox bloquea la creación de quick tunnels (Cloudflare responde 403) y la API/página de releases de cloudflared (por eso el checksum se probó con un test); el binario bajado coincide con el SHA256 publicado. Tampoco OpenMausBot ni Manus reales.
+
+**Revisión del PR (v0.03.0)** — arreglos sobre lo de arriba, antes del merge:
+- **SSRF por redirecciones** (`scrape.fetch_public`): por el acceso remoto, la descarga ya no usa trafilatura ni Playwright. Cada salto (redirecciones incluidas) pasa por `check_public`, y la conexión va a la IP validada (con el hostname para TLS/SNI): ni una redirección a 127.0.0.1, ni un DNS que cambia entre la validación y la conexión, ni el JS de la página llegan a direcciones locales. Tope de 5 MB y 5 redirecciones.
+- **Puerto 8770 ocupado** por otro programa: prender el acceso remoto da `busy` en vez de publicar ese programa con el túnel (sin el token de brain).
+- **`history.since`**: con más de 50 cambios entre dos consultas ya no se pierden. Devuelve `total` y `max_id`, y el dashboard avisa una vez con el total.
+- **`brain.sh`**: el dashboard corre como hijo y el script le pasa INT/TERM/HUP. Un `kill` a `brain` ya no deja huérfanos el dashboard, Ollama, Chroma y el túnel. Probado con SIGINT al grupo (Ctrl+C), SIGTERM y SIGHUP.
+- **Actualizar**: `BRAIN_UPDATE_FAILED` distingue `pull` (sigue la versión instalada) de `sync` (se bajó la versión nueva pero faltan dependencias), con mensajes distintos en Ajustes. Igual en `brain.ps1`.
+- **Comandos con puntuación pegada** ("/organize.", "/compact,") se reconocen otra vez. Los nombres de skill tienen que ser ASCII sin espacios (`chat.SKILL_NAME`); los demás no se listan porque no se pueden invocar. El front usa la misma regla (`cmdOf`).
+- **Rendimiento y limpieza**: `skills()` se calcula una vez por mensaje. `remote.load()` se cachea por inodo, mtime y tamaño. Una descarga fallida de cloudflared ya no deja el archivo a medias en `data/bin/`.
+- 6 tests nuevos (33 en total), entre ellos una redirección a localhost bloqueada y la conexión a la IP validada con el Host original.

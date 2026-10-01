@@ -8,7 +8,8 @@ Un backup es un .zip con:
 - `chroma/<colección>.jsonl`: lo indexado en Chroma (fuentes y chats) con sus embeddings, así la
   restauración no necesita a Ollama. Si Chroma estaba apagado, no va y al restaurar se reconstruye
   desde el vault (las fuentes; los chats sin exportar no se pueden reconstruir).
-- `secrets/` (solo si se pide): `.env`, tokens OAuth y propuestas de conexión. Por defecto NO van.
+- `secrets/` (solo si se pide): `.env`, tokens OAuth, propuestas de conexión y el acceso remoto (token de la
+  URL y del túnel de Cloudflare). Por defecto NO van.
 - `manifest.json`: versión de brain, fecha, qué incluye.
 
 El índice por palabra (data/search.sqlite3) no se guarda: se reconstruye desde el vault.
@@ -35,7 +36,8 @@ COLLECTIONS = ("sources", "chats")
 CONFIG_FILES = ("chat_settings.json", "connections.json", "connections_tools.json", "clients.json")
 SECRET_FILES = {"secrets/.env": lambda: ROOT / ".env",
                 "secrets/oauth.json": lambda: history.DATA / "oauth.json",
-                "secrets/connection_proposals.json": lambda: history.DATA / "connection_proposals.json"}
+                "secrets/connection_proposals.json": lambda: history.DATA / "connection_proposals.json",
+                "secrets/remote.json": lambda: history.DATA / "remote.json"}
 NAME = re.compile(r"^brain-backup-[\w.-]+\.zip$")
 MAX_UNZIPPED = 20 * 1024 ** 3  # contra zips "bomba": 20 GB descomprimido como máximo
 BATCH = 500

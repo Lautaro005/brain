@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 
-from brain_mcp import chroma_store, clients, connectors, entities, keyword_store, memory, organize, vault  # noqa: E402
+from brain_mcp import chroma_store, clients, connectors, entities, keyword_store, memory, organize, remote, vault  # noqa: E402
 from brain_mcp.summarize import summarize  # noqa: E402
 from brain_mcp.chunking import chunk_text  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
@@ -24,6 +24,13 @@ from brain_mcp.scrape import ScrapeError, scrape  # noqa: E402
 log = logging.getLogger("brain-mcp")
 SOURCES_DIR = "knowledge/sources"
 ABSTRACT_MIN_WORDS = 800  # fuentes más largas llevan un resumen corto en el frontmatter (abstract)
+
+# Acceso remoto en modo "solo lectura" (remote.py): solo estas tools quedan visibles y se pueden llamar.
+READ_ONLY_TOOLS = {
+    "list_vault", "read_file", "vault_overview", "file_history", "memory_history", "list_connections",
+    "list_skills", "get_skill", "search_knowledge", "list_sources", "distill_skill",
+}
+
 
 class BrainServer(MCPServer):
     """MCPServer + tools proxeadas de las conexiones (data/connections.json).
@@ -53,12 +60,18 @@ class BrainServer(MCPServer):
         from mcp.types import Tool as MCPTool
 
         own = await super().list_tools()
+        if remote.read_only():
+            return [t for t in own if t.name in READ_ONLY_TOOLS]
         names = {t.name for t in own}
         extra = [MCPTool(name=t["name"], description=t["description"], input_schema=t["input_schema"])
                  for t in connectors.proxied_tools() if t["name"] not in names]
         return own + extra
 
     async def call_tool(self, name, arguments, context=None):
+        if remote.read_only() and name not in READ_ONLY_TOOLS:
+            from mcp.types import CallToolResult, TextContent
+
+            return CallToolResult(content=[TextContent(type="text", text=f"Error: el acceso remoto de brain está en solo lectura; {name} no está permitida.")], is_error=True)
         if connectors.SEP in name and self._tool_manager.get_tool(name) is None:
             from mcp.types import CallToolResult, TextContent
 
@@ -632,4 +645,7 @@ def distill_skill(topic: str) -> dict | str:
 
 if __name__ == "__main__":
     vault.ensure_vault()
-    mcp.run()
+    if "--http" in sys.argv:  # acceso remoto: lo prende el dashboard (services.RemoteMCP) junto con el túnel
+        remote.serve(mcp)
+    else:
+        mcp.run()

@@ -47,13 +47,54 @@
   <div class="log-head">
     <div class="crumbs"><span>brain</span><span>changelog</span></div>
     <h1>Changelog</h1>
-    <p class="lead l-en">Every release, newest first, with the date it was published on GitHub (UTC). Update with <code>brain update</code>.</p>
-    <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <code>brain update</code>.</p>
+    <p class="lead l-en">Every release, newest first, with the date it was published on GitHub (UTC). Update with <b>Update and restart</b> in Settings or <code>brain update</code>.</p>
+    <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
+
+  <!-- ===================== v0.03.0 ===================== -->
+  <article class="release" id="v0.03.0">
+    <div class="when"><div class="ver">v0.03.0</div><time class="date" datetime="2026-10-01">2026-10-01</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>brain by URL</h2>
+        <p>brain is no longer local-only: agents in the cloud or on another computer can connect with a URL. The chat gets your saved skills and knows how the app works, and updating is one click.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>Remote access by URL</b> (Connect agent): publishes brain's MCP server through a Cloudflare tunnel, without opening ports. The URL carries a secret token; you can regenerate it, set it to read-only, and use your own Cloudflare account for a fixed address. brain downloads <code>cloudflared</code> for you and checks it against the SHA256 Cloudflare publishes.</li>
+          <li><b>Manus Studio</b> and <b>OpenMausBot</b> in Connect agent. OpenMausBot connects in one click; Manus uses the remote access URL, with the steps on its card.</li>
+          <li><b>Your skills with <code>/</code></b> in the chat: the skills your agents saved in <code>skills/</code> show up under “Your skills”, apart from brain's own commands.</li>
+          <li><b>Fixed app context</b>: the chat always knows how brain works, so it can tell you where things are. You can read it (not edit it) in Settings → System prompt, under your own instructions.</li>
+          <li><b>System notifications</b> (Settings → Notifications) for uploads, changes and deletions in your vault, made by an agent, the chat or you.</li>
+          <li><b>Update and restart</b>: a green button next to “Check for updates” when there's a new version. brain closes, updates and reopens, and the page reloads by itself.</li>
+        </ul>
+        <h3>Fixed</h3>
+        <ul>
+          <li>Connect agent and Logs no longer scroll sideways on a phone.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>brain por URL</h2>
+        <p>brain deja de ser solo local: agentes en la nube o en otra computadora se conectan con una URL. El chat suma tus skills guardados y sabe cómo funciona la app, y actualizar es un click.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>Acceso remoto por URL</b> (Conectar agente): publica el server MCP de brain con un túnel de Cloudflare, sin abrir puertos. La URL lleva un token secreto; se puede regenerar, poner en solo lectura y usar tu cuenta de Cloudflare para una dirección fija. brain baja <code>cloudflared</code> por vos y lo verifica con el SHA256 que publica Cloudflare.</li>
+          <li><b>Manus Studio</b> y <b>OpenMausBot</b> en Conectar agente. OpenMausBot se conecta con un click; Manus usa la URL del acceso remoto, con los pasos en su tarjeta.</li>
+          <li><b>Tus skills con <code>/</code></b> en el chat: los skills que guardaron tus agentes en <code>skills/</code> aparecen en «Tus skills», separados de los comandos de brain.</li>
+          <li><b>Contexto fijo de la app</b>: el chat siempre sabe cómo funciona brain, así te puede decir dónde está cada cosa. Se puede leer (no editar) en Ajustes → System prompt, debajo de tus instrucciones.</li>
+          <li><b>Notificaciones del sistema</b> (Ajustes → Notificaciones) por cargas, modificaciones y eliminaciones en tu vault, las haga un agente, el chat o vos.</li>
+          <li><b>Actualizar y reiniciar</b>: un botón verde al lado de «Buscar actualizaciones» cuando hay una versión nueva. brain se cierra, se actualiza y se vuelve a abrir, y la página se recarga sola.</li>
+        </ul>
+        <h3>Arreglos</h3>
+        <ul>
+          <li>Conectar agente y Logs ya no se desplazan de costado en el celular.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
 
   <!-- ===================== v0.02.9.1 ===================== -->
   <article class="release" id="v0.02.9.1">
-    <div class="when"><div class="ver">v0.02.9.1</div><time class="date" datetime="2026-09-30">2026-09-30</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.02.9.1</div><time class="date" datetime="2026-09-30">2026-09-30</time></div>
     <div>
       <div class="l-en">
         <h2>A tidier website</h2>

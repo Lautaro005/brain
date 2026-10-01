@@ -41,6 +41,33 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
 EOF
     ;;
   *)
-    exec "$UV" run python dashboard.py "$@"
+    # "Actualizar y reiniciar" del dashboard: sale con el código 75, acá se actualiza y se vuelve a abrir
+    # en esta misma terminal (sin abrir otra pestaña del navegador: la que estaba se recarga sola).
+    # El dashboard corre en segundo plano y este script le pasa las señales (Ctrl+C, kill, cerrar la
+    # terminal): si no, un kill a `brain` mataría solo a bash y dejaría el dashboard y lo que prendió.
+    export BRAIN_LAUNCHER=1
+    EXTRA=()
+    while :; do
+      "$UV" run python dashboard.py "$@" ${EXTRA[@]+"${EXTRA[@]}"} &
+      child=$!
+      trap 'kill -TERM "$child" 2>/dev/null' INT TERM HUP
+      set +e
+      wait "$child"; code=$?
+      # wait vuelve antes si llega una señal: esperar a que el dashboard termine de apagar todo
+      while kill -0 "$child" 2>/dev/null; do wait "$child"; code=$?; done
+      set -e
+      trap - INT TERM HUP
+      [ "$code" = 75 ] || exit "$code"
+      echo "Actualizando brain…"
+      unset BRAIN_UPDATE_FAILED
+      if ! git -C "$DIR" pull --ff-only; then
+        echo "No se pudo actualizar; vuelvo a abrir la versión instalada."
+        export BRAIN_UPDATE_FAILED=pull
+      elif ! "$UV" sync --quiet; then
+        echo "Se bajó la versión nueva pero no se pudieron instalar las dependencias. Corré: brain update"
+        export BRAIN_UPDATE_FAILED=sync
+      fi
+      EXTRA=(--no-browser)
+    done
     ;;
 esac
