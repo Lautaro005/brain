@@ -249,18 +249,33 @@ ollama pull nomic-embed-text
   <h2>Frontmatter</h2>
   <p>Every note starts with a YAML block. <code>name</code> and <code>description</code> are expected; the description is what <code>list_vault</code> and the graph show.</p>
   <pre>---
+type: Project
 name: online-store
+title: Online store
 description: Next.js store, launch at the end of the month
 tags: [work, nextjs]
 related: [pricing-that-converts]
+created: 2026-09-12
+updated: 2026-10-04
 ---
 # Online store
 
-Uses the ideas from [[pricing-that-converts]].</pre>
-  <p>Fields brain writes on its own: <code>chroma_ids</code> (chunk ids of a source), <code>abstract</code> (summary of long sources), <code>entities</code> (names mentioned, for the graph), <code>url</code>, <code>scraped_at</code>, and in memory files <code>category</code>, <code>sources</code> and <code>related</code>.</p>
+Uses the ideas from [pricing that converts](../knowledge/pricing-that-converts.md).</pre>
+  <h2>Note format (OKF-compatible)</h2>
+  <p>Since v0.03.1 notes follow a small profile of the <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md">Open Knowledge Format</a> (OKF v0.2), so any AI or tool can tell what each note is and how current it is, without a special translation. brain's own fields stay valid as extensions.</p>
+  <table>
+    <tr><th>Field</th><th>What it says</th></tr>
+    <tr><td><code>type</code></td><td>What the note is: <code>Project</code>, <code>Memory</code>, <code>Skill</code>, <code>Source</code>, <code>Reference</code>, <code>Profile</code>, <code>Index</code> or <code>Note</code>. brain fills it in from the folder if it's missing.</td></tr>
+    <tr><td><code>created</code></td><td>When the note was created (<code>YYYY-MM-DD</code>). Filled in on the first write and kept afterwards, even if an agent rewrites the file without it.</td></tr>
+    <tr><td><code>updated</code></td><td>Last change. Every write moves it, except pure bookkeeping (<code>checked_at</code>, <code>refresh_error</code>).</td></tr>
+    <tr><td><code>title</code>, <code>description</code></td><td>A readable title and a one-line summary. The file name stays the stable identity for links and history.</td></tr>
+    <tr><td><code>resource</code>, <code>author</code>, <code>published</code></td><td>On saved pages: the source URL and, when the page says so, its author and date.</td></tr>
+  </table>
+  <p>For older notes, <b>Settings → Note format → Fill in type and dates</b> adds the three fields without touching anything else: <code>created</code> from the first change in the history (or the file date) and <code>updated</code> from the last one. Each note it touches is kept in history with the <code>format</code> operation.</p>
+  <p>Fields brain writes on its own: <code>type</code>, <code>created</code>, <code>updated</code>, <code>chroma_ids</code> (chunk ids of a source), <code>abstract</code> (summary of long sources), <code>entities</code> (names mentioned, for the graph), <code>url</code>, <code>scraped_at</code>, and in memory files <code>category</code>, <code>sources</code> and <code>related</code>.</p>
   <h2>Linking notes</h2>
   <ul>
-    <li><code>[[name]]</code> in the text links to another note.</li>
+    <li><code>[text](path.md)</code> (standard Markdown, the most portable) or <code>[[name]]</code> in the text links to another note. Both count for the graph.</li>
     <li><code>tags: [a, b]</code> groups notes under shared tag nodes.</li>
     <li><code>related: [name]</code> relates notes without a link in the text.</li>
   </ul>
@@ -286,18 +301,33 @@ Uses the ideas from [[pricing-that-converts]].</pre>
   <h2>Frontmatter</h2>
   <p>Cada nota empieza con un bloque YAML. Se esperan <code>name</code> y <code>description</code>; la description es lo que muestran <code>list_vault</code> y el grafo.</p>
   <pre>---
+type: Project
 name: tienda-online
+title: Tienda online
 description: Tienda en Next.js, lanzamiento a fin de mes
 tags: [trabajo, nextjs]
 related: [precios-que-convierten]
+created: 2026-09-12
+updated: 2026-10-04
 ---
 # Tienda online
 
-Usa las ideas de [[precios-que-convierten]].</pre>
-  <p>Campos que escribe brain solo: <code>chroma_ids</code> (ids de los chunks de una fuente), <code>abstract</code> (resumen de fuentes largas), <code>entities</code> (nombres mencionados, para el grafo), <code>url</code>, <code>scraped_at</code>, y en los archivos de memoria <code>category</code>, <code>sources</code> y <code>related</code>.</p>
+Usa las ideas de [precios que convierten](../knowledge/precios-que-convierten.md).</pre>
+  <h2>Formato de las notas (compatible con OKF)</h2>
+  <p>Desde v0.03.1 las notas siguen un perfil chico del <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md">Open Knowledge Format</a> (OKF v0.2), así cualquier IA o herramienta entiende qué es cada nota y qué tan vigente está, sin una traducción especial. Los campos propios de brain siguen siendo válidos como extensiones.</p>
+  <table>
+    <tr><th>Campo</th><th>Qué dice</th></tr>
+    <tr><td><code>type</code></td><td>Qué es la nota: <code>Project</code>, <code>Memory</code>, <code>Skill</code>, <code>Source</code>, <code>Reference</code>, <code>Profile</code>, <code>Index</code> o <code>Note</code>. Si falta, brain lo completa según la carpeta.</td></tr>
+    <tr><td><code>created</code></td><td>Cuándo se creó la nota (<code>AAAA-MM-DD</code>). Se completa en la primera escritura y se conserva después, aunque un agente reescriba el archivo sin ese campo.</td></tr>
+    <tr><td><code>updated</code></td><td>Último cambio. Cada escritura lo mueve, salvo los campos de control (<code>checked_at</code>, <code>refresh_error</code>).</td></tr>
+    <tr><td><code>title</code>, <code>description</code></td><td>Un título legible y un resumen de una línea. El nombre del archivo sigue siendo la identidad estable para links e historial.</td></tr>
+    <tr><td><code>resource</code>, <code>author</code>, <code>published</code></td><td>En las páginas guardadas: la URL de origen y, si la página lo dice, su autor y su fecha.</td></tr>
+  </table>
+  <p>Para las notas viejas, <b>Ajustes → Formato de las notas → Completar tipo y fechas</b> agrega los tres campos sin tocar nada más: <code>created</code> sale del primer cambio del historial (o de la fecha del archivo) y <code>updated</code> del último. Cada nota que toca queda en el historial con la operación <code>format</code>.</p>
+  <p>Campos que escribe brain solo: <code>type</code>, <code>created</code>, <code>updated</code>, <code>chroma_ids</code> (ids de los chunks de una fuente), <code>abstract</code> (resumen de fuentes largas), <code>entities</code> (nombres mencionados, para el grafo), <code>url</code>, <code>scraped_at</code>, y en los archivos de memoria <code>category</code>, <code>sources</code> y <code>related</code>.</p>
   <h2>Relacionar notas</h2>
   <ul>
-    <li><code>[[nombre]]</code> en el texto enlaza otra nota.</li>
+    <li><code>[texto](ruta.md)</code> (Markdown estándar, lo más portable) o <code>[[nombre]]</code> en el texto enlazan otra nota. Las dos cuentan para el grafo.</li>
     <li><code>tags: [a, b]</code> agrupa notas bajo nodos de tag compartidos.</li>
     <li><code>related: [nombre]</code> relaciona notas sin un link en el texto.</li>
   </ul>
@@ -472,6 +502,14 @@ entities: [Palermo, Next.js]
   <p>In order of strength (only the strongest is drawn per pair of nodes): <code>[[wikilinks]]</code> and Markdown links → memory under the profile → <code>related:</code> → shared entities → paths mentioned in backticks → tags → folders.</p>
   <h2>Entities</h2>
   <p>When a source, a capture or a memory file is saved, the local chat model lists the names it mentions and they go to <code>entities</code> in the frontmatter. Each entity becomes a node, so two notes that mention the same person or project end up connected through it, even if nobody linked them. It's best-effort: without a chat model in Ollama, notes are saved without entities, and <a href="#reflect-skills">Reflect</a> lists the ones missing them.</p>
+  <h2>Changing links with approval</h2>
+  <p>When you ask the chat (or an agent) to link or unlink notes, it doesn't edit them: it calls <code>propose_graph_change</code>. brain checks the request against the real graph (the notes exist, the link isn't a duplicate, it isn't a link written in the text, at most 10 changes) and draws an image of that part of the graph with the changes marked: <b>green dashed</b> = new link, <b>red dashed</b> = link that goes away. The chat shows it with <b>Approve change</b> and <b>Reject</b>; proposals from agents also show at the top of the Graph view.</p>
+  <ul>
+    <li>Approving sends the proposal's id, so nothing is reinterpreted. If the notes changed after the proposal, it's marked stale and you ask for a new one.</li>
+    <li>It's all or nothing, and approving twice doesn't duplicate anything.</li>
+    <li>After applying, <b>Undo</b> puts the notes back (and every change is also in the <a href="#history">history</a>).</li>
+    <li>This first version covers <code>related</code> links. Links that come from the text, tags or entities are changed in the note itself.</li>
+  </ul>
   <h2>Controls</h2>
   <ul>
     <li>Click a node to see its content and connections in the side panel; <code>[[links]]</code> are clickable.</li>
@@ -498,6 +536,14 @@ entities: [Palermo, Next.js]
   <p>De más fuerte a más débil (se dibuja solo la más fuerte por par de nodos): <code>[[wikilinks]]</code> y links Markdown → memoria bajo el perfil → <code>related:</code> → entidades compartidas → paths mencionados entre backticks → tags → carpetas.</p>
   <h2>Entidades</h2>
   <p>Al guardar una fuente, una captura o un archivo de memoria, el modelo de chat local lista los nombres que menciona y van a <code>entities</code> en el frontmatter. Cada entidad es un nodo, así dos notas que nombran a la misma persona o proyecto quedan conectadas por él aunque nadie las haya enlazado. Es best-effort: sin un modelo de chat en Ollama, las notas se guardan sin entidades, y <a href="#reflect-skills">Reflect</a> lista las que les faltan.</p>
+  <h2>Cambiar conexiones con aprobación</h2>
+  <p>Cuando le pedís al chat (o a un agente) que conecte o desconecte notas, no las edita: llama a <code>propose_graph_change</code>. brain valida el pedido contra el grafo real (que las notas existan, que no sea una conexión repetida, que no sea un link escrito en el texto, hasta 10 cambios) y dibuja una imagen de esa zona del grafo con los cambios marcados: <b>verde punteado</b> = conexión nueva, <b>rojo punteado</b> = conexión que se saca. El chat la muestra con <b>Aprobar cambio</b> y <b>Rechazar</b>; las propuestas de los agentes también aparecen arriba en la vista Grafo.</p>
+  <ul>
+    <li>Aprobar manda el id de la propuesta, así no se vuelve a interpretar nada. Si las notas cambiaron después de la propuesta, queda vencida y se pide otra.</li>
+    <li>Se aplica todo o nada, y aprobar dos veces no duplica nada.</li>
+    <li>Después de aplicar, <b>Deshacer</b> deja las notas como estaban (y cada cambio queda también en el <a href="#history">historial</a>).</li>
+    <li>Esta primera versión cubre las conexiones de <code>related</code>. Las que salen del texto, de tags o de entidades se cambian en la nota.</li>
+  </ul>
   <h2>Controles</h2>
   <ul>
     <li>Click en un nodo para ver su contenido y conexiones en el panel lateral; los <code>[[links]]</code> se pueden clickear.</li>
@@ -614,6 +660,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>The system prompt includes a fixed guide to how brain works (so the chat can tell you where things are in the app; you can read it in <b>Settings → System prompt</b>), <code>profile.md</code>, all your active memories (up to ~12k characters), <code>BRAIN.md</code>, the fragments of past chats most similar to your question, and your own instructions from Settings.</p>
   <h2>Tools</h2>
   <p>The chat gets exactly the tools your agents get, including your connections'. Every call is listed under the answer; expand it to see the arguments and the result. Up to 6 rounds of tool calls per answer.</p>
+  <h2>How it works through a request</h2>
+  <p>The system prompt starts with a short set of working rules: understand what result you want before acting, ask at most one short question and only when a missing detail would change the result, use just the tools it needs (read the file directly instead of listing everything), never claim a change the tool didn't confirm, and answer with the result first, ending with a line about what changed and where. Two guards in the loop keep it from going in circles: the same tool call with the same arguments isn't run again in one answer, and if it runs out of rounds (or used tools and said nothing) it gets one last round without tools to answer with what it found, instead of stopping mid-way.</p>
+  <h2>HTML in answers</h2>
+  <p>Answers are Markdown and can also include HTML when it reads better: tables with merged cells, <code>&lt;details&gt;</code> for long parts, <code>&lt;mark&gt;</code>, <code>&lt;kbd&gt;</code>, inline colors or a simple <code>&lt;svg&gt;</code> diagram. It's sanitized before it's shown: no scripts, forms, iframes or <code>&lt;style&gt;</code>; images only from brain itself, so a saved page with hidden instructions can't make the model leak data in an image URL; and no styles that load URLs or cover the interface.</p>
   <p>Models that can't take native tools (common with GGUF models pulled from Hugging Face, which fail with "Unable to generate parser for this template") switch to <b>text mode</b>: the tools are described in the prompt and the model asks for them with <code>&lt;tool_call&gt;{…}&lt;/tool_call&gt;</code>. The mode is remembered per model while the dashboard runs.</p>
   <h2>History and floating window</h2>
   <p>Chats are stored in Chroma (collection <code>chats</code>) with embeddings, so past conversations feed the context of new ones. Without Chroma the chat works but isn't saved. <b>Float</b> opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere).</p>
@@ -630,6 +680,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><th>Command</th><th>What it does</th></tr>
     <tr><td><code>/organize</code></td><td>Organizes the vault and its graph with a built-in skill (adapted from <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>). It looks at a snapshot of the vault (loose notes, notes with no links, no description, repeated or near-duplicate tags, similar names), asks you a few questions, proposes a plan and only changes what you approve, with <code>move_file</code>, <code>set_frontmatter</code> and friends. It never touches <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> or <code>knowledge/sources/</code>. The chat stays in this mode, so you can just answer its questions. Add text after the command to focus it: <code>/organize only projects/</code>.</td></tr>
     <tr><td><code>/add-mcp</code></td><td>Sets up a connector from a URL or instructions and proposes it; you add it with one click. See <a href="#connections">Connections</a>.</td></tr>
+    <tr><td><code>/factcheck</code></td><td>Verifies what you write after it with <a href="#factcheck">Fact check</a> and shows each claim's verdict with its sources, without changing it.</td></tr>
     <tr><td><code>/compact</code></td><td>Compacts the session: the model summarizes the conversation so far (requests, decisions, files it changed, what's pending) and from then on gets that summary instead of the old messages, which stay visible in the chat. The context circle empties and you keep going in the same chat.</td></tr>
     <tr><td><code>/reflect</code></td><td>Brings <a href="#reflect-skills">Reflect</a>'s suggestions into the chat (duplicates, contradictions, notes without entities) and applies only the ones you confirm.</td></tr>
     <tr><td><code>/new</code></td><td>Starts a new chat.</td></tr>
@@ -644,6 +695,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>El system prompt incluye una guía fija de cómo funciona brain (así el chat te puede decir dónde está cada cosa en la app; la podés leer en <b>Ajustes → System prompt</b>), <code>profile.md</code>, todas tus memorias activas (hasta ~12k caracteres), <code>BRAIN.md</code>, los fragmentos de chats anteriores más parecidos a tu pregunta y tus instrucciones de Ajustes.</p>
   <h2>Tools</h2>
   <p>El chat recibe exactamente las tools de tus agentes, incluidas las de tus conexiones. Cada llamada aparece debajo de la respuesta; desplegala para ver los argumentos y el resultado. Hasta 6 vueltas de tools por respuesta.</p>
+  <h2>Cómo resuelve un pedido</h2>
+  <p>El system prompt empieza con unas reglas de trabajo cortas: entender qué resultado querés antes de actuar, preguntar como mucho una cosa y solo si falta un dato que cambia el resultado, usar las tools justas (leer el archivo directo en vez de listar todo), no decir que cambió algo si la tool no lo confirmó, y responder con el resultado primero y una línea final de qué cambió y dónde. Dos controles en el loop evitan que dé vueltas: la misma tool con los mismos argumentos no se vuelve a ejecutar en una respuesta, y si se le acaban las vueltas (o usó tools y no dijo nada) recibe una última vuelta sin tools para contestar con lo que encontró, en vez de cortarse.</p>
+  <h2>HTML en las respuestas</h2>
+  <p>Las respuestas son Markdown y además pueden traer HTML cuando se entiende mejor: tablas con celdas combinadas, <code>&lt;details&gt;</code> para lo largo, <code>&lt;mark&gt;</code>, <code>&lt;kbd&gt;</code>, colores o un diagrama simple en <code>&lt;svg&gt;</code>. Se sanitiza antes de mostrarse: sin scripts, formularios, iframes ni <code>&lt;style&gt;</code>; imágenes solo del propio brain, así una página guardada con instrucciones escondidas no puede hacer que el modelo filtre datos en la URL de una imagen; y sin estilos que carguen URLs o tapen la interfaz.</p>
   <p>Los modelos que no aceptan tools nativas (típico de GGUF bajados de Hugging Face, que fallan con "Unable to generate parser for this template") pasan al <b>modo texto</b>: las tools van descritas en el prompt y el modelo las pide con <code>&lt;tool_call&gt;{…}&lt;/tool_call&gt;</code>. El modo se recuerda por modelo mientras corre el dashboard.</p>
   <h2>Historial y ventana flotante</h2>
   <p>Los chats se guardan en Chroma (colección <code>chats</code>) con embeddings, así las conversaciones anteriores alimentan el contexto de las nuevas. Sin Chroma el chat funciona pero no se guarda. <b>Ventana flotante</b> abre el chat en una ventana siempre visible (Document Picture-in-Picture en Chrome, Edge y Arc; una ventana emergente común en el resto).</p>
@@ -660,6 +715,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>/organize</code></td><td>Ordena el vault y su grafo con una skill integrada (adaptada de <a href="https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md">file-organizer</a>). Mira un panorama del vault (notas sueltas, sin conexiones, sin descripción, tags repetidos o con variantes, nombres parecidos), te hace unas preguntas, propone un plan y cambia solo lo que apruebes, con <code>move_file</code>, <code>set_frontmatter</code> y compañía. Nunca toca <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> ni <code>knowledge/sources/</code>. El chat queda en ese modo, así que alcanza con responderle. Podés sumar texto para enfocarlo: <code>/organize solo projects/</code>.</td></tr>
     <tr><td><code>/add-mcp</code></td><td>Arma un conector a partir de una URL o instrucciones y lo propone; lo agregás con un click. Ver <a href="#connections">Conexiones</a>.</td></tr>
+    <tr><td><code>/factcheck</code></td><td>Verifica lo que escribas después con <a href="#factcheck">Fact check</a> y muestra el veredicto de cada afirmación con sus fuentes, sin cambiarlo.</td></tr>
     <tr><td><code>/compact</code></td><td>Compacta la sesión: el modelo resume lo hablado (pedidos, decisiones, archivos que cambió, lo pendiente) y desde ahí recibe ese resumen en vez de los mensajes viejos, que siguen visibles en el chat. El círculo de contexto se vacía y seguís en el mismo chat.</td></tr>
     <tr><td><code>/reflect</code></td><td>Trae al chat las sugerencias de <a href="#reflect-skills">Reflect</a> (duplicados, contradicciones, notas sin entidades) y aplica solo las que confirmes.</td></tr>
     <tr><td><code>/new</code></td><td>Empieza un chat nuevo.</td></tr>
@@ -686,7 +742,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
     <tr><td>OpenMausBot</td><td><code>~/.openmausbot/config.json</code></td><td>It reads its MCP servers when it opens, so it's edited with the app closed; the dashboard offers to quit, connect and reopen it.</td></tr>
     <tr><td>DeepSeek Harness</td><td><code>~/.dsh/cordis.patch.yml</code></td><td>The user patch layer that the desktop app and the <code>dsh</code> CLI share. brain adds its own block (an <code>@deepseek-ai/dsh-mcp-client</code> row with <code>transport: stdio</code>) and removes only that block; dsh reloads it without restarting. Its tools show up as <code>mcp__brain__…</code>.</td></tr>
-    <tr><td>Manus Studio</td><td>its own form</td><td>Manus adds local servers with its <i>Run a command</i> form and has no config file brain can edit: its card shows the command and arguments to paste, and switches to <i>Detected</i> once Manus uses brain. Manus on the web can use <a href="#remote">remote access</a>.</td></tr>
+    <tr><td>Manus Studio</td><td>its own form</td><td>Manus adds local servers with its <i>Run a command</i> form and has no config file brain can edit: copy the command and arguments from <i>Any other MCP client</i> on the same page; its card switches to <i>Detected</i> once Manus uses brain. Manus on the web can use <a href="#remote">remote access</a>.</td></tr>
   </table>
   <p>Paths are the macOS ones; on Windows they're under <code>%APPDATA%</code> and on Linux under <code>~/.config</code>, and the dashboard shows the right one for your system. All local agents launch the same command with absolute paths, so they work from any folder:</p>
   <pre>/Users/you/.local/bin/uv run --directory /Users/you/.brain python server.py</pre>
@@ -718,7 +774,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td></td></tr>
     <tr><td>OpenMausBot</td><td><code>~/.openmausbot/config.json</code></td><td>Lee sus servers MCP al abrirse, así que se edita con la app cerrada; el dashboard ofrece cerrarla, conectar y volver a abrirla.</td></tr>
     <tr><td>DeepSeek Harness</td><td><code>~/.dsh/cordis.patch.yml</code></td><td>La capa de parches del usuario que comparten la app de escritorio y el CLI <code>dsh</code>. brain agrega un bloque propio (una fila <code>@deepseek-ai/dsh-mcp-client</code> con <code>transport: stdio</code>) y al desconectar saca solo ese bloque; dsh lo recarga sin reiniciar. Sus tools aparecen como <code>mcp__brain__…</code>.</td></tr>
-    <tr><td>Manus Studio</td><td>su formulario</td><td>Manus agrega servers locales con su formulario <i>Run a command</i> y no tiene un archivo de config que brain pueda editar: su tarjeta muestra el comando y los argumentos para pegar, y pasa a <i>Detectado</i> cuando Manus usa brain. Manus en la web puede usar el <a href="#remote">acceso remoto</a>.</td></tr>
+    <tr><td>Manus Studio</td><td>su formulario</td><td>Manus agrega servers locales con su formulario <i>Run a command</i> y no tiene un archivo de config que brain pueda editar: copiá el comando y los argumentos de <i>Cualquier otro cliente MCP</i>, en la misma página; su tarjeta pasa a <i>Detectado</i> cuando Manus usa brain. Manus en la web puede usar el <a href="#remote">acceso remoto</a>.</td></tr>
   </table>
   <p>Los paths son los de macOS; en Windows están en <code>%APPDATA%</code> y en Linux en <code>~/.config</code>, y el dashboard muestra el de tu sistema. Todos los agentes locales lanzan el mismo comando con paths absolutos, así funcionan desde cualquier carpeta:</p>
   <pre>/Users/vos/.local/bin/uv run --directory /Users/vos/.brain python server.py</pre>
@@ -780,6 +836,63 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>Sin cuenta de Cloudflare el túnel es un <b>quick tunnel</b>: una dirección <code>*.trycloudflare.com</code> que cambia cada vez que se prende, así que hay que volver a pegarla en cada agente. Para una dirección fija, creá un túnel en tu cuenta de Cloudflare (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), apuntá su hostname público a <code>http://localhost:8770</code> y pegá el hostname y el token del túnel en <i>URL fija con tu cuenta de Cloudflare</i>. El token le llega a <code>cloudflared</code> por una variable de entorno y se guarda en <code>data/remote.json</code> (<code>600</code>).</p>
   <h2>Qué agentes</h2>
   <p>Cualquier cliente MCP que se conecte a una URL con streamable HTTP: Manus en la web (<i>Settings → Connectors → Custom MCP</i>), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT en modo desarrollador, o un agente local en otra computadora. Aparecen en <b>Mis conexiones</b> apenas usan brain.</p>
+</div>
+</section>
+
+<section class="page" id="factcheck" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Fact check" data-title-es="Fact check">
+<div class="l-en">
+  <h1>Fact check</h1>
+  <p class="lead">Verify claims with a visible, repeatable process: brain searches your memory first and, only if that's not enough, the web. It shows the evidence and its limits; it doesn't promise the truth.</p>
+  <h2>How a check runs</h2>
+  <ol>
+    <li><b>Claims.</b> The local chat model splits the text into checkable claims (type, risk, sub-claims) and says which ones aren't checkable: opinions, predictions, things too vague.</li>
+    <li><b>brain first.</b> Each claim is searched with the hybrid search. Old notes count as context, not confirmation.</li>
+    <li><b>Web only if needed.</b> If nothing relevant is saved, it's old, your notes disagree, there's no primary source or it's a current topic, it searches the web (if you allow it) and says so: <i>"I didn't find enough evidence in your local memory: I consulted external sources."</i> It runs a neutral query, one for evidence, one for <b>counter-evidence</b> and one for the primary source.</li>
+    <li><b>Read, don't skim.</b> Every page is opened and read in full; a page that can't be opened stays as <i>not fully inspected</i> and doesn't count. Each source is typed (official, academic, professional fact-checker, news, reference, social/forums/blogs, other web) by what it is, never by trusting <code>.gov</code> or <code>.org</code> alone.</li>
+    <li><b>Independence.</b> Pages from the same site, or that copy the same text, count as one line of evidence.</li>
+    <li><b>Compare.</b> The model says whether each source supports, contradicts, supports with limits or doesn't answer, and must quote the exact sentence. If the quote isn't in the page, the source doesn't count.</li>
+    <li><b>Verdict by rules,</b> not a percentage: <i>Supported</i>, <i>Likely supported</i>, <i>Mixed</i>, <i>Inconclusive</i>, <i>Likely false</i>, <i>False</i> or <i>Not verifiable</i>. Never "supported" with a single secondary source; conflicting evidence is shown as a conflict, not averaged.</li>
+  </ol>
+  <p>The report shows each claim, its verdict and why, the sources for and against (type, date, author, quote), what came from brain and what from the web, and the limitations. Actions: copy the report (Markdown), open sources, check again, <b>Save to brain</b> (a separate click; nothing is saved on its own) and <b>Don't use this domain</b>. The last 30 reports are kept in <code>data/factchecks.json</code>.</p>
+  <h2>Preferences</h2>
+  <p>Set once in the view, applied to every new check (and to the chat). <b>Basic</b>: level (Quick, Standard — recommended —, Thorough, Custom), freshness (by topic, 24 hours, 30 days, a year, no limit or custom dates), require a primary source, search for counter-evidence. <b>Advanced</b>: minimum independent sources and maximum to read, which kinds of claims to check, always checking health, law, finance and safety with extra rigor, countries and languages, foreign sources, how much to trust each source type, search engine, blocked domains, and whether the chat may check facts on its own. <b>Restore recommended values</b> puts the defaults back.</p>
+  <h2>Search engine</h2>
+  <table>
+    <tr><th>Engine</th><th>Needs</th></tr>
+    <tr><td>DuckDuckGo (default)</td><td>Nothing.</td></tr>
+    <tr><td>SearXNG</td><td>The URL of your instance, with JSON output enabled.</td></tr>
+    <tr><td>Brave Search API</td><td>An API key. It's stored in <code>data/factcheck.json</code> (600) and never returned by the API.</td></tr>
+  </table>
+  <h2>From the chat and agents</h2>
+  <p><code>/factcheck &lt;text&gt;</code> runs it from the chat, and agents have the <code>fact_check</code> tool. With <i>Let the chat check facts that aren't in brain on its own</i> (off by default), the chat uses it when you ask about a fact it can't find in your vault.</p>
+  <p>For health, law, finance or safety the report reminds you it's informational and doesn't replace a professional. Fact check needs a chat model in Ollama to split claims and compare evidence; without one it says so.</p>
+</div>
+<div class="l-es">
+  <h1>Fact check</h1>
+  <p class="lead">Verificá afirmaciones con un proceso visible y repetible: brain busca primero en tu memoria y, solo si no alcanza, en internet. Muestra la evidencia y sus límites; no promete la verdad.</p>
+  <h2>Cómo se verifica</h2>
+  <ol>
+    <li><b>Afirmaciones.</b> El modelo de chat local separa el texto en afirmaciones verificables (tipo, riesgo, partes) y dice cuáles no se pueden verificar: opiniones, predicciones, cosas demasiado vagas.</li>
+    <li><b>Primero brain.</b> Cada afirmación se busca con la búsqueda híbrida. Las notas viejas cuentan como contexto, no como confirmación.</li>
+    <li><b>Internet solo si hace falta.</b> Si no hay nada guardado, es viejo, tus notas se contradicen, falta una fuente primaria o es un tema actual, busca en internet (si lo permitís) y lo avisa: <i>«No encontré evidencia suficiente en tu memoria local: consulté fuentes externas.»</i> Hace una búsqueda neutral, una de evidencia, una de <b>evidencia en contra</b> y una de la fuente primaria.</li>
+    <li><b>Leer, no hojear.</b> Cada página se abre y se lee entera; si no se puede abrir, queda como <i>no inspeccionada completamente</i> y no cuenta. Cada fuente se clasifica (oficial, académica, verificador profesional, periodística, referencia, redes/foros/blogs, otra web) por lo que es, nunca por confiar en <code>.gov</code> u <code>.org</code>.</li>
+    <li><b>Independencia.</b> Las páginas del mismo sitio, o que copian el mismo texto, cuentan como una sola línea de evidencia.</li>
+    <li><b>Comparar.</b> El modelo dice si cada fuente apoya, contradice, apoya con límites o no responde, y tiene que citar la oración exacta. Si la cita no está en la página, esa fuente no cuenta.</li>
+    <li><b>Veredicto por reglas,</b> no un porcentaje: <i>Respaldada</i>, <i>Probablemente respaldada</i>, <i>Mixta</i>, <i>No concluyente</i>, <i>Probablemente falsa</i>, <i>Falsa</i> o <i>No verificable</i>. Nunca «respaldada» con una sola fuente secundaria; la evidencia en conflicto se muestra como conflicto, no se promedia.</li>
+  </ol>
+  <p>El informe muestra cada afirmación, su veredicto y por qué, las fuentes a favor y en contra (tipo, fecha, autor, cita), qué vino de brain y qué de internet, y las limitaciones. Acciones: copiar el informe (Markdown), abrir las fuentes, volver a verificar, <b>Guardar en brain</b> (un click aparte; nada se guarda solo) y <b>No usar este dominio</b>. Los últimos 30 informes quedan en <code>data/factchecks.json</code>.</p>
+  <h2>Preferencias</h2>
+  <p>Se configuran una vez en la vista y valen para cada verificación nueva (y para el chat). <b>Básico</b>: nivel (Rápida, Estándar —recomendada—, Exhaustiva, Personalizada), actualidad (según el tema, 24 horas, 30 días, un año, sin límite o fechas propias), exigir fuente primaria, buscar evidencia en contra. <b>Avanzado</b>: mínimo de fuentes independientes y máximo a leer, qué tipos de afirmaciones verificar, verificar siempre y con más rigor salud, derecho, finanzas y seguridad, países e idiomas, fuentes de otros países, cuánto confiar en cada tipo de fuente, buscador, dominios bloqueados y si el chat puede verificar solo. <b>Restaurar valores recomendados</b> vuelve a los de fábrica.</p>
+  <h2>Buscador</h2>
+  <table>
+    <tr><th>Buscador</th><th>Qué necesita</th></tr>
+    <tr><td>DuckDuckGo (por defecto)</td><td>Nada.</td></tr>
+    <tr><td>SearXNG</td><td>La URL de tu instancia, con la salida JSON activada.</td></tr>
+    <tr><td>Brave Search API</td><td>Una clave de su API. Se guarda en <code>data/factcheck.json</code> (600) y la API nunca la devuelve.</td></tr>
+  </table>
+  <h2>Desde el chat y los agentes</h2>
+  <p><code>/factcheck &lt;texto&gt;</code> lo usa desde el chat, y los agentes tienen la tool <code>fact_check</code>. Con <i>Que el chat verifique solo los datos que no están en brain</i> (apagado por defecto), el chat la usa cuando preguntás un dato que no encuentra en tu vault.</p>
+  <p>En salud, derecho, finanzas o seguridad el informe aclara que es informativo y no reemplaza a un profesional. Fact check necesita un modelo de chat en Ollama para separar afirmaciones y comparar la evidencia; sin uno, lo avisa.</p>
 </div>
 </section>
 
@@ -898,6 +1011,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>restore_file(path, version_id)</code></td><td>Restores a version (also brings back deleted files).</td></tr>
     <tr><td><code>move_file(src, dst)</code></td><td>Moves or renames a note (recoverable). Not for <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> or <code>knowledge/sources/</code>.</td></tr>
     <tr><td><code>vault_overview()</code></td><td>What's messy in the vault: loose notes, no links, no description, tag variants, similar names. Read-only.</td></tr>
+    <tr><td><code>propose_graph_change(changes, reason?)</code></td><td>Proposes adding or removing <code>related</code> links (up to 10). Changes nothing: you see an image with the changes marked and approve or reject it. See <a href="#graph">The graph</a>.</td></tr>
+    <tr><td><code>inspect_graph_region(nodes)</code></td><td>Neighbors of some notes and why they're linked (text link, related, tag, entity). Read-only.</td></tr>
   </table>
   <h2>Memory</h2>
   <table>
@@ -913,6 +1028,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>list_sources()</code></td><td>Saved URLs with title, when the content was downloaded and last checked, path and <code>abstract</code>.</td></tr>
     <tr><td><code>refresh_sources(path?)</code></td><td>Re-downloads one source (or all). If it fails, keeps the last good copy and notes the error.</td></tr>
     <tr><td><code>read_url(url, max_chars?)</code></td><td>Reads a page's text without saving it.</td></tr>
+    <tr><td><code>fact_check(text, search_web?)</code></td><td>Verifies claims: brain first, the web if needed, verdict by rules with sources and quotes. Saves nothing. See <a href="#factcheck">Fact check</a>.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Rebuilds the keyword index from <code>knowledge/</code>.</td></tr>
   </table>
   <h2>Skills</h2>
@@ -948,6 +1064,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>restore_file(path, version_id)</code></td><td>Restaura una versión (también recupera archivos borrados).</td></tr>
     <tr><td><code>move_file(src, dst)</code></td><td>Mueve o renombra una nota (recuperable). No aplica a <code>BRAIN.md</code>, <code>profile.md</code>, <code>memory/</code> ni <code>knowledge/sources/</code>.</td></tr>
     <tr><td><code>vault_overview()</code></td><td>Lo desordenado del vault: notas sueltas, sin conexiones, sin descripción, variantes de tags, nombres parecidos. Solo lee.</td></tr>
+    <tr><td><code>propose_graph_change(changes, reason?)</code></td><td>Propone agregar o sacar conexiones de <code>related</code> (hasta 10). No cambia nada: ves una imagen con los cambios marcados y la aprobás o rechazás. Ver <a href="#graph">El grafo</a>.</td></tr>
+    <tr><td><code>inspect_graph_region(nodes)</code></td><td>Vecinos de algunas notas y por qué están unidas (link en el texto, related, tag, entidad). Solo lee.</td></tr>
   </table>
   <h2>Memoria</h2>
   <table>
@@ -963,6 +1081,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>list_sources()</code></td><td>URLs guardadas con título, de cuándo es el contenido y cuándo se revisó, path y <code>abstract</code>.</td></tr>
     <tr><td><code>refresh_sources(path?)</code></td><td>Vuelve a bajar una fuente (o todas). Si falla, conserva la última copia buena y anota el error.</td></tr>
     <tr><td><code>read_url(url, max_chars?)</code></td><td>Lee el texto de una página sin guardarla.</td></tr>
+    <tr><td><code>fact_check(text, search_web?)</code></td><td>Verifica afirmaciones: primero brain, internet si hace falta, veredicto por reglas con fuentes y citas. No guarda nada. Ver <a href="#factcheck">Fact check</a>.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Reconstruye el índice por palabra desde <code>knowledge/</code>.</td></tr>
   </table>
   <h2>Skills</h2>
@@ -1102,7 +1221,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
 <section class="page" id="security" data-group-en="Reference" data-group-es="Referencia" data-title-en="Privacy and security" data-title-es="Privacidad y seguridad">
 <div class="l-en">
   <h1>Privacy and security</h1>
-  <p class="lead">Your data stays on your computer. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, or checks GitHub for a new version. The <a href="../privacy/">privacy policy</a> covers this website too (including its chat, provided by DokBot).</p>
+  <p class="lead">Your data stays on your computer. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, run a <a href="#factcheck">Fact check</a> that needs the web, or checks GitHub for a new version. The <a href="../privacy/">privacy policy</a> covers this website too (including its chat, provided by DokBot).</p>
   <h2>What stays local</h2>
   <ul>
     <li>The vault, the history, both search indexes and your secrets live in <code>~/.brain</code>.</li>
@@ -1110,6 +1229,8 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Composio, if you use it, keeps your app tokens in its cloud; everything it fetches is saved locally.</li>
     <li>Sign-ins to MCP servers (OAuth) stay in <code>~/.brain/data/oauth.json</code> (permissions <code>600</code>).</li>
     <li>brain goes online on its own only to check GitHub for a new version (it reads the latest release number and sends nothing about you), and, if you turn on remote access, to keep the Cloudflare tunnel open.</li>
+    <li>Fact check sends the claims you verify (as search queries) to the search engine you chose (DuckDuckGo by default) and opens the result pages; only when you run a check, or when the chat does if you turned that on. Pages on your computer or local network are never opened, and nothing is saved to the vault unless you click <i>Save to brain</i>.</li>
+    <li>Chat answers can contain HTML, but it's sanitized: no scripts or forms, and no images from other sites (so a hidden instruction can't leak data through an image URL).</li>
     <li>Backups leave credentials out unless you tick <i>Include credentials</i>.</li>
   </ul>
   <h2>The dashboard</h2>
@@ -1136,7 +1257,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
 </div>
 <div class="l-es">
   <h1>Privacidad y seguridad</h1>
-  <p class="lead">Tus datos se quedan en tu compu. brain solo sale a internet cuando guardás o actualizás una URL, usás una conexión que habla con un servicio remoto o se fija en GitHub si hay una versión nueva. La <a href="../privacy/">política de privacidad</a> cubre también este sitio (incluido su chat, provisto por DokBot).</p>
+  <p class="lead">Tus datos se quedan en tu compu. brain solo sale a internet cuando guardás o actualizás una URL, usás una conexión que habla con un servicio remoto, hacés un <a href="#factcheck">Fact check</a> que necesita la web o se fija en GitHub si hay una versión nueva. La <a href="../privacy/">política de privacidad</a> cubre también este sitio (incluido su chat, provisto por DokBot).</p>
   <h2>Qué queda local</h2>
   <ul>
     <li>El vault, el historial, los dos índices de búsqueda y tus secretos viven en <code>~/.brain</code>.</li>
@@ -1144,6 +1265,8 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Composio, si lo usás, guarda los tokens de tus apps en su nube; todo lo que trae se guarda local.</li>
     <li>Las sesiones iniciadas en servers MCP (OAuth) quedan en <code>~/.brain/data/oauth.json</code> (permisos <code>600</code>).</li>
     <li>brain sale a internet por su cuenta solo para fijarse en GitHub si hay una versión nueva (lee el número del último release y no manda nada tuyo) y, si prendés el acceso remoto, para mantener abierto el túnel de Cloudflare.</li>
+    <li>Fact check manda las afirmaciones que verificás (como búsquedas) al buscador que elegiste (DuckDuckGo por defecto) y abre las páginas de los resultados; solo cuando hacés una verificación, o cuando la hace el chat si lo activaste. Nunca abre páginas de tu compu ni de tu red local, y no guarda nada en el vault salvo que toques <i>Guardar en brain</i>.</li>
+    <li>Las respuestas del chat pueden traer HTML, pero se sanitiza: sin scripts ni formularios, y sin imágenes de otros sitios (así una instrucción escondida no puede filtrar datos por la URL de una imagen).</li>
     <li>Los backups dejan afuera las credenciales salvo que marques <i>Incluir credenciales</i>.</li>
   </ul>
   <h2>El dashboard</h2>

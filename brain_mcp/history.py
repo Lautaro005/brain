@@ -13,7 +13,7 @@ from pathlib import Path
 DATA = Path(__file__).resolve().parent.parent / "data"
 DB_PATH = DATA / "history.sqlite3"
 
-OPS = ("create", "update", "edit", "append", "delete", "restore")
+OPS = ("create", "update", "edit", "append", "delete", "restore", "graph", "format")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS changes (

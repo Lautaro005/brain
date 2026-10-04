@@ -51,9 +51,50 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.03.1 ===================== -->
+  <article class="release" id="v0.03.1">
+    <div class="when"><div class="ver">v0.03.1</div><time class="date" datetime="2026-10-04">2026-10-04</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>Fact check, graph changes you approve, and dated notes</h2>
+        <p>A clearer chat, a way to verify claims with visible evidence, and a note format any AI can read.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>Fact check</b> (new view): verify claims with a visible process. brain searches your memory first and goes to the web only if that's not enough (and says so), reads every page in full, groups sources that aren't independent, looks for counter-evidence and gives a verdict by rules — supported, likely supported, mixed, inconclusive, likely false, false or not verifiable — with quotes, dates and limitations. Preferences (level, freshness, primary sources, regions, languages, search engine…) are set once. Also <code>/factcheck</code> in the chat and the <code>fact_check</code> tool. Nothing is saved to the vault unless you click <i>Save to brain</i>.</li>
+          <li><b>Graph changes with approval</b>: to link or unlink notes, the chat (or an agent) proposes the change and you see an image of the graph with it marked in green or red. Approve, reject or undo; nothing changes before you approve.</li>
+          <li><b>Note format</b>: every note now carries <code>type</code>, <code>created</code> and <code>updated</code> (compatible with the Open Knowledge Format), filled in automatically. <b>Settings → Note format</b> adds them to older notes.</li>
+          <li>The chat can answer with <b>HTML</b> (tables, collapsible sections, highlights, simple diagrams), safely sanitized.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li>The chat follows clearer working rules: understand the request, use just the tools it needs, answer with the result first. It no longer repeats the same tool call, and it always ends with an answer instead of stopping when it runs out of rounds.</li>
+          <li>Saved pages are split by sections and paragraphs (headings and code blocks stay whole), and keep their author and date when the page shows them.</li>
+          <li>The Manus Studio card no longer repeats the command and arguments shown further down.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Fact check, cambios en el grafo que aprobás, y notas con fecha</h2>
+        <p>Un chat más claro, una forma de verificar afirmaciones con la evidencia a la vista y un formato de notas que cualquier IA entiende.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>Fact check</b> (vista nueva): verificá afirmaciones con un proceso visible. brain busca primero en tu memoria y sale a internet solo si no alcanza (y lo avisa), lee cada página entera, agrupa las fuentes que no son independientes, busca evidencia en contra y da un veredicto por reglas —respaldada, probablemente respaldada, mixta, no concluyente, probablemente falsa, falsa o no verificable— con citas, fechas y limitaciones. Las preferencias (nivel, actualidad, fuentes primarias, regiones, idiomas, buscador…) se configuran una vez. También <code>/factcheck</code> en el chat y la tool <code>fact_check</code>. No se guarda nada en el vault salvo que toques <i>Guardar en brain</i>.</li>
+          <li><b>Cambios en el grafo con aprobación</b>: para conectar o desconectar notas, el chat (o un agente) propone el cambio y ves una imagen del grafo con el cambio marcado en verde o rojo. Aprobás, rechazás o deshacés; nada cambia antes de aprobar.</li>
+          <li><b>Formato de las notas</b>: cada nota lleva ahora <code>type</code>, <code>created</code> y <code>updated</code> (compatible con el Open Knowledge Format), que se completan solos. <b>Ajustes → Formato de las notas</b> los agrega a las notas viejas.</li>
+          <li>El chat puede responder con <b>HTML</b> (tablas, secciones plegables, resaltados, diagramas simples), sanitizado.</li>
+        </ul>
+        <h3>Cambios</h3>
+        <ul>
+          <li>El chat sigue reglas de trabajo más claras: entender el pedido, usar las tools justas, responder con el resultado primero. Ya no repite la misma llamada a una tool, y siempre termina con una respuesta en vez de cortarse cuando se le acaban las vueltas.</li>
+          <li>Las páginas guardadas se parten por secciones y párrafos (los títulos y los bloques de código quedan enteros), y guardan su autor y su fecha cuando la página los muestra.</li>
+          <li>La tarjeta de Manus Studio ya no repite el comando y los argumentos que aparecen más abajo.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.03.0.1 ===================== -->
   <article class="release" id="v0.03.0.1">
-    <div class="when"><div class="ver">v0.03.0.1</div><time class="date" datetime="2026-10-01">2026-10-01</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.03.0.1</div><time class="date" datetime="2026-10-01">2026-10-01</time></div>
     <div>
       <div class="l-en">
         <h2>DeepSeek Harness, and Manus on your computer</h2>

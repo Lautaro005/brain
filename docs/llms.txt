@@ -27,6 +27,7 @@
 - [Chat](https://lautaro005.github.io/brain/docs/#chat): Talk to a local Ollama model that already knows your profile and memory, and can look things up and edit your vault with the same tools your agents have.
 - [Connecting agents](https://lautaro005.github.io/brain/docs/#agents): Each agent keeps its list of MCP servers in its own file. Connect adds brain's entry without touching anything else, after saving a backup (<file>.bak-brain).
 - [Remote access by URL](https://lautaro005.github.io/brain/docs/#remote): Publishes brain's MCP server at an internet URL through a Cloudflare tunnel, so agents in the cloud or on another computer can use your memory. Off by default.
+- [Fact check](https://lautaro005.github.io/brain/docs/#factcheck): Verify claims with a visible, repeatable process: brain searches your memory first and, only if that's not enough, the web. It shows the evidence and its limits; it doesn't promise the truth.
 - [Connections](https://lautaro005.github.io/brain/docs/#connections): brain is also an MCP client. Add other MCP servers (GitHub, Notion, Gmail…) and their tools show up in every agent you connected, with their results saved to your memory.
 - [Reflect and skills](https://lautaro005.github.io/brain/docs/#reflect-skills): Two ways to make stored memory more useful: Reflect reviews it and suggests fixes, and distill_skill turns everything on a topic into a reusable skill.
 
@@ -35,7 +36,7 @@
 - [MCP tools](https://lautaro005.github.io/brain/docs/#tools): Every tool brain exposes to your agents. Errors come back as text starting with Error:, never as exceptions.
 - [The brain command](https://lautaro005.github.io/brain/docs/#command): Installed in ~/.local/bin/brain. From a clone, ./brain.sh does the same.
 - [Configuration](https://lautaro005.github.io/brain/docs/#configuration): brain works without configuration. These are the knobs and the files it uses.
-- [Privacy and security](https://lautaro005.github.io/brain/docs/#security): Your data stays on your computer. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, or checks GitHub for a new version. The privacy policy covers this website too (including its chat, provided by DokBot).
+- [Privacy and security](https://lautaro005.github.io/brain/docs/#security): Your data stays on your computer. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, run a Fact check that needs the web, or checks GitHub for a new version. The privacy policy covers this website too (including its chat, provided by DokBot).
 - [Troubleshooting](https://lautaro005.github.io/brain/docs/#troubleshooting): The usual problems and their fixes.
 - [License](https://lautaro005.github.io/brain/docs/#license): MIT with the Commons Clause. Source available: use it, study it, change it and share it for free, including at work. Don't sell it.
 

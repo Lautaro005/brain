@@ -521,7 +521,7 @@
           <div class="panel" role="tabpanel" id="p-notes" aria-labelledby="t-notes" hidden>
             <div>
               <h3 data-i18n="notes.h">Projects and skills, linked</h3>
-              <p data-i18n="notes.p">Plain Markdown notes for your projects and reusable instructions. Link them with [[names]] and brain draws the connections for you.</p>
+              <p data-i18n="notes.p">Plain Markdown notes for your projects and reusable instructions, each with its type and the dates it was created and last updated. Link them and brain draws the connections; when an agent wants to change one, you approve it on a picture first.</p>
             </div>
             <div class="demo"><div class="card"><div class="card-h"><span>projects/online-store.md</span><span class="ref">2</span></div><div class="card-b">
               <span data-i18n="notes.l1">Stack: Next.js + Stripe</span><br><span data-i18n="notes.l2">Launch checklist → [[launch-checklist]]</span><br><span data-i18n="notes.l3">Copy tone → [[brand-voice]]</span>
@@ -633,14 +633,14 @@
     <div class="wrap">
       <div class="head">
         <h2 data-i18n="dash.h">A dashboard for all of it</h2>
-        <p data-i18n="dash.p">Type <code>brain</code> and it opens in your browser: switch services on and off, fill in your profile, connect agents, chat with your memory, save pages and see how everything connects.</p>
+        <p data-i18n="dash.p">Type <code>brain</code> and it opens in your browser: switch services on and off, fill in your profile, connect agents, chat with your memory, save pages, fact-check claims with the evidence in view and see how everything connects.</p>
       </div>
       <div class="window" aria-hidden="true">
         <div class="window-bar"><i></i><i></i><i></i><span>127.0.0.1:8765</span></div>
         <div class="dash">
           <div class="dash-side">
             <div class="it" data-i18n="dash.n1">Dashboard</div><div class="it">Chat</div><div class="it" data-i18n="dash.n2">Profile</div><div class="it" data-i18n="dash.n3">Connect agent</div>
-            <div class="it on" data-i18n="dash.n4">Graph</div><div class="it" data-i18n="dash.n5">Knowledge</div><div class="it">Logs</div>
+            <div class="it on" data-i18n="dash.n4">Graph</div><div class="it" data-i18n="dash.n5">Knowledge</div><div class="it">Fact check</div><div class="it">Logs</div>
           </div>
           <div class="dash-main">
             <div class="svc"><div>Chroma <span class="tog"></span></div><div>Ollama <span class="tog"></span></div><div>Inspector <span class="tog off"></span></div></div>
@@ -676,7 +676,7 @@
         </div>
       </div>
       <div class="dash-caption">
-        <span class="stamp" data-i18n="dash.c1">Services on/off</span><span class="stamp" data-i18n="dash.c2">Stats</span><span class="stamp" data-i18n="dash.c3">Memory import</span><span class="stamp" data-i18n="dash.c4">Graph</span><span class="stamp" data-i18n="dash.c6">Local chat</span><span class="stamp" data-i18n="dash.c5">English · Español</span>
+        <span class="stamp" data-i18n="dash.c1">Services on/off</span><span class="stamp" data-i18n="dash.c2">Stats</span><span class="stamp" data-i18n="dash.c3">Memory import</span><span class="stamp" data-i18n="dash.c4">Graph</span><span class="stamp" data-i18n="dash.c6">Local chat</span><span class="stamp" data-i18n="dash.c7">Fact check</span><span class="stamp" data-i18n="dash.c5">English · Español</span>
       </div>
     </div>
   </section>
@@ -695,7 +695,7 @@
       </div>
       <div class="card rules"><div class="card-h"><span data-i18n="priv.rules">Rules of the drawer</span><span class="ref">7</span></div>
         <ol class="card-b">
-          <li><span class="n">7.1</span><div><b data-i18n="priv.l1">Runs on your machine</b><span data-i18n="priv.l1p">Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, to check GitHub for a new version and, only if you turn on remote access, to keep a Cloudflare tunnel open for your cloud agents.</span></div></li>
+          <li><span class="n">7.1</span><div><b data-i18n="priv.l1">Runs on your machine</b><span data-i18n="priv.l1p">Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, to check GitHub for a new version, to search the web when a Fact check you run needs it and, only if you turn on remote access, to keep a Cloudflare tunnel open for your cloud agents.</span></div></li>
           <li><span class="n">7.2</span><div><b data-i18n="priv.l2">Every change can be undone</b><span data-i18n="priv.l2p">Each edit is kept as a version, so an agent can never destroy what you wrote.</span></div></li>
           <li><span class="n">7.3</span><div><b data-i18n="priv.l3">Agents stay inside the drawer</b><span data-i18n="priv.l3p">They can read and write your brain folder, and nothing else on your computer.</span></div></li>
           <li><span class="n">7.4</span><div><b data-i18n="priv.l4">Source available</b><span data-i18n="priv.l4p">MIT with the Commons Clause. Read every line on GitHub, change it, make it yours. Just don't sell it.</span></div></li>
@@ -779,7 +779,7 @@
       "profile.k1": "Name", "profile.k2": "Headline", "profile.v2": "Designer, runs an online store", "profile.k3": "About", "profile.v3": "Likes examples over theory. Works mornings.",
       "memory.h": "Bring the memory you already have", "memory.p": "Copy one prompt into ChatGPT, Claude or Gemini, paste the answer into brain, and everything they remember about you becomes cards, sorted by topic. From then on your agents add new facts on their own.",
       "memory.ch": "Imported from ChatGPT", "memory.c1": "Work", "memory.c1v": "runs an online store; learning Next.js", "memory.c2": "Preferences", "memory.c2v": "short answers; examples first", "memory.c3": "Goals", "memory.c3v": "launch the store this month",
-      "notes.h": "Projects and skills, linked", "notes.p": "Plain Markdown notes for your projects and reusable instructions. Link them with [[names]] and brain draws the connections for you.",
+      "notes.h": "Projects and skills, linked", "notes.p": "Plain Markdown notes for your projects and reusable instructions, each with its type and the dates it was created and last updated. Link them and brain draws the connections; when an agent wants to change one, you approve it on a picture first.",
       "notes.l1": "Stack: Next.js + Stripe", "notes.l2": "Launch checklist → [[launch-checklist]]", "notes.l3": "Copy tone → [[brand-voice]]",
       "web.h": "Save any page. Find it by meaning.", "web.p": "Hand brain a link and it keeps the text, even from sites built with JavaScript. Later, search in your own words; it finds the idea, not just the keyword.",
       "web.ch": "Search: “how to price my plans”", "web.r1": "Pricing pages that convert", "web.r2": "Anchoring and decoy offers", "web.r3": "Stripe billing basics",
@@ -797,13 +797,13 @@
       "agents.cloudp": "A private URL through a Cloudflare tunnel, with a secret token and an optional read-only mode.",
       "agents.claude": "Chat and Cowork", "agents.chatgpt": "In Codex and ChatGPT Work modes", "agents.click": "One click",
       "agents.any": "Any local MCP client", "agents.anyp": "The dashboard gives you the exact values to paste: command and arguments.", "agents.manual": "Copy & paste",
-      "dash.h": "A dashboard for all of it", "dash.p": "Type brain and it opens in your browser: switch services on and off, fill in your profile, connect agents, chat with your memory, save pages and see how everything connects.",
+      "dash.h": "A dashboard for all of it", "dash.p": "Type brain and it opens in your browser: switch services on and off, fill in your profile, connect agents, chat with your memory, save pages, fact-check claims with the evidence in view and see how everything connects.",
       "dash.n1": "Dashboard", "dash.n2": "Profile", "dash.n3": "Connect agent", "dash.n4": "Graph", "dash.n5": "Knowledge",
       "dash.g1": "profile", "dash.g2": "online-store", "dash.g3": "Preferences", "dash.g4": "saved pages",
-      "dash.c1": "Services on/off", "dash.c2": "Stats", "dash.c3": "Memory import", "dash.c4": "Graph", "dash.c5": "English · Español", "dash.c6": "Local chat",
+      "dash.c1": "Services on/off", "dash.c2": "Stats", "dash.c3": "Memory import", "dash.c4": "Graph", "dash.c5": "English · Español", "dash.c6": "Local chat", "dash.c7": "Fact check",
       "priv.h": "Yours, on your computer", "priv.ch": "Where your memory lives",
       "priv.card": "Everything brain knows about you is a folder on your computer: <b>~/.brain</b>. Nothing is uploaded, and no account exists to sign in to.",
-      "priv.rules": "Rules of the drawer", "priv.l1": "Runs on your machine", "priv.l1p": "Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, to check GitHub for a new version and, only if you turn on remote access, to keep a Cloudflare tunnel open for your cloud agents.",
+      "priv.rules": "Rules of the drawer", "priv.l1": "Runs on your machine", "priv.l1p": "Search is powered by a small model that runs locally. brain only goes online to save a page you ask for, to reach the connections you add, to check GitHub for a new version, to search the web when a Fact check you run needs it and, only if you turn on remote access, to keep a Cloudflare tunnel open for your cloud agents.",
       "priv.l2": "Every change can be undone", "priv.l2p": "Each edit is kept as a version, so an agent can never destroy what you wrote.",
       "priv.l3": "Agents stay inside the drawer", "priv.l3p": "They can read and write your brain folder, and nothing else on your computer.",
       "priv.l4": "Source available", "priv.l4p": "MIT with the Commons Clause. Read every line on GitHub, change it, make it yours. Just don't sell it.",
@@ -836,7 +836,7 @@
       "profile.k1": "Nombre", "profile.k2": "En una línea", "profile.v2": "Diseñadora, tiene una tienda online", "profile.k3": "Sobre mí", "profile.v3": "Prefiere ejemplos antes que teoría. Trabaja de mañana.",
       "memory.h": "Traé la memoria que ya tenés", "memory.p": "Copiá un prompt en ChatGPT, Claude o Gemini, pegá la respuesta en brain, y todo lo que recuerdan de vos se vuelve fichas ordenadas por tema. Desde ahí, tus agentes suman datos nuevos solos.",
       "memory.ch": "Importado de ChatGPT", "memory.c1": "Trabajo", "memory.c1v": "tiene una tienda online; aprende Next.js", "memory.c2": "Preferencias", "memory.c2v": "respuestas cortas; ejemplos primero", "memory.c3": "Objetivos", "memory.c3v": "lanzar la tienda este mes",
-      "notes.h": "Proyectos y skills, conectados", "notes.p": "Notas en Markdown para tus proyectos e instrucciones reutilizables. Enlazalas con [[nombres]] y brain dibuja las conexiones por vos.",
+      "notes.h": "Proyectos y skills, conectados", "notes.p": "Notas en Markdown para tus proyectos e instrucciones reutilizables, cada una con su tipo y las fechas en que se creó y se actualizó. Enlazalas y brain dibuja las conexiones; cuando un agente quiere cambiar una, la aprobás antes sobre una imagen.",
       "notes.l1": "Stack: Next.js + Stripe", "notes.l2": "Checklist de lanzamiento → [[checklist]]", "notes.l3": "Tono de los textos → [[voz-de-marca]]",
       "web.h": "Guardá cualquier página. Encontrala por lo que dice.", "web.p": "Pasale un link a brain y guarda el texto, incluso de sitios hechos con JavaScript. Después buscás con tus palabras y encuentra la idea, no solo la palabra exacta.",
       "web.ch": "Buscar: “cómo ponerle precio a mis planes”", "web.r1": "Páginas de precios que convierten", "web.r2": "Anclaje y ofertas señuelo", "web.r3": "Lo básico de cobros con Stripe",
@@ -854,13 +854,13 @@
       "agents.cloudp": "Una URL privada por un túnel de Cloudflare, con un token secreto y modo solo lectura si querés.",
       "agents.claude": "Chat y Cowork", "agents.chatgpt": "En los modos Codex y ChatGPT Work", "agents.click": "Un click",
       "agents.any": "Cualquier cliente MCP local", "agents.anyp": "El dashboard te da los valores exactos para pegar: comando y argumentos.", "agents.manual": "Copiar y pegar",
-      "dash.h": "Un dashboard para todo", "dash.p": "Escribí brain y se abre en tu navegador: prendé y apagá servicios, completá tu perfil, conectá agentes, chateá con tu memoria, guardá páginas y mirá cómo se conecta todo.",
+      "dash.h": "Un dashboard para todo", "dash.p": "Escribí brain y se abre en tu navegador: prendé y apagá servicios, completá tu perfil, conectá agentes, chateá con tu memoria, guardá páginas, verificá afirmaciones con la evidencia a la vista y mirá cómo se conecta todo.",
       "dash.n1": "Panel", "dash.n2": "Perfil", "dash.n3": "Conectar agente", "dash.n4": "Grafo", "dash.n5": "Conocimiento",
       "dash.g1": "perfil", "dash.g2": "tienda-online", "dash.g3": "Preferencias", "dash.g4": "páginas guardadas",
-      "dash.c1": "Servicios on/off", "dash.c2": "Estadísticas", "dash.c3": "Importar memoria", "dash.c4": "Grafo", "dash.c5": "English · Español", "dash.c6": "Chat local",
+      "dash.c1": "Servicios on/off", "dash.c2": "Estadísticas", "dash.c3": "Importar memoria", "dash.c4": "Grafo", "dash.c5": "English · Español", "dash.c6": "Chat local", "dash.c7": "Fact check",
       "priv.h": "Tuyo, en tu compu", "priv.ch": "Dónde vive tu memoria",
       "priv.card": "Todo lo que brain sabe de vos es una carpeta en tu computadora: <b>~/.brain</b>. No se sube nada y no hay ninguna cuenta a la que entrar.",
-      "priv.rules": "Reglas del fichero", "priv.l1": "Corre en tu máquina", "priv.l1p": "La búsqueda funciona con un modelo chico que corre local. brain solo sale a internet para guardar una página que le pedís, para usar las conexiones que agregás, para fijarse en GitHub si hay una versión nueva y, solo si prendés el acceso remoto, para mantener abierto un túnel de Cloudflare para tus agentes en la nube.",
+      "priv.rules": "Reglas del fichero", "priv.l1": "Corre en tu máquina", "priv.l1p": "La búsqueda funciona con un modelo chico que corre local. brain solo sale a internet para guardar una página que le pedís, para usar las conexiones que agregás, para fijarse en GitHub si hay una versión nueva, para buscar en la web cuando un Fact check que hacés lo necesita y, solo si prendés el acceso remoto, para mantener abierto un túnel de Cloudflare para tus agentes en la nube.",
       "priv.l2": "Todo se puede deshacer", "priv.l2p": "Cada edición queda como una versión, así que ningún agente puede destruir lo que escribiste.",
       "priv.l3": "Los agentes no salen del fichero", "priv.l3p": "Pueden leer y escribir tu carpeta de brain, y nada más de tu computadora.",
       "priv.l4": "Código a la vista", "priv.l4p": "MIT con Commons Clause. Leé cada línea en GitHub, cambiala, hacela tuya. Lo único que no podés es venderla.",

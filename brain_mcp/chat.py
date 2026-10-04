@@ -52,6 +52,7 @@ COMMANDS = {
     "reflect": "Revisá mi memoria y lo que guardé: duplicados, contradicciones y notas sin entidades.",
     "compact": "Resumí la conversación hasta acá.",
     "add-mcp": "Quiero agregar un server MCP a las Conexiones de brain.",
+    "factcheck": "Verificá esto:",
 }
 # /compact no es un modo: resume lo anterior en un mensaje marcado `compact` y, desde ahí, al modelo le
 # llega ese resumen en lugar de los mensajes viejos (que siguen guardados y visibles en el chat).
@@ -60,8 +61,21 @@ COMPACT_PROMPT = (
     "usuario, qué se decidió o respondió, datos concretos (nombres, números, paths de archivos), qué cambios "
     "se hicieron en el vault con las tools, y qué quedó pendiente. Viñetas, máximo ~300 palabras, sin "
     "introducción. Escribí en el idioma de la conversación.")
-CMD_TITLES = {"es": {"organize": "Ordenar el vault", "reflect": "Revisar la memoria", "add-mcp": "Agregar un conector"},
-              "en": {"organize": "Organize the vault", "reflect": "Review my memory", "add-mcp": "Add a connector"}}
+CMD_TITLES = {"es": {"organize": "Ordenar el vault", "reflect": "Revisar la memoria", "add-mcp": "Agregar un conector",
+                     "factcheck": "Fact check"},
+              "en": {"organize": "Organize the vault", "reflect": "Review my memory", "add-mcp": "Add a connector",
+                     "factcheck": "Fact check"}}
+FACTCHECK_PROMPT = """# Modo /factcheck: verificar afirmaciones
+El usuario quiere verificar algo. Llamá fact_check UNA vez con el texto a verificar, tal cual lo escribió (si solo
+escribió /factcheck, preguntale qué quiere verificar). Después presentá el resultado:
+- por cada afirmación, el veredicto tal como vino (no lo cambies ni lo suavices) y por qué, en una o dos líneas;
+- las fuentes principales con su link, tipo y fecha, y la cita que lo justifica;
+- qué vino de brain y qué de internet, y las limitaciones;
+- si es de salud, derecho, finanzas o seguridad: que es informativo y no reemplaza a un profesional.
+Podés usar una tabla HTML o Markdown. No guardes fuentes en el vault: si el usuario quiere, lo hace desde Fact check."""
+FACTCHECK_AUTO = ("# Fact check automático (Ajustes del usuario)\nSi el usuario pregunta un dato factual (números, "
+                  "noticias, salud, leyes, hechos recientes) y no está en el contexto ni en search_knowledge, usá "
+                  "fact_check antes de responder y avisá que consultaste fuentes externas.")
 ADD_MCP_PROMPT = """# Modo /add-mcp: agregar un conector
 El usuario quiere sumar un server MCP a las Conexiones de brain. Pasos:
 1. Si te pasó una URL de documentación (GitHub, npm, PyPI, la web del servicio), leela con read_url. Si te pasó
@@ -93,16 +107,23 @@ y los índices, el historial y los ajustes en data/.
   (Claude, ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, DeepSeek Harness, Manus Studio
   (con su formulario «Run a command», valores en la tarjeta), y el acceso
   remoto por URL), Conexiones (servers MCP de otros servicios cuyas tools brain usa y guarda), Grafo,
-  Conocimiento (guardar y buscar URLs, frescura de fuentes) y Logs. El engranaje abre Ajustes.
+  Conocimiento (guardar y buscar URLs, frescura de fuentes), Fact check (verificar afirmaciones: busca primero
+  en brain y, si no alcanza, en internet; da un veredicto con fuentes, citas y limitaciones; sus preferencias
+  —nivel, actualidad, fuentes primarias, evidencia en contra, regiones, idiomas, buscador— están en esa vista)
+  y Logs. El engranaje abre Ajustes.
 - Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
   menú, modelo y contexto del chat, instrucciones propias para el chat, notificaciones del sistema, backup y
-  restauración, y colores del grafo.
+  restauración, formato de las notas (completar type/created/updated en notas viejas) y colores del grafo.
+- Grafo: para conectar o desconectar notas, propose_graph_change muestra una imagen con los cambios marcados
+  (verde = nueva, rojo = se saca) y el usuario aprueba, rechaza o deshace. También se ven en la vista Grafo.
+- Formato de las notas: Markdown con frontmatter compatible con OKF (type, name, title, description, tags,
+  related); brain completa solo type, created (cuándo se creó) y updated (último cambio).
 - Acceso remoto: Conectar agente → «Acceso remoto por URL» publica el server MCP con un túnel de Cloudflare.
   La URL lleva un token secreto (es como una contraseña); se puede regenerar y poner en solo lectura. Así se
   conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT.
 - Comandos del chat: /organize (ordenar el vault), /reflect (revisar la memoria), /compact (resumir la
-  conversación), /add-mcp (proponer un conector), /new (chat nuevo), y /<skill> para usar un skill guardado en
-  skills/.
+  conversación), /add-mcp (proponer un conector), /factcheck (verificar una afirmación), /new (chat nuevo), y
+  /<skill> para usar un skill guardado en skills/.
 - Conectores: propose_connection solo propone; el usuario los aprueba con un click. Vos no podés agregarlos.
 Si el usuario pregunta cómo hacer algo en brain, explicale dónde está en el dashboard con estos nombres.""",
     "en": """# How brain works (fixed app context)
@@ -118,18 +139,50 @@ vault/ and the indexes, history and settings in data/.
   ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, DeepSeek Harness, Manus Studio (through its
   "Run a command" form, values on its card), and remote access by URL),
   Connections (other services' MCP servers whose tools brain uses and saves), Graph, Knowledge (save and
-  search URLs, source freshness) and Logs. The gear opens Settings.
+  search URLs, source freshness), Fact check (verify claims: searches brain first and, if that's not enough,
+  the web; gives a verdict with sources, quotes and limitations; its preferences —level, freshness, primary
+  sources, counter-evidence, regions, languages, search engine— live in that view) and Logs. The gear opens
+  Settings.
 - Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
-  and context, custom chat instructions, system notifications, backup and restore, and graph colors.
+  and context, custom chat instructions, system notifications, backup and restore, note format (fill in
+  type/created/updated on older notes) and graph colors.
+- Graph: to link or unlink notes, propose_graph_change shows an image with the changes marked (green = new,
+  red = removed) and the user approves, rejects or undoes it. They also show in the Graph view.
+- Note format: Markdown with OKF-compatible frontmatter (type, name, title, description, tags, related); brain
+  fills in type, created (when it was created) and updated (last change) by itself.
 - Remote access: Connect agent → "Remote access by URL" publishes the MCP server through a Cloudflare tunnel.
   The URL carries a secret token (treat it like a password); it can be regenerated and set to read-only. Cloud
   agents such as Manus on the web, Claude.ai or ChatGPT connect this way.
 - Chat commands: /organize (tidy the vault), /reflect (review memory), /compact (summarize the conversation),
-  /add-mcp (propose a connector), /new (new chat), and /<skill> to use a skill saved in skills/.
+  /add-mcp (propose a connector), /factcheck (verify a claim), /new (new chat), and /<skill> to use a skill
+  saved in skills/.
 - Connectors: propose_connection only proposes; the user approves with one click. You can't add them yourself.
 If the user asks how to do something in brain, tell them where it is in the dashboard using these names.""",
 }
 MAX_SKILL_CHARS = 12000
+
+# Reglas de trabajo del chat (el "harness"): entender el pedido, resolverlo con las tools justas, verificar y
+# responder directo. Van primero en el system prompt. Si cambian las tools que modifican cosas, revisar acá.
+HARNESS = """Sos el asistente personal del usuario dentro de brain, su base de conocimiento local. Conocés al usuario por su perfil y su memoria (abajo): usalos para personalizar cada respuesta.
+
+# Cómo trabajar
+1. Entendé el pedido antes de actuar: qué resultado quiere el usuario al final (una respuesta, un cambio en el vault, una explicación). Si el pedido es claro, hacelo sin preguntar. Preguntá solo si falta un dato que cambia el resultado y que no está en el contexto ni en el vault; en ese caso, una sola pregunta corta.
+2. Usá las tools justas. Si sabés el archivo, leelo directo (read_file) en vez de listar todo; para buscar en lo guardado, search_knowledge; para saber qué hay, list_vault. No repitas una tool con los mismos argumentos: el resultado no cambia.
+3. Para cambiar cosas: a) antes de decir que algo "ya está", leelo; b) metadatos (description, tags, name) con set_frontmatter, sin reescribir el archivo; c) texto con str_replace_file o write_file; d) nunca digas que hiciste un cambio si la tool no respondió OK; si respondió Error, contá el error y probá de otra forma.
+4. Conexiones del grafo (conectar o desconectar notas, el `related`): usá propose_graph_change, nunca set_frontmatter(related). Eso no cambia nada todavía: el usuario ve una imagen con los cambios marcados y aprueba o rechaza con un click. Para mirar una zona del grafo antes, inspect_graph_region.
+5. Conectores (servers MCP): leé su documentación con read_url y proponelo con propose_connection; el usuario lo aprueba, vos no podés agregarlo solo.
+6. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. Cada cambio queda en el historial y se deshace con file_history + restore_file.
+7. No inventes datos: si algo no está en el contexto, en el vault ni en el resultado de una tool, decilo.
+
+# Cómo responder
+- Empezá por la respuesta o el resultado, sin introducción ("¡Claro!", repetir la pregunta). Después, solo el detalle que sirve.
+- Si cambiaste algo, terminá con una línea de qué cambiaste y en qué archivo.
+- Formato: Markdown. Cuando ayuda a que se entienda mejor, podés usar HTML dentro de la respuesta: tablas con celdas combinadas, <details><summary> para lo largo, <mark>, <kbd>, colores con style="…" o un diagrama simple en <svg>. Sin <script>, formularios, iframes ni imágenes de otros sitios: se borran antes de mostrarse.
+- {reply_lang}, salvo que el usuario escriba en otro idioma."""
+REPEAT_NOTE = ("Ya llamaste a {name} con estos mismos argumentos en esta respuesta; el resultado está arriba. "
+               "No la repitas: respondé con lo que tenés o probá otra cosa.")
+FINAL_NUDGE = ("Respondé ahora el pedido del usuario con lo que ya encontraste, sin llamar más tools. Si quedó algo "
+               "sin hacer, decí qué y por qué.")
 
 
 def app_guide() -> dict:
@@ -441,6 +494,8 @@ def _command_prompt(cmd: str) -> str:
                 + body[:MAX_SKILL_CHARS])
     if cmd == "add-mcp":
         return ADD_MCP_PROMPT
+    if cmd == "factcheck":
+        return FACTCHECK_PROMPT
     if cmd == "organize":
         return organize.skill() + "\n\n" + organize.overview_text()
     if cmd == "reflect":
@@ -473,20 +528,7 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
     past = _related_past(text, chat_id)
     reply_lang = "Respondé en español rioplatense" if lang == "es" else "Answer in English"
     parts = [
-        "Sos el asistente personal del usuario dentro de brain, su base de conocimiento local. "
-        "Conocés al usuario por su perfil y su memoria, que están abajo: usalos para personalizar cada respuesta. "
-        "Tenés tools para leer, buscar, crear y editar notas del vault, guardar memorias nuevas (add_memory) y "
-        "buscar en lo guardado (search_knowledge). Usalas cuando el usuario pida consultar, agregar o cambiar algo. "
-        "Reglas para cambiar cosas: 1) antes de decir que algo 'ya está', leelo con read_file o list_vault; "
-        "2) para cambiar un metadato (description, tags, related, name) usá set_frontmatter, no reescribas el archivo; "
-        "3) para cambiar texto usá str_replace_file o write_file; 4) nunca digas que hiciste un cambio si la tool no "
-        "respondió 'OK'; si respondió 'Error', contá el error y probá de otra forma. "
-        "Si el usuario pide sumar un conector o server MCP, leé su documentación con read_url y proponelo con "
-        "propose_connection (el usuario lo aprueba con un click; vos no podés agregarlo solo). "
-        "Después de actuar, contá en una línea qué hiciste. Cada cambio queda en el historial y se puede deshacer con "
-        "file_history + restore_file. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. "
-        "No inventes datos: si algo no está en el contexto ni en el vault, decilo. "
-        f"{reply_lang}, salvo que el usuario escriba en otro idioma.",
+        HARNESS.format(reply_lang=reply_lang),
         APP_GUIDE["es"],
         "# Perfil (profile.md)\n" + (f"Nombre: {p['name']}\nEn una línea: {p['headline']}\n\n{p['about']}"
                                      if p["exists"] else "(todavía no cargó su perfil)"),
@@ -500,6 +542,12 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         parts.append("# Instrucciones del usuario para el chat (Ajustes)\nRespetalas en el tono, el formato y el "
                      "enfoque de cada respuesta; no reemplazan las reglas de arriba sobre las tools.\n"
                      + user_system.strip()[:MAX_SYSTEM_USER])
+    try:
+        from . import factcheck
+        if factcheck.prefs()["chat_auto"]:
+            parts.append(FACTCHECK_AUTO)
+    except Exception:
+        pass
     if command:
         try:
             parts.append(_command_prompt(command))
@@ -812,9 +860,10 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
 
     msgs = build(mode)
     answer, used, failed = "", [], False
+    seen_calls, repeats, out_of_rounds = set(), 0, False
     try:
         rounds = 0
-        while rounds < MAX_ROUNDS:
+        while rounds < MAX_ROUNDS and repeats < 3:
             rounds += 1
             content, calls, flt, round_start = "", [], _TagFilter(), len(answer)
             native = _native_tools(mcp_tools) if mode == "native" else None
@@ -873,7 +922,13 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
                     args = {}
                 idx = len(used)
                 yield {"type": "tool", "i": idx, "name": name, "args": args}
-                result, ok = _run_tool(name, args, valid)
+                key = name + json.dumps(args, sort_keys=True, ensure_ascii=False, default=str)
+                if key in seen_calls:  # el modelo da vueltas: no se ejecuta otra vez
+                    result, ok = REPEAT_NOTE.format(name=name), False
+                    repeats += 1
+                else:
+                    seen_calls.add(key)
+                    result, ok = _run_tool(name, args, valid)
                 used.append({"name": name, "args": args, "ok": ok, "result": result[:1500]})
                 yield {"type": "tool_result", "i": idx, "name": name, "ok": ok, "result": result[:1500]}
                 if mode == "native":
@@ -886,7 +941,27 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
                 answer += "\n\n"
                 yield {"type": "token", "text": "\n\n"}
         else:
-            yield {"type": "notice", "code": "max_rounds"}
+            out_of_rounds = True
+        if out_of_rounds or (used and not answer.strip()):
+            # se acabaron las vueltas (o el modelo usó tools y no dijo nada): una vuelta más, sin tools, para
+            # que el usuario reciba una respuesta en vez de un corte
+            if out_of_rounds:
+                yield {"type": "notice", "code": "max_rounds"}
+            msgs.append({"role": "user", "content": FINAL_NUDGE})
+            flt = _TagFilter()
+            for chunk in _stream(model, msgs, None, num_ctx):
+                if chunk.get("done"):
+                    tokens = max(tokens, estimate(msgs, None))
+                    yield {"type": "usage", "tokens": tokens, "ctx": num_ctx, "max": win["max"]}
+                piece = (chunk.get("message") or {}).get("content") or ""
+                shown = flt.feed(piece) if piece else ""
+                if shown:
+                    answer += shown
+                    yield {"type": "token", "text": shown}
+            tail = flt.flush()
+            if tail:
+                answer += tail
+                yield {"type": "token", "text": tail}
     except ChatError as e:
         failed = True
         yield {"type": "error", "code": e.code, "detail": e.detail}

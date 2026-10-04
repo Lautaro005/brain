@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from contextlib import contextmanager
+from datetime import date, datetime
 from pathlib import Path
 
 import frontmatter
@@ -18,16 +19,26 @@ VAULT = (ROOT / "vault").resolve()
 
 # El vault no se versiona con la app: se crea desde esta plantilla la primera vez.
 TEMPLATE_BRAIN = """---
+type: Index
 name: brain
+title: Índice del brain
 description: Índice central del brain — dónde está cada cosa
+created: {today}
+updated: {today}
 ---
 # Brain — índice
 
-- Perfil del usuario: `profile.md` (leelo primero para saber con quién hablás)
+- Perfil del usuario: [profile.md](profile.md) (leelo primero para saber con quién hablás)
 - Memoria sobre el usuario: `memory/` (usá `add_memory` para guardar hechos nuevos)
 - Proyectos: `projects/`
 - Skills: `skills/` (usá `list_skills` antes de tareas complejas)
 - Conocimiento scrapeado: `knowledge/sources/` o `search_knowledge`
+
+## Formato de las notas
+Markdown con frontmatter YAML, compatible con OKF (Open Knowledge Format): `type` (Project, Memory, Skill,
+Source, Profile, Index, Reference o Note), `name`, `title`, `description` (una frase), `tags`, `related`,
+y las fechas `created` y `updated`, que brain completa solo. Para linkear notas sirven `[texto](ruta.md)`
+(Markdown estándar, más portable) o `[[nombre]]`.
 """
 TEMPLATE_DIRS = ("projects", "skills", "memory", "knowledge/sources")
 
@@ -42,7 +53,7 @@ def ensure_vault() -> None:
         (VAULT / d).mkdir(parents=True, exist_ok=True)
     brain = VAULT / "BRAIN.md"
     if not brain.exists():
-        brain.write_text(TEMPLATE_BRAIN, encoding="utf-8")
+        brain.write_text(TEMPLATE_BRAIN.format(today=date.today().isoformat()), encoding="utf-8")
 
 
 def _resolve(path: str) -> Path:
@@ -123,6 +134,101 @@ def check_frontmatter(text: str, path: str = "") -> str:
     )
 
 
+# ---------- metadatos de formato (perfil OKF de brain) ----------
+# Cada nota lleva `type` (qué es), `created` (cuándo se creó) y `updated` (último cambio). brain los completa
+# solo en cada escritura, tocando únicamente esas líneas del YAML (no reformatea el resto del frontmatter).
+# OKF (Open Knowledge Format v0.2) solo exige `type`; el resto de los campos de brain son extensiones válidas.
+
+TYPES = {"projects": "Project", "skills": "Skill", "memory": "Memory", "knowledge": "Source"}
+STAMP_FIELDS = ("type", "created", "updated")
+
+
+def note_type(rel: str) -> str:
+    if rel == "BRAIN.md" or rel.endswith("/index.md") or rel == "index.md":
+        return "Index"
+    if rel == "profile.md":
+        return "Profile"
+    if rel.startswith("knowledge/") and not rel.startswith("knowledge/sources/"):
+        return "Reference"
+    return TYPES.get(rel.split("/")[0], "Note") if "/" in rel else "Note"
+
+
+def _day(v) -> str | None:
+    """Fecha YYYY-MM-DD de un valor de frontmatter o del historial (ISO con hora), o None."""
+    if isinstance(v, datetime):
+        return v.date().isoformat()
+    if isinstance(v, date):
+        return v.isoformat()
+    m = re.match(r"\s*['\"]?(\d{4}-\d{2}-\d{2})", str(v or ""))
+    return m.group(1) if m else None
+
+
+def _first_seen(rel: str) -> str | None:
+    """Fecha del primer cambio registrado de un archivo (para `created` de notas viejas)."""
+    try:
+        from contextlib import closing
+        with closing(history._connect()) as con:
+            row = con.execute("SELECT MIN(ts) FROM changes WHERE path = ?", (rel,)).fetchone()
+        return _day(row[0]) if row and row[0] else None
+    except Exception:
+        return None
+
+
+def stamp(text: str, rel: str, before: str | None = None, touch: bool = True, today: str | None = None,
+          created: str | None = None, updated: str | None = None) -> str:
+    """Completa type/created/updated en el frontmatter de `text` (una nota .md):
+    - type: si falta, según la carpeta (note_type);
+    - created: el que ya tenga; si no, el de la versión anterior; si no, el primer cambio del historial
+      (o `created`), y si es nueva, hoy;
+    - updated: hoy si `touch`; si no, solo se agrega cuando falta (con `updated` o created).
+    Edita solo esas líneas; si el archivo no tiene frontmatter, le agrega uno con esos tres campos."""
+    today = today or date.today().isoformat()
+    m = _FM.match(text)
+    meta = {}
+    if m:
+        try:
+            meta = yaml.safe_load(m.group(1)) or {}
+        except yaml.YAMLError:
+            return text  # check_frontmatter ya lo validó: no debería pasar
+        if not isinstance(meta, dict):
+            return text
+    want: dict[str, str] = {}
+    if not meta.get("type"):
+        want["type"] = note_type(rel)
+    if not _day(meta.get("created")):
+        prev = None
+        if before:
+            pm = _FM.match(before)
+            if pm:
+                try:
+                    prev = _day((yaml.safe_load(pm.group(1)) or {}).get("created"))
+                except (yaml.YAMLError, AttributeError):
+                    prev = None
+        want["created"] = prev or created or (_first_seen(rel) if before is not None else None) or today
+    if touch and _day(meta.get("updated")) != today:
+        want["updated"] = today
+    elif not touch and not _day(meta.get("updated")):
+        want["updated"] = updated or want.get("created") or _day(meta.get("created")) or today
+    if not want:
+        return text
+    if not m:
+        head = "".join(f"{k}: {want[k]}\n" for k in STAMP_FIELDS if k in want)
+        return f"---\n{head}---\n" + text
+    lines = m.group(1).split("\n")
+    for k in STAMP_FIELDS:
+        if k not in want:
+            continue
+        rx = re.compile(rf"^{k}\s*:")
+        idx = next((i for i, ln in enumerate(lines) if rx.match(ln)), None)
+        if idx is not None:
+            lines[idx] = f"{k}: {want[k]}"
+        elif k == "type":
+            lines.insert(0, f"type: {want[k]}")
+        else:
+            lines.append(f"{k}: {want[k]}")
+    return text[:m.start(1)] + "\n".join(lines) + text[m.end(1):]
+
+
 def parse(text: str) -> tuple[dict, str]:
     """(metadata, contenido) sin romperse nunca: si el YAML es inválido, lo repara o lo ignora."""
     try:
@@ -166,11 +272,18 @@ def _checked(p: Path, text: str) -> str:
     return check_frontmatter(text, _rel(p)) if p.suffix == ".md" else text
 
 
-def write_file(path: str, content: str, op: str | None = None) -> str:
+def _stamped(p: Path, text: str, before: str | None, touch: bool = True) -> str:
+    return stamp(text, _rel(p), before, touch) if p.suffix == ".md" else text
+
+
+def write_file(path: str, content: str, op: str | None = None, stamp_meta: bool = True) -> str:
+    """stamp_meta=False escribe el contenido exacto (deshacer un cambio, volver atrás): no toca type/fechas."""
     p = _resolve(path)
     content = _checked(p, content)
     with _lock():
         before = _read_or_none(p)
+        if stamp_meta:
+            content = _stamped(p, content, before)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
         history.record(op or ("update" if before is not None else "create"), _rel(p), before, content)
@@ -182,7 +295,7 @@ def append_file(path: str, content: str) -> str:
     with _lock():
         before = _read_or_none(p)
         p.parent.mkdir(parents=True, exist_ok=True)
-        after = _checked(p, (before or "") + content)
+        after = _stamped(p, _checked(p, (before or "") + content), before)
         p.write_text(after, encoding="utf-8")
         history.record("append", _rel(p), before, after)
     return _rel(p)
@@ -197,13 +310,17 @@ def str_replace_file(path: str, old: str, new: str) -> str:
         n = text.count(old) if old else 0
         if n != 1:
             raise VaultError(f"'old' tiene que aparecer exactamente 1 vez en {path}; aparece {n}.")
-        after = _checked(p, text.replace(old, new, 1))
+        after = _stamped(p, _checked(p, text.replace(old, new, 1)), text)
         p.write_text(after, encoding="utf-8")
         history.record("edit", _rel(p), text, after)
     return _rel(p)
 
 
-def set_frontmatter(path: str, fields: dict) -> str:
+# campos de control que no cuentan como "actualizar la nota" (no mueven `updated`)
+BOOKKEEPING = {"checked_at", "refresh_error"}
+
+
+def set_frontmatter(path: str, fields: dict, op: str = "edit") -> str:
     """Cambia campos del frontmatter sin tocar el contenido. Un valor None borra el campo."""
     p = _resolve(path)
     if not isinstance(fields, dict) or not fields:
@@ -218,10 +335,59 @@ def set_frontmatter(path: str, fields: dict) -> str:
                 meta.pop(str(k), None)
             else:
                 meta[str(k)] = v
-        after = frontmatter.dumps(frontmatter.Post(body, **meta)) + "\n"
+        after = frontmatter.dumps(frontmatter.Post(body, **meta), sort_keys=False) + "\n"
+        touch = not set(map(str, fields)) <= BOOKKEEPING and "updated" not in fields
+        after = _stamped(p, after, text, touch)
         p.write_text(after, encoding="utf-8")
-        history.record("edit", _rel(p), text, after)
+        history.record(op, _rel(p), text, after)
     return _rel(p)
+
+
+def backfill_metadata() -> dict:
+    """Completa type/created/updated en las notas que no los tienen (Ajustes → Formato de las notas).
+    created = primer cambio del historial (o la fecha del archivo), updated = último cambio (o la fecha del
+    archivo). No cambia nada más; cada nota tocada queda en el historial con la operación "format"."""
+    done, skipped = [], 0
+    for f in sorted(VAULT.rglob("*.md")):
+        rel = _rel(f)
+        if any(part.startswith(".") for part in f.relative_to(VAULT).parts):
+            continue
+        with _lock():
+            text = f.read_text(encoding="utf-8")
+            try:
+                text_ok = check_frontmatter(text, rel)
+            except VaultError:
+                skipped += 1
+                continue
+            mtime = datetime.fromtimestamp(f.stat().st_mtime).date().isoformat()
+            try:
+                from contextlib import closing
+                with closing(history._connect()) as con:
+                    first, last = con.execute("SELECT MIN(ts), MAX(ts) FROM changes WHERE path = ?", (rel,)).fetchone()
+            except Exception:
+                first = last = None
+            after = stamp(text_ok, rel, None, touch=False, created=_day(first) or mtime, updated=_day(last) or mtime)
+            if after == text:
+                continue
+            f.write_text(after, encoding="utf-8")
+            history.record("format", rel, text, after)
+            done.append(rel)
+    return {"updated": done, "count": len(done), "skipped": skipped}
+
+
+def missing_metadata() -> int:
+    """Cuántas notas no tienen type, created o updated (para Ajustes)."""
+    n = 0
+    for f in VAULT.rglob("*.md"):
+        if any(part.startswith(".") for part in f.relative_to(VAULT).parts):
+            continue
+        try:
+            meta = parse(f.read_text(encoding="utf-8"))[0]
+        except Exception:
+            continue
+        if not meta.get("type") or not _day(meta.get("created")) or not _day(meta.get("updated")):
+            n += 1
+    return n
 
 
 def delete_file(path: str) -> str:
