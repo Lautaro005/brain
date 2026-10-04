@@ -528,6 +528,56 @@
   .manual-form > div { min-width: 0; }
   #log-tabs { max-width: 100%; overflow-x: auto; }
   @media (max-width: 760px) { .remote-top { flex-direction: column; } .manual-form { grid-template-columns: 1fr; } }
+  /* Fact check */
+  .fc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  .fc-main, .fc-side { min-width: 0; }
+  .fc-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-top: 10px; }
+  .fc-prefs { display: grid; gap: 8px; min-width: 0; }
+  .fc-prefs .input, .fc-prefs .bui-dd-btn, #fc-form .input { min-width: 0; }
+  .fc-label { display: block; font: 700 11px/1.3 "Courier Prime", monospace; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-top: 4px; }
+  .fc-help { font-size: 12px; color: var(--text-3); margin: 0; }
+  .fc-dates { display: flex; gap: 8px; } .fc-dates .input { min-width: 0; }
+  .fc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .fc-two .input { min-width: 0; }
+  .fc-adv summary { cursor: pointer; font-size: 13.5px; font-weight: 600; margin-top: 4px; }
+  .fc-adv-b { display: grid; gap: 8px; margin-top: 10px; }
+  .fc-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .fc-sp { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 13px; }
+  .fc-steps { margin: 12px 0 0; padding-left: 20px; font-size: 13px; color: var(--text-2); display: grid; gap: 3px; }
+  .fc-steps li.now { color: var(--text); font-weight: 600; }
+  .fc-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .fc-hist li { display: grid; grid-template-columns: minmax(0, 1fr); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .fc-hist li:last-child { border-bottom: 0; }
+  .fc-hist button.link { min-width: 0; text-align: left; background: none; border: 0; padding: 6px 0; cursor: pointer; color: var(--text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fc-hist .when { font-size: 11.5px; color: var(--text-3); }
+  .fc-rep { margin-top: 16px; display: grid; gap: 16px; }
+  .fc-banner { border-left: 3px solid var(--text); padding: 6px 0 6px 12px; font-size: 13px; color: var(--text-2); }
+  .fc-banner.warn { border-color: var(--bad); color: var(--text); }
+  .fc-claim h3 { margin: 0; font-size: 15px; line-height: 1.4; }
+  .fc-v { display: inline-flex; align-items: center; gap: 6px; font: 700 11.5px/1 "Courier Prime", monospace; text-transform: uppercase; letter-spacing: .05em; padding: 5px 10px; border-radius: 999px; border: 1.5px solid var(--text); margin: 10px 0 6px; }
+  .fc-v.supported { background: var(--text); color: var(--surface); }
+  .fc-v.false, .fc-v.likely_false { border-color: var(--bad); color: var(--bad); }
+  .fc-v.false { background: var(--bad); color: #fff; }
+  .fc-v.inconclusive, .fc-v.unverifiable, .fc-v.skipped { border-style: dashed; color: var(--text-2); }
+  .fc-meta { font-size: 12.5px; color: var(--text-3); margin: 4px 0; }
+  .fc-claim p { margin: 6px 0; font-size: 13.5px; color: var(--text-2); }
+  .fc-group-h { font: 700 11px/1.3 "Courier Prime", monospace; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin: 14px 0 6px; }
+  .fc-src { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+  .fc-src a { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+  .fc-src .tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0; }
+  .fc-tag { font-size: 11px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 1px 7px; color: var(--text-2); }
+  .fc-tag.bad { border-color: var(--bad); color: var(--bad); }
+  .fc-src blockquote { margin: 6px 0; padding-left: 10px; border-left: 3px solid var(--line-strong); color: var(--text-2); }
+  .fc-src .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .fc-src .acts .btn { padding: 4px 9px; font-size: 12px; }
+  .fc-lims { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--text-2); }
+  @media (max-width: 1100px) { .fc-grid { grid-template-columns: 1fr; } }
+  /* cambios en el grafo pendientes de aprobación */
+  #gp-panel { display: grid; gap: 12px; margin-bottom: 14px; }
+  .gp-card { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px; align-items: start; }
+  .gp-card img { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .gp-card ul { margin: 6px 0; padding-left: 18px; font-size: 13px; }
+  .gp-card .add { color: #1a7f37; } .gp-card .rm { color: var(--bad); }
+  @media (max-width: 760px) { .gp-card { grid-template-columns: 1fr; } .fc-two { grid-template-columns: 1fr; } }
   @media (max-width: 760px) {
     .color-grid { grid-template-columns: 1fr; }
     .collapse-btn { display: none; }
@@ -549,6 +599,7 @@
     <button class="nav-item" data-view="conexiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span data-i18n="nav.connections"></span></button>
     <button class="nav-item" data-view="grafo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.8 6.2M7.3 13l9.5 4.8"/></svg><span data-i18n="nav.graph"></span></button>
     <button class="nav-item" data-view="conocimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="nav.knowledge"></span></button>
+    <button class="nav-item" data-view="factcheck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-3z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span data-i18n="nav.factcheck"></span></button>
     <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg><span data-i18n="nav.logs"></span></button>
     <div class="side-foot">
       <div class="side-tools">
@@ -735,6 +786,7 @@
     <!-- GRAFO -->
     <section class="view" id="view-grafo">
       <header class="page"><div><h1 data-i18n="graph.title"></h1><p data-i18n="graph.sub"></p></div></header>
+      <div id="gp-panel" hidden></div>
       <div class="graph-frame"><iframe id="graph-iframe"></iframe></div>
     </section>
 
@@ -768,6 +820,81 @@
           <div class="src-bar"><button class="btn" type="button" id="refresh-all" data-i18n="know.refreshAll"></button><span class="muted mono" id="refresh-all-st"></span></div>
           <div id="sources"></div>
         </div></div>
+    </section>
+
+    <!-- FACT CHECK -->
+    <section class="view" id="view-factcheck">
+      <header class="page"><div><h1 data-i18n="fc.title"></h1><p data-i18n="fc.sub"></p></div></header>
+      <div class="fc-grid">
+        <div class="fc-main">
+          <div class="card"><div class="card-h"><h2 data-i18n="fc.verify"></h2><span class="sub" data-i18n="fc.verifySub"></span></div>
+            <div class="card-b">
+              <form id="fc-form">
+                <textarea class="input full" id="fc-text" rows="4" maxlength="4000" required></textarea>
+                <div class="fc-row">
+                  <label class="check"><input type="checkbox" id="fc-web" checked> <span data-i18n="fc.web"></span></label>
+                  <button class="btn primary" id="fc-btn" type="submit" data-i18n="fc.run"></button>
+                </div>
+              </form>
+              <ol class="fc-steps" id="fc-steps" hidden></ol>
+              <div class="result" id="fc-result"></div>
+            </div></div>
+          <div id="fc-report"></div>
+        </div>
+        <div class="fc-side">
+          <div class="card"><div class="card-h"><h2 data-i18n="fc.prefs"></h2><span class="sub" id="fc-prefs-when"></span></div>
+            <div class="card-b fc-prefs">
+              <p class="form-hint" style="margin-top:0" data-i18n="fc.prefsHint"></p>
+              <label class="fc-label" for="fc-level" data-i18n="fc.level"></label>
+              <select class="input full" id="fc-level"><option value="quick"></option><option value="standard"></option><option value="thorough"></option><option value="custom"></option></select>
+              <p class="fc-help" id="fc-level-help"></p>
+              <label class="fc-label" for="fc-fresh" data-i18n="fc.fresh"></label>
+              <select class="input full" id="fc-fresh"><option value="topic"></option><option value="day"></option><option value="month"></option><option value="year"></option><option value="any"></option><option value="custom"></option></select>
+              <div class="fc-dates" id="fc-dates" hidden><input class="input" type="date" id="fc-from"><input class="input" type="date" id="fc-to"></div>
+              <p class="fc-help" data-i18n="fc.freshHelp"></p>
+              <label class="check"><input type="checkbox" id="fc-primary"> <span data-i18n="fc.primary"></span></label>
+              <label class="check"><input type="checkbox" id="fc-counter"> <span data-i18n="fc.counter"></span></label>
+              <details class="fc-adv"><summary data-i18n="fc.advanced"></summary>
+                <div class="fc-adv-b">
+                  <div class="fc-two">
+                    <label><span class="fc-label" data-i18n="fc.minSources"></span><input class="input full" type="number" id="fc-min" min="1" max="5"></label>
+                    <label><span class="fc-label" data-i18n="fc.maxSources"></span><input class="input full" type="number" id="fc-max" min="1" max="12"></label>
+                  </div>
+                  <p class="fc-help" data-i18n="fc.minHelp"></p>
+                  <span class="fc-label" data-i18n="fc.claimTypes"></span>
+                  <div class="fc-checks" id="fc-types"></div>
+                  <label class="check"><input type="checkbox" id="fc-risk"> <span data-i18n="fc.alwaysRisk"></span></label>
+                  <div class="fc-checks" id="fc-topics"></div>
+                  <div class="fc-two">
+                    <label><span class="fc-label" data-i18n="fc.regions"></span><input class="input full" id="fc-regions" placeholder="AR, UY"></label>
+                    <label><span class="fc-label" data-i18n="fc.languages"></span><input class="input full" id="fc-langs" placeholder="es, en"></label>
+                  </div>
+                  <label class="check"><input type="checkbox" id="fc-foreign"> <span data-i18n="fc.foreign"></span></label>
+                  <label class="check"><input type="checkbox" id="fc-local"> <span data-i18n="fc.preferLocal"></span></label>
+                  <span class="fc-label" data-i18n="fc.sourcePrefs"></span>
+                  <div class="fc-sp" id="fc-sp"></div>
+                  <label class="fc-label" for="fc-provider" data-i18n="fc.provider"></label>
+                  <select class="input full" id="fc-provider"><option value="duckduckgo">DuckDuckGo</option><option value="searxng">SearXNG</option><option value="brave">Brave Search API</option></select>
+                  <p class="fc-help" data-i18n="fc.providerHelp"></p>
+                  <input class="input full" id="fc-searxng" placeholder="https://searx.example.org" hidden>
+                  <input class="input full" id="fc-brave" type="password" autocomplete="off" hidden>
+                  <label class="fc-label" for="fc-blocked" data-i18n="fc.blocked"></label>
+                  <textarea class="input full" id="fc-blocked" rows="3" placeholder="ejemplo.com"></textarea>
+                  <label class="check"><input type="checkbox" id="fc-enabled"> <span data-i18n="fc.enabled"></span></label>
+                  <label class="check"><input type="checkbox" id="fc-auto"> <span data-i18n="fc.chatAuto"></span></label>
+                </div>
+              </details>
+              <p class="fc-help" data-i18n="fc.applyNew"></p>
+              <div class="fc-row">
+                <button class="btn primary" type="button" id="fc-save" data-i18n="fc.save"></button>
+                <button class="btn" type="button" id="fc-reset" data-i18n="fc.reset"></button>
+              </div>
+              <div class="result" id="fc-prefs-result"></div>
+            </div></div>
+          <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="fc.history"></h2><span class="sub" data-i18n="fc.historySub"></span></div>
+            <div class="card-b"><ul class="fc-hist" id="fc-hist"></ul></div></div>
+        </div>
+      </div>
     </section>
 
     <!-- LOGS -->
@@ -864,6 +991,15 @@
               <div class="result" id="backup-result"></div>
               <ul class="backup-list" id="backup-list"></ul>
             </div></div>
+          <div class="card" id="format-card"><div class="card-h"><h2 data-i18n="settings.format"></h2><span class="sub" data-i18n="settings.formatSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.formatHint"></p>
+              <p class="muted" style="font-size:13px;margin:0" id="format-missing"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn" type="button" id="format-run" data-i18n="settings.formatRun"></button>
+              </div>
+              <div class="result" id="format-result"></div>
+            </div></div>
         <div class="card"><div class="card-h"><h2 data-i18n="settings.graphColors"></h2></div>
           <div class="card-b">
             <p class="form-hint" style="margin:0 0 12px" data-i18n="settings.graphHint"></p>
@@ -906,7 +1042,7 @@ Required format:
 };
 const I18N = {
   es: {
-    nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", logs: "Logs" },
+    nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", factcheck: "Fact check", logs: "Logs" },
     conn: { proposed: "Propuesta", needsKeys: "pide", propAdd: "Agregar", propDiscard: "Descartar",
       propWarn: "Un agente propuso esta conexión. Se va a ejecutar este comando en tu máquina: agregala solo si confiás en el paquete.",
       needsAuth: "Este servicio pide que inicies sesión para dar acceso a brain.", login: "Iniciar sesión", signedIn: "Sesión iniciada",
@@ -967,10 +1103,10 @@ const I18N = {
       err: { app_running: n => `${n} está abierto. Cerralo y probá de nuevo.`, app_still_running: n => `${n} no se cerró. Cerralo a mano (Cmd+Q) y probá de nuevo.`,
         bad_config: "El archivo de configuración tiene un formato que no puedo editar sin riesgo (por ejemplo, comentarios). Agregá brain a mano con la config de abajo.",
         no_cli: c => `No encontré el comando «${c}». Instalalo o usá la config manual de abajo.`, cli_failed: "El CLI devolvió un error:",
-        form_only: n => `${n} se conecta desde su formulario: copiá el comando y los argumentos de su tarjeta.`, other: "Error" },
+        form_only: n => `${n} se conecta desde su formulario: copiá los valores de «Cualquier otro cliente MCP», más abajo.`, other: "Error" },
       remoteSection: "Por URL · agentes en la nube y otras máquinas", byForm: "Con formulario",
       manusSteps: ["En Manus Studio, agregá un server MCP local con la opción de comando («Run a command»).",
-        "Nombre: brain. Pegá el comando y los argumentos de abajo (un argumento por línea).",
+        "Nombre: brain. Copiá el comando y los argumentos de «Cualquier otro cliente MCP», más abajo (un argumento por línea).",
         "Cuando Manus use brain por primera vez, esta tarjeta pasa a «Detectado»."],
       manualTitle: "Cualquier otro cliente MCP", manualSub: "configuración manual",
       manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
@@ -1007,8 +1143,8 @@ const I18N = {
       noOps: "Sin operaciones todavía", table: "Ver como tabla", hideTable: "Ocultar tabla", day: "Día", count: "Cambios",
       noChanges: "Sin cambios en el período", change: n => n === 1 ? "cambio" : "cambios", unitSources: "fuentes", unitOps: "cambios",
       aria: "Cambios por día en los últimos 30 días" },
-    ops: { create: "Creados", update: "Actualizados", edit: "Editados", append: "Agregados", delete: "Borrados", restore: "Restaurados" },
-    op1: { create: "Creado", update: "Actualizado", edit: "Editado", append: "Agregado", delete: "Borrado", restore: "Restaurado" },
+    ops: { create: "Creados", update: "Actualizados", edit: "Editados", append: "Agregados", delete: "Borrados", restore: "Restaurados", graph: "Grafo aprobado", format: "Formato" },
+    op1: { create: "Creado", update: "Actualizado", edit: "Editado", append: "Agregado", delete: "Borrado", restore: "Restaurado", graph: "Grafo", format: "Formato", move: "Movido" },
     health: { title: "Salud del sistema", ok: (a, b) => `${a} de ${b} en orden`,
       labels: { ollama: "Ollama responde", model: "Modelo nomic-embed-text", chroma: "Server de Chroma", playwright: "Chromium de Playwright",
         agents: "Al menos un agente conectado" },
@@ -1036,6 +1172,54 @@ const I18N = {
       contra: d => `“${d.a.fact}” (${d.a.category}) y “${d.b.fact}” (${d.b.category}) parecen hablar de lo mismo con datos distintos.`,
       ents: d => `${d.path}: ${d.entities.join(", ")}` },
     chat: { title: "Chat", sub: "Un modelo local de Ollama que conoce tu perfil y tu memoria, y puede consultar y editar tu vault" },
+    gp: { title: "Cambio propuesto en el grafo", pending: "No se cambió nada todavía. Aprobalo o rechazalo.", approve: "Aprobar cambio", reject: "Rechazar",
+      add: (a, b, l) => `Conectar ${a} → ${b}${l ? ` (${l})` : ""}`, rm: (a, b) => `Desconectar ${a} → ${b}`, img: "Grafo con los cambios marcados",
+      applied: s => `Cambio aplicado: ${s.add} conexión(es) nueva(s), ${s.remove} quitada(s). Se deshace desde el chat o el historial.`, rejected: "Propuesta rechazada.",
+      stale: "Las notas cambiaron después de la propuesta: pedí una nueva.", unknown: "Esa propuesta ya no existe." },
+    fc: { title: "Fact check", sub: "Verificá afirmaciones: brain busca primero en tu memoria y, si no alcanza, en internet. Muestra la evidencia; no promete la verdad.",
+      verify: "Verificar", verifySub: "una afirmación, un párrafo o una respuesta de otra IA", textPh: "Ej.: La inflación de marzo fue del 3,5 % según el INDEC.",
+      web: "Buscar en internet si brain no alcanza", run: "Verificar", stop: "Detener",
+      prefs: "Preferencias", prefsHint: "Se guardan una vez y se aplican a cada verificación nueva (y al chat).", level: "Nivel",
+      levels: { quick: ["Rápida", "Una fuente primaria o dos independientes, sin buscar evidencia en contra."],
+        standard: ["Estándar (recomendada)", "Al menos dos fuentes independientes, una primaria cuando exista, y búsqueda de evidencia en contra."],
+        thorough: ["Exhaustiva", "Tres o más fuentes independientes, primaria obligatoria y evidencia en contra."],
+        custom: ["Personalizada", "Elegís cada parámetro abajo."] },
+      presets: { quick: [1, 3, false, false], standard: [2, 6, true, true], thorough: [3, 10, true, true] },
+      fresh: "Actualidad", freshOpts: { topic: "Según el tema (recomendado)", day: "Últimas 24 horas", month: "Últimos 30 días", year: "Último año", any: "Sin límite", custom: "Personalizada" },
+      freshHelp: "«Según el tema»: noticias 30 días, productos 6 meses, números 1 año, leyes 2 años, ciencia 5 años, historia sin límite. Lo más viejo se muestra como contexto, no como confirmación.",
+      primary: "Exigir una fuente primaria cuando exista (documento oficial, ley, paper, datos originales)", counter: "Buscar también evidencia en contra",
+      advanced: "Avanzado", minSources: "Mínimo de fuentes independientes", maxSources: "Máximo de fuentes a leer",
+      minHelp: "«Independientes» = líneas de evidencia distintas: dos páginas del mismo sitio o que copian el mismo texto cuentan como una.",
+      claimTypes: "Qué afirmaciones verificar",
+      types: { numeric: "Números y estadísticas", science_health: "Ciencia y salud", legal_finance: "Leyes y finanzas", news: "Noticias y hechos recientes", history: "Historia", quote: "Citas atribuidas", product: "Productos, empresas, software", other: "Cualquier otro hecho" },
+      alwaysRisk: "Verificar siempre, con más rigor, los temas que pueden causar daño:", topics: { health: "salud", law: "derecho", finance: "finanzas", safety: "seguridad" },
+      regions: "Países prioritarios", languages: "Idiomas de búsqueda", foreign: "Permitir fuentes de otros países", preferLocal: "Priorizar fuentes locales para hechos locales",
+      sourcePrefs: "Tipos de fuente", src: { official: "Oficial", academic: "Académica", factchecker: "Verificador profesional", news: "Periodística", reference: "Referencia (enciclopedia)", social: "Redes, foros y blogs", web: "Otra web" },
+      pref: { prefer: "Priorizar", corroborate: "Usar con corroboración", orient: "Solo para orientarse", lead_only: "Solo como pista", exclude: "No usar" },
+      provider: "Buscador", providerHelp: "DuckDuckGo no necesita clave. SearXNG: la URL de tu instancia (con salida JSON). Brave: una clave de su API (se guarda en data/, no sale de tu compu).",
+      braveKey: "Clave de Brave Search API", braveSaved: "Clave guardada (dejá vacío para conservarla)",
+      blocked: "Dominios que no se usan nunca (uno por línea)", enabled: "Permitir que Fact check busque en internet",
+      chatAuto: "Que el chat verifique solo los datos que no están en brain (sale a internet sin que se lo pidas)",
+      applyNew: "Los cambios valen para las verificaciones nuevas.", save: "Guardar", reset: "Restaurar valores recomendados", saved: "Preferencias guardadas.", resetDone: "Volvieron los valores recomendados.",
+      updated: w => `modificadas ${w}`, defaultsOn: "valores recomendados", history: "Verificaciones anteriores", historySub: "últimas 30", noHistory: "Todavía no verificaste nada.",
+      steps: { claims: "Separando las afirmaciones…", local: n => `Afirmación ${n}: buscando en tu brain…`, search: (n, why) => `Afirmación ${n}: buscando en internet (${why})…`,
+        read: n => `Leyendo ${n} página(s) completas…`, source: (u, st) => `${u} → ${st}`, verdict: n => `Afirmación ${n}: comparando la evidencia…` },
+      reasons: { no_local: "no hay nada en brain", stale: "lo guardado es viejo", conflict: "tus notas se contradicen", insufficient: "no alcanza", no_primary: "falta una fuente primaria", current: "es un tema actual" },
+      decision: { web: "Se buscó en internet", local: "Alcanzó con lo guardado en brain", local_only: "Solo se usó brain (internet está apagado)" },
+      v: { supported: "Respaldada", likely_supported: "Probablemente respaldada", mixed: "Mixta / parcialmente cierta", inconclusive: "No concluyente", likely_false: "Probablemente falsa", false: "Falsa / refutada", unverifiable: "No verificable", skipped: "No verificada (tipo desactivado)" },
+      vShort: { supported: "✓", likely_supported: "≈", mixed: "±", inconclusive: "?", likely_false: "✗?", false: "✗", unverifiable: "–", skipped: "·" },
+      stance: { supports: "apoya", contradicts: "contradice", supports_with_limits: "apoya con límites", irrelevant: "no responde", unquoted: "sin cita verificable", not_inspected: "no se pudo abrir", no_model: "sin modelo" },
+      groups: { supports: "Evidencia a favor", contradicts: "Evidencia en contra", supports_with_limits: "Apoya con límites", other: "No responden o no cuentan" },
+      sig: { primary: "fuente primaria", author: a => `autor: ${a}`, noAuthor: "autor no identificado", date: d => `fecha: ${d}`, noDate: "fecha desconocida", stale: "más vieja que lo pedido",
+        republished: "repite otra página", notInspected: "no inspeccionada completamente", lead: "solo pista", scope: "otro período o alcance", brain: "de brain", web: "de internet" },
+      lineN: g => `línea ${g}`, lines: (a, c, l) => `líneas independientes: ${a} a favor · ${c} en contra${l ? ` · ${l} con límites` : ""}`,
+      riskHigh: "tema sensible", parts: "Partes", limits: "Limitaciones y datos faltantes", searchError: e => `El buscador falló: ${e}`,
+      wentWeb: "No encontré evidencia suficiente en tu memoria local: consulté fuentes externas.", webOff: "Internet está apagado para Fact check: solo se usó lo guardado en brain.",
+      noModel: "No hay un modelo de chat en Ollama: no se pudieron separar las afirmaciones ni comparar la evidencia (instalá uno, por ejemplo llama3.2).",
+      highRisk: "Salud, derecho, finanzas o seguridad: esta verificación es informativa y no reemplaza a un profesional ni es asesoramiento.",
+      copy: "Copiar informe", again: "Volver a verificar", del: "Borrar", delConfirm: "¿Borrar este informe?", saveSrc: "Guardar en brain", savedSrc: p => `Guardada en ${p}.`,
+      block: "No usar este dominio", blockConfirm: d => `¿No volver a usar ${d} en Fact check?`, blocked: d => `${d} quedó bloqueado.`,
+      err: { empty: "Escribí algo para verificar.", no_brave_key: "Falta la clave de Brave Search API.", no_searxng: "Falta la URL de tu SearXNG.", bad_searxng: "La URL de SearXNG tiene que empezar con http:// o https://." } },
     graph: { title: "Grafo", sub: "Cómo se conectan perfil, memoria, proyectos, skills, fuentes, tags y entidades" },
     know: { title: "Conocimiento", sub: "Guardar URLs y buscar en lo scrapeado", save: "Guardar una URL", saveSub: "scrapea, indexa y crea el .md",
       saveBtn: "Guardar", forceJs: "Forzar render con JS (Playwright)", working: "Scrapeando e indexando… (con Playwright puede tardar unos segundos)",
@@ -1057,7 +1241,11 @@ const I18N = {
     theme: { system: "Tema: sistema", light: "Tema: claro", dark: "Tema: oscuro" },
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
-    settings: { title: "Ajustes", sub: "Versión, sidebar, chat, notificaciones, backup y colores del grafo.",
+    settings: { title: "Ajustes", sub: "Versión, sidebar, chat, notificaciones, backup, formato de las notas y colores del grafo.",
+      format: "Formato de las notas", formatSub: "compatible con OKF",
+      formatHint: "Cada nota lleva type (Project, Memory, Skill, Source…), created (cuándo se creó) y updated (último cambio), así cualquier IA entiende qué es y qué tan vigente está. brain los completa solo al escribir; este botón los agrega a las notas viejas, sin tocar nada más (queda en el historial).",
+      formatMissing: n => n ? `${n} nota(s) sin tipo o sin fechas.` : "Todas las notas tienen tipo y fechas.", formatRun: "Completar tipo y fechas",
+      formatRunning: "Completando…", formatDone: n => n ? `Listo: ${n} nota(s) actualizadas.` : "No había nada para completar.",
       version: "Versión", versionHint: "brain se fija en GitHub si hay una versión nueva al abrirse y cada 3 horas mientras está abierto (solo pide el número del último release). El botón chequea ahora.",
       check: "Buscar actualizaciones", checking: "Buscando…", upToDate: v => `Estás al día: ${v} es la última versión.`,
       noReleases: "Todavía no hay versiones publicadas en GitHub.", offline: "No se pudo conectar con GitHub. Revisá tu conexión.",
@@ -1141,7 +1329,7 @@ const I18N = {
         busy: "El puerto del MCP por URL está ocupado por otro programa:", other: "Error" } },
   },
   en: {
-    nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", logs: "Logs" },
+    nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", factcheck: "Fact check", logs: "Logs" },
     conn: { proposed: "Proposed", needsKeys: "needs", propAdd: "Add", propDiscard: "Discard",
       propWarn: "An agent proposed this connection. This command will run on your machine: only add it if you trust the package.",
       needsAuth: "This service asks you to sign in to give brain access.", login: "Sign in", signedIn: "Signed in",
@@ -1202,10 +1390,10 @@ const I18N = {
       err: { app_running: n => `${n} is open. Quit it and try again.`, app_still_running: n => `${n} didn't quit. Quit it by hand (Cmd+Q) and try again.`,
         bad_config: "The config file has a format I can't edit safely (for example, comments). Add brain by hand with the config below.",
         no_cli: c => `Couldn't find the “${c}” command. Install it or use the manual config below.`, cli_failed: "The CLI returned an error:",
-        form_only: n => `${n} connects from its own form: copy the command and arguments on its card.`, other: "Error" },
+        form_only: n => `${n} connects from its own form: copy the values under “Any other MCP client”, further down.`, other: "Error" },
       remoteSection: "By URL · cloud agents and other computers", byForm: "Via its form",
       manusSteps: ["In Manus Studio, add a local MCP server with the command option (“Run a command”).",
-        "Name: brain. Paste the command and arguments below (one argument per line).",
+        "Name: brain. Copy the command and arguments from “Any other MCP client”, further down (one argument per line).",
         "Once Manus uses brain for the first time, this card switches to “Detected”."],
       manualTitle: "Any other MCP client", manualSub: "manual configuration",
       manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
@@ -1242,8 +1430,8 @@ const I18N = {
       noOps: "No operations yet", table: "Show as table", hideTable: "Hide table", day: "Day", count: "Changes",
       noChanges: "No changes in this period", change: n => n === 1 ? "change" : "changes", unitSources: "sources", unitOps: "changes",
       aria: "Changes per day over the last 30 days" },
-    ops: { create: "Created", update: "Updated", edit: "Edited", append: "Appended", delete: "Deleted", restore: "Restored" },
-    op1: { create: "Created", update: "Updated", edit: "Edited", append: "Appended", delete: "Deleted", restore: "Restored" },
+    ops: { create: "Created", update: "Updated", edit: "Edited", append: "Appended", delete: "Deleted", restore: "Restored", graph: "Graph approved", format: "Format" },
+    op1: { create: "Created", update: "Updated", edit: "Edited", append: "Appended", delete: "Deleted", restore: "Restored", graph: "Graph", format: "Format", move: "Moved" },
     health: { title: "System health", ok: (a, b) => `${a} of ${b} OK`,
       labels: { ollama: "Ollama responds", model: "nomic-embed-text model", chroma: "Chroma server", playwright: "Playwright Chromium",
         agents: "At least one agent connected" },
@@ -1271,6 +1459,54 @@ const I18N = {
       contra: d => `“${d.a.fact}” (${d.a.category}) and “${d.b.fact}” (${d.b.category}) seem to be about the same thing with different data.`,
       ents: d => `${d.path}: ${d.entities.join(", ")}` },
     chat: { title: "Chat", sub: "A local Ollama model that knows your profile and memory, and can look up and edit your vault" },
+    gp: { title: "Proposed graph change", pending: "Nothing has changed yet. Approve or reject it.", approve: "Approve change", reject: "Reject",
+      add: (a, b, l) => `Link ${a} → ${b}${l ? ` (${l})` : ""}`, rm: (a, b) => `Unlink ${a} → ${b}`, img: "Graph with the changes marked",
+      applied: s => `Change applied: ${s.add} new link(s), ${s.remove} removed. Undo it from the chat or the history.`, rejected: "Proposal rejected.",
+      stale: "The notes changed after the proposal: ask for a new one.", unknown: "That proposal no longer exists." },
+    fc: { title: "Fact check", sub: "Verify claims: brain searches your memory first and, if that's not enough, the web. It shows the evidence; it doesn't promise the truth.",
+      verify: "Verify", verifySub: "a claim, a paragraph or another AI's answer", textPh: "E.g.: March inflation was 3.5% according to INDEC.",
+      web: "Search the web if brain isn't enough", run: "Verify", stop: "Stop",
+      prefs: "Preferences", prefsHint: "Set them once; they apply to every new check (and to the chat).", level: "Level",
+      levels: { quick: ["Quick", "One primary source or two independent ones, no counter-evidence search."],
+        standard: ["Standard (recommended)", "At least two independent sources, a primary one when it exists, and a search for counter-evidence."],
+        thorough: ["Thorough", "Three or more independent sources, a primary one required, and counter-evidence."],
+        custom: ["Custom", "You pick each parameter below."] },
+      presets: { quick: [1, 3, false, false], standard: [2, 6, true, true], thorough: [3, 10, true, true] },
+      fresh: "Freshness", freshOpts: { topic: "By topic (recommended)", day: "Last 24 hours", month: "Last 30 days", year: "Last year", any: "No limit", custom: "Custom" },
+      freshHelp: "“By topic”: news 30 days, products 6 months, numbers 1 year, laws 2 years, science 5 years, history no limit. Older material shows as context, not confirmation.",
+      primary: "Require a primary source when one exists (official document, law, paper, original data)", counter: "Also search for counter-evidence",
+      advanced: "Advanced", minSources: "Minimum independent sources", maxSources: "Maximum sources to read",
+      minHelp: "“Independent” = separate lines of evidence: two pages from the same site, or that copy the same text, count as one.",
+      claimTypes: "Which claims to check",
+      types: { numeric: "Numbers and statistics", science_health: "Science and health", legal_finance: "Law and finance", news: "News and recent events", history: "History", quote: "Attributed quotes", product: "Products, companies, software", other: "Any other fact" },
+      alwaysRisk: "Always check, with extra rigor, topics that can cause harm:", topics: { health: "health", law: "law", finance: "finance", safety: "safety" },
+      regions: "Priority countries", languages: "Search languages", foreign: "Allow sources from other countries", preferLocal: "Prefer local sources for local facts",
+      sourcePrefs: "Source types", src: { official: "Official", academic: "Academic", factchecker: "Professional fact-checker", news: "News", reference: "Reference (encyclopedia)", social: "Social, forums and blogs", web: "Other web" },
+      pref: { prefer: "Prefer", corroborate: "Use with corroboration", orient: "Orientation only", lead_only: "Lead only", exclude: "Don't use" },
+      provider: "Search engine", providerHelp: "DuckDuckGo needs no key. SearXNG: your instance's URL (with JSON output). Brave: an API key (stored in data/, never leaves your computer).",
+      braveKey: "Brave Search API key", braveSaved: "Key saved (leave empty to keep it)",
+      blocked: "Domains never to use (one per line)", enabled: "Let Fact check search the web",
+      chatAuto: "Let the chat check facts that aren't in brain on its own (it goes online without you asking)",
+      applyNew: "Changes apply to new checks.", save: "Save", reset: "Restore recommended values", saved: "Preferences saved.", resetDone: "Recommended values restored.",
+      updated: w => `changed ${w}`, defaultsOn: "recommended values", history: "Previous checks", historySub: "the last 30", noHistory: "You haven't checked anything yet.",
+      steps: { claims: "Splitting the claims…", local: n => `Claim ${n}: searching your brain…`, search: (n, why) => `Claim ${n}: searching the web (${why})…`,
+        read: n => `Reading ${n} full page(s)…`, source: (u, st) => `${u} → ${st}`, verdict: n => `Claim ${n}: weighing the evidence…` },
+      reasons: { no_local: "nothing in brain", stale: "what's saved is old", conflict: "your notes disagree", insufficient: "not enough", no_primary: "no primary source", current: "it's a current topic" },
+      decision: { web: "The web was searched", local: "What's saved in brain was enough", local_only: "Only brain was used (web search is off)" },
+      v: { supported: "Supported", likely_supported: "Likely supported", mixed: "Mixed / partly true", inconclusive: "Inconclusive", likely_false: "Likely false", false: "False / refuted", unverifiable: "Not verifiable", skipped: "Not checked (type turned off)" },
+      vShort: { supported: "✓", likely_supported: "≈", mixed: "±", inconclusive: "?", likely_false: "✗?", false: "✗", unverifiable: "–", skipped: "·" },
+      stance: { supports: "supports", contradicts: "contradicts", supports_with_limits: "supports with limits", irrelevant: "doesn't answer", unquoted: "no checkable quote", not_inspected: "couldn't open", no_model: "no model" },
+      groups: { supports: "Evidence for", contradicts: "Evidence against", supports_with_limits: "Supports with limits", other: "Don't answer or don't count" },
+      sig: { primary: "primary source", author: a => `author: ${a}`, noAuthor: "author not identified", date: d => `date: ${d}`, noDate: "date unknown", stale: "older than asked",
+        republished: "repeats another page", notInspected: "not fully inspected", lead: "lead only", scope: "different period or scope", brain: "from brain", web: "from the web" },
+      lineN: g => `line ${g}`, lines: (a, c, l) => `independent lines: ${a} for · ${c} against${l ? ` · ${l} with limits` : ""}`,
+      riskHigh: "sensitive topic", parts: "Parts", limits: "Limitations and missing data", searchError: e => `The search engine failed: ${e}`,
+      wentWeb: "I didn't find enough evidence in your local memory: I consulted external sources.", webOff: "Web search is off for Fact check: only what's saved in brain was used.",
+      noModel: "There's no Ollama chat model: claims couldn't be split nor evidence compared (install one, e.g. llama3.2).",
+      highRisk: "Health, law, finance or safety: this check is informational, doesn't replace a professional and isn't advice.",
+      copy: "Copy report", again: "Check again", del: "Delete", delConfirm: "Delete this report?", saveSrc: "Save to brain", savedSrc: p => `Saved to ${p}.`,
+      block: "Don't use this domain", blockConfirm: d => `Stop using ${d} in Fact check?`, blocked: d => `${d} is now blocked.`,
+      err: { empty: "Type something to check.", no_brave_key: "The Brave Search API key is missing.", no_searxng: "Your SearXNG URL is missing.", bad_searxng: "The SearXNG URL must start with http:// or https://." } },
     graph: { title: "Graph", sub: "How profile, memory, projects, skills, sources, tags and entities connect" },
     know: { title: "Knowledge", sub: "Save URLs and search what was scraped", save: "Save a URL", saveSub: "scrapes, indexes and creates the .md",
       saveBtn: "Save", forceJs: "Force JS rendering (Playwright)", working: "Scraping and indexing… (Playwright can take a few seconds)",
@@ -1292,7 +1528,11 @@ const I18N = {
     theme: { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" },
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
-    settings: { title: "Settings", sub: "Version, sidebar, chat, notifications, backup and graph colors.",
+    settings: { title: "Settings", sub: "Version, sidebar, chat, notifications, backup, note format and graph colors.",
+      format: "Note format", formatSub: "OKF-compatible",
+      formatHint: "Every note carries type (Project, Memory, Skill, Source…), created (when it was created) and updated (last change), so any AI can tell what it is and how current it is. brain fills them in on every write; this button adds them to older notes without touching anything else (it's kept in history).",
+      formatMissing: n => n ? `${n} note(s) without a type or dates.` : "Every note has a type and dates.", formatRun: "Fill in type and dates",
+      formatRunning: "Filling in…", formatDone: n => n ? `Done: ${n} note(s) updated.` : "There was nothing to fill in.",
       version: "Version", versionHint: "brain checks GitHub for a newer version when it opens and every 3 hours while it's open (it only asks for the latest release number). The button checks now.",
       check: "Check for updates", checking: "Checking…", upToDate: v => `You're up to date: ${v} is the latest version.`,
       noReleases: "There are no published versions on GitHub yet.", offline: "Couldn't reach GitHub. Check your connection.",
@@ -1406,6 +1646,7 @@ function setLang(l) {
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
   renderMemSource(); renderProfileView(); renderMemory(); renderAgents(); renderConnections();
+  fcStatic(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") loadFormat();
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
   if (view === "logs") { logSig = ""; loadLogs(); }
@@ -1527,7 +1768,7 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAppCtx(); renderNotify(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAppCtx(); renderNotify(); loadFormat(); }
 
 // ================= ajustes: backup y restauración (brain_mcp/backup.py) =================
 const fmtSize = n => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -1739,7 +1980,7 @@ addEventListener("storage", e => { if (e.key === "brain-notify" && view === "aju
 // ================= ajustes: sidebar (orden y visibilidad) =================
 // localStorage "brain-nav" = {order: [vistas], hidden: [vistas]}. Una vista oculta sigue accesible
 // por su #hash; Ajustes no está en la lista (es el engranaje, siempre visible).
-const NAV_DEFAULT = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "logs"];
+const NAV_DEFAULT = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs"];
 function navPrefs() {
   let p = {};
   try { p = JSON.parse(localStorage.getItem("brain-nav") || "{}") || {}; } catch (e) {}
@@ -1933,7 +2174,7 @@ function showResult(el, kind, text, spinner = false) {
 const errText = r => T.err[r.code] ? (r.code === "scrape" || r.code === "other" ? `${T.err[r.code]} ${r.detail || ""}`.trim() : T.err[r.code]) : (r.detail || T.err.other);
 
 // ================= routing =================
-const VIEWS = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "logs", "ajustes"];
+const VIEWS = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs", "ajustes"];
 let view = "panel";
 function go(v) {
   if (!VIEWS.includes(v)) v = "panel";
@@ -1944,6 +2185,8 @@ function go(v) {
   $("#settings-btn").classList.toggle("active", v === "ajustes");
   if (v === "ajustes") renderSettings();
   if (v === "grafo" && !$("#graph-iframe").getAttribute("src")) $("#graph-iframe").src = graphSrc();
+  if (v === "grafo") loadGraphProposals();
+  if (v === "factcheck") loadFactcheck();
   if (v === "chat" && !$("#chat-iframe").getAttribute("src")) $("#chat-iframe").src = "/chat?mode=embed";
   if (location.hash !== `#${v}`) history.replaceState(null, "", `#${v}`);
   if (v === "logs") loadLogs();
@@ -2288,14 +2531,13 @@ function agentPill(a) {
 function formAgentCard(a) {
   // apps que agregan servers locales con su propio formulario ("Run a command"), sin archivo de config que
   // brain pueda escribir (Manus Studio): valores para copiar, y "Detectado" cuando ya usó brain
-  const f = agentsData.manual.form, steps = T.agents[`${a.key}Steps`] || [];
+  const steps = T.agents[`${a.key}Steps`] || [];
   const pill = a.detected ? `<span class="pill st-running">${ICON.check}${esc(T.agents.detected)}</span>`
     : `<span class="pill ${a.installed ? "st-stopped" : "st-none"}">${ICON.dot}${esc(a.installed ? T.agents.byForm : T.agents.notInstalled)}</span>`;
   return `<div class="card agent">
     <div class="agent-top"><div class="agent-name">${esc(a.name)}</div>${pill}</div>
     <div class="agent-desc">${esc(T.agents.desc[a.key] || "")}</div>
     ${steps.length ? `<ol class="agent-steps">${steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
-    ${codeBlock(T.agents.fCommand, f.command, `form-${a.key}-cmd`)}${codeBlock(T.agents.fArgs, f.args, `form-${a.key}-args`)}
   </div>`;
 }
 function agentCard(a) {
@@ -2767,6 +3009,254 @@ setInterval(() => { if (view === "agentes") loadAgents(); }, 5000);
 // mientras el túnel arranca, la URL aparece en unos segundos: se consulta más seguido
 setInterval(() => { if (view === "agentes" && remoteData && remoteState(remoteData) === "starting") loadRemote(); }, 1500);
 setInterval(() => { if (view === "conexiones" && !connEditing) loadConnections(); }, 8000);
+
+// ================= cambios en el grafo pendientes (graph_proposals.py) =================
+// Las propuestas de propose_graph_change (del chat o de un agente por MCP) se aprueban acá o en el chat.
+async function loadGraphProposals() {
+  let r; try { r = await api("/api/graph/proposals?status=pending"); } catch (e) { return; }
+  const box = $("#gp-panel"), G = T.gp;
+  box.hidden = !r.proposals.length;
+  box.innerHTML = r.proposals.map(p => `<div class="card"><div class="card-h"><h2>${esc(G.title)}</h2><span class="sub">${esc(ago(p.created_at))}</span></div>
+    <div class="card-b gp-card"><img src="${esc(p.preview_url)}" alt="${esc(G.img)}" loading="lazy">
+      <div>${p.reason ? `<p style="margin:0 0 6px">${esc(p.reason)}</p>` : ""}<ul>${p.changes.map(c => `<li class="${c.type === "add_link" ? "add" : "rm"}">${esc(c.type === "add_link" ? G.add(c.source_label, c.target_label, c.label) : G.rm(c.source_label, c.target_label))}</li>`).join("")}</ul>
+        <p class="form-hint">${esc(G.pending)}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-gp="${esc(p.id)}" data-gp-act="approve">${esc(G.approve)}</button>
+        <button class="btn" type="button" data-gp="${esc(p.id)}" data-gp-act="reject">${esc(G.reject)}</button></div></div></div></div>`).join("");
+  box.querySelectorAll("[data-gp-act]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const r2 = await api(`/api/graph/proposals/${encodeURIComponent(b.dataset.gp)}/${b.dataset.gpAct}`, {});
+      toast(r2.ok ? (b.dataset.gpAct === "approve" ? G.applied(r2.proposal.summary) : G.rejected) : (G[r2.code] || r2.detail || r2.code));
+      if (r2.ok && b.dataset.gpAct === "approve") { const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc(); }
+    } catch (e) { toast(e.message); }
+    loadGraphProposals();
+  });
+}
+
+// ================= ajustes: formato de las notas =================
+async function loadFormat() {
+  try { const r = await api("/api/vault/format"); $("#format-missing").textContent = T.settings.formatMissing(r.missing); $("#format-run").disabled = !r.missing; } catch (e) {}
+}
+$("#format-run").onclick = async () => {
+  const btn = $("#format-run"), out = $("#format-result");
+  btn.disabled = true; showResult(out, "info", T.settings.formatRunning, true);
+  try { const r = await api("/api/vault/backfill", {}); showResult(out, "ok", T.settings.formatDone(r.count)); }
+  catch (e) { showResult(out, "err", e.message); }
+  loadFormat();
+};
+
+// ================= Fact check (factcheck.py) =================
+let fcPrefs = null, fcDefaults = null, fcReport = null, fcBusy = false, fcCtl = null;
+const FC_TYPES = ["numeric", "science_health", "legal_finance", "news", "history", "quote", "product", "other"];
+const FC_TOPICS = ["health", "law", "finance", "safety"];
+const FC_SRC = ["official", "academic", "factchecker", "news", "reference", "social", "web"];
+const FC_PREF = ["prefer", "corroborate", "orient", "lead_only", "exclude"];
+["#fc-level", "#fc-fresh", "#fc-provider"].forEach(id => BrainUI.select($(id)));
+function fcStatic() {
+  const F = T.fc;
+  $("#fc-text").placeholder = F.textPh;
+  $("#fc-brave").placeholder = F.braveKey;
+  [...$("#fc-level").options].forEach(o => { o.textContent = F.levels[o.value][0]; o.dataset.sub = F.levels[o.value][1]; });
+  [...$("#fc-fresh").options].forEach(o => o.textContent = F.freshOpts[o.value]);
+  BrainUI.sync($("#fc-level")); BrainUI.sync($("#fc-fresh"));
+  if (fcPrefs) fcFill(fcPrefs);
+  if (fcReport) fcRender(fcReport);
+}
+async function loadFactcheck() {
+  try { const r = await api("/api/factcheck/prefs"); fcPrefs = r.prefs; fcDefaults = r.defaults; } catch (e) { return; }
+  fcStatic(); fcFill(fcPrefs); loadFcHistory();
+}
+function fcFill(p) {
+  const F = T.fc;
+  $("#fc-level").value = p.level; $("#fc-fresh").value = p.freshness; $("#fc-provider").value = p.provider;
+  BrainUI.sync($("#fc-level")); BrainUI.sync($("#fc-fresh")); BrainUI.sync($("#fc-provider"));
+  $("#fc-level-help").textContent = F.levels[p.level][1];
+  $("#fc-dates").hidden = p.freshness !== "custom"; $("#fc-from").value = p.fresh_from || ""; $("#fc-to").value = p.fresh_to || "";
+  $("#fc-primary").checked = p.require_primary; $("#fc-counter").checked = p.counterevidence;
+  $("#fc-min").value = p.min_sources; $("#fc-max").value = p.max_sources;
+  const custom = p.level === "custom";
+  ["#fc-primary", "#fc-counter", "#fc-min", "#fc-max"].forEach(id => $(id).disabled = !custom);
+  $("#fc-types").innerHTML = FC_TYPES.map(t => `<label class="check"><input type="checkbox" data-fct="${t}" ${p.claim_types.includes(t) ? "checked" : ""}> <span>${esc(F.types[t])}</span></label>`).join("");
+  $("#fc-topics").innerHTML = FC_TOPICS.map(t => `<label class="check"><input type="checkbox" data-fctopic="${t}" ${p.high_risk_topics.includes(t) ? "checked" : ""}> <span>${esc(F.topics[t])}</span></label>`).join("");
+  $("#fc-risk").checked = p.always_high_risk;
+  $("#fc-regions").value = p.regions.join(", "); $("#fc-langs").value = p.languages.join(", ");
+  $("#fc-foreign").checked = p.allow_foreign; $("#fc-local").checked = p.prefer_local;
+  $("#fc-sp").innerHTML = FC_SRC.map(t => `<span>${esc(F.src[t])}</span><select class="input full" data-fcsp="${t}">${FC_PREF.map(v => `<option value="${v}" ${p.source_prefs[t] === v ? "selected" : ""}>${esc(F.pref[v])}</option>`).join("")}</select>`).join("");
+  $("#fc-sp").querySelectorAll("select").forEach(sel => BrainUI.select(sel));
+  $("#fc-searxng").value = p.searxng_url || ""; $("#fc-brave").value = "";
+  fcProvider();
+  $("#fc-blocked").value = p.blocked_domains.join("\n");
+  $("#fc-enabled").checked = p.enabled; $("#fc-auto").checked = p.chat_auto;
+  $("#fc-web").checked = p.enabled; $("#fc-web").disabled = !p.enabled;
+  $("#fc-prefs-when").textContent = p.updated_at ? F.updated(ago(p.updated_at)) : F.defaultsOn;
+}
+function fcProvider() {
+  const v = $("#fc-provider").value;
+  $("#fc-searxng").hidden = v !== "searxng"; $("#fc-brave").hidden = v !== "brave";
+  $("#fc-brave").placeholder = fcPrefs && fcPrefs.has_brave_key ? T.fc.braveSaved : T.fc.braveKey;
+}
+$("#fc-provider").onchange = fcProvider;
+$("#fc-fresh").onchange = () => { $("#fc-dates").hidden = $("#fc-fresh").value !== "custom"; };
+$("#fc-level").onchange = () => {
+  const v = $("#fc-level").value, preset = fcDefaults && v !== "custom" ? T.fc.presets[v] : null;
+  $("#fc-level-help").textContent = T.fc.levels[v][1];
+  if (preset) { $("#fc-min").value = preset[0]; $("#fc-max").value = preset[1]; $("#fc-primary").checked = preset[2]; $("#fc-counter").checked = preset[3]; }
+  ["#fc-primary", "#fc-counter", "#fc-min", "#fc-max"].forEach(id => $(id).disabled = v !== "custom");
+};
+function fcCollect() {
+  const body = {
+    level: $("#fc-level").value, freshness: $("#fc-fresh").value, fresh_from: $("#fc-from").value, fresh_to: $("#fc-to").value,
+    require_primary: $("#fc-primary").checked, counterevidence: $("#fc-counter").checked,
+    min_sources: +$("#fc-min").value, max_sources: +$("#fc-max").value,
+    claim_types: [...document.querySelectorAll("[data-fct]:checked")].map(x => x.dataset.fct),
+    high_risk_topics: [...document.querySelectorAll("[data-fctopic]:checked")].map(x => x.dataset.fctopic),
+    always_high_risk: $("#fc-risk").checked, regions: $("#fc-regions").value, languages: $("#fc-langs").value,
+    allow_foreign: $("#fc-foreign").checked, prefer_local: $("#fc-local").checked,
+    source_prefs: Object.fromEntries([...document.querySelectorAll("[data-fcsp]")].map(x => [x.dataset.fcsp, x.value])),
+    provider: $("#fc-provider").value, searxng_url: $("#fc-searxng").value, blocked_domains: $("#fc-blocked").value,
+    enabled: $("#fc-enabled").checked, chat_auto: $("#fc-auto").checked,
+  };
+  if ($("#fc-brave").value.trim()) body.brave_key = $("#fc-brave").value.trim();
+  return body;
+}
+async function fcSave(body, okText) {
+  const out = $("#fc-prefs-result");
+  try {
+    const r = await api("/api/factcheck/prefs", body);
+    if (!r.ok) return showResult(out, "err", T.fc.err[r.code] || r.detail || r.code);
+    fcPrefs = r.prefs; fcFill(fcPrefs); showResult(out, "ok", okText);
+  } catch (e) { showResult(out, "err", e.message); }
+}
+$("#fc-save").onclick = () => fcSave(fcCollect(), T.fc.saved);
+$("#fc-reset").onclick = () => fcSave({ reset: true }, T.fc.resetDone);
+
+async function loadFcHistory() {
+  let r; try { r = await api("/api/factcheck/reports"); } catch (e) { return; }
+  $("#fc-hist").innerHTML = r.reports.map(x => `<li><button class="link" type="button" data-fcopen="${esc(x.id)}" title="${esc(x.input)}">${esc(x.input)}</button>
+    <span class="when">${esc(x.verdicts.map(v => T.fc.vShort[v] || "·").join(" "))} · ${esc(ago(x.created_at))}</span></li>`).join("") || `<li class="muted">${esc(T.fc.noHistory)}</li>`;
+  $("#fc-hist").querySelectorAll("[data-fcopen]").forEach(b => b.onclick = () => openFcReport(b.dataset.fcopen));
+}
+async function openFcReport(id) {
+  try { const r = await api(`/api/factcheck/report?id=${encodeURIComponent(id)}`); if (r.ok) { fcReport = r.report; fcReport._md = r.markdown; fcRender(fcReport); $("#fc-report").scrollIntoView({ behavior: "smooth", block: "start" }); } }
+  catch (e) { toast(e.message); }
+}
+
+function fcStepText(ev) {
+  const F = T.fc.steps;
+  if (ev.step === "claims") return F.claims;
+  if (ev.step === "local") return F.local(ev.i + 1);
+  if (ev.step === "search") return F.search(ev.i + 1, (ev.reason || []).map(r => T.fc.reasons[r] || r).join(", "));
+  if (ev.step === "read") return F.read(ev.n);
+  if (ev.step === "source") return F.source(ev.url, T.fc.stance[ev.stance] || ev.stance);
+  if (ev.step === "verdict") return F.verdict(ev.i + 1);
+  return ev.step;
+}
+$("#fc-form").onsubmit = async e => {
+  e.preventDefault();
+  if (fcBusy) { if (fcCtl) fcCtl.abort(); return; }
+  const text = $("#fc-text").value.trim();
+  if (!text) return;
+  fcBusy = true; $("#fc-btn").textContent = T.fc.stop; $("#fc-result").className = "result";
+  const steps = $("#fc-steps"); steps.hidden = false; steps.innerHTML = "";
+  fcReport = { claims: [], input: text, live: true }; fcRender(fcReport);
+  fcCtl = new AbortController();
+  try {
+    const r = await fetch("/api/factcheck/run", { method: "POST", signal: fcCtl.signal, headers: { "Content-Type": "application/json", "X-Brain": "1" },
+      body: JSON.stringify({ text, lang, web: $("#fc-web").checked }) });
+    if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+        if (!line) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === "step") {
+          steps.querySelectorAll("li.now").forEach(li => li.classList.remove("now"));
+          steps.insertAdjacentHTML("beforeend", `<li class="now">${esc(fcStepText(ev))}</li>`);
+        } else if (ev.type === "claim") { fcReport.claims.push(ev.claim); fcRender(fcReport); }
+        else if (ev.type === "done") { fcReport = ev.report; fcRender(fcReport); steps.hidden = true; loadFcHistory(); }
+        else if (ev.type === "error") showResult($("#fc-result"), "err", T.fc.err[ev.code] || ev.detail || ev.code);
+      }
+    }
+  } catch (err) { if (err.name !== "AbortError") showResult($("#fc-result"), "err", err.message); }
+  finally { fcBusy = false; fcCtl = null; $("#fc-btn").textContent = T.fc.run; steps.querySelectorAll("li.now").forEach(li => li.classList.remove("now")); }
+};
+
+function fcSource(s) {
+  const F = T.fc, tags = [`<span class="fc-tag">${esc(F.src[s.type] || s.type)}</span>`];
+  if (s.primary) tags.push(`<span class="fc-tag">${esc(F.sig.primary)}</span>`);
+  tags.push(`<span class="fc-tag ${s.author ? "" : "bad"}">${esc(s.author ? F.sig.author(s.author) : F.sig.noAuthor)}</span>`);
+  tags.push(`<span class="fc-tag ${s.date ? "" : "bad"}">${esc(s.date ? F.sig.date(s.date) : F.sig.noDate)}</span>`);
+  if (s.stale) tags.push(`<span class="fc-tag bad">${esc(F.sig.stale)}</span>`);
+  if (s.republished) tags.push(`<span class="fc-tag bad">${esc(F.sig.republished)}</span>`);
+  if (s.origin === "web" && !s.inspected) tags.push(`<span class="fc-tag bad">${esc(F.sig.notInspected)}</span>`);
+  if (s.pref === "lead_only") tags.push(`<span class="fc-tag">${esc(F.sig.lead)}</span>`);
+  if (s.same_scope === false) tags.push(`<span class="fc-tag bad">${esc(F.sig.scope)}</span>`);
+  tags.push(`<span class="fc-tag">${esc(s.origin === "brain" ? F.sig.brain : F.sig.web)}</span>`);
+  const where = s.url || s.path, title = s.title || where;
+  const link = s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>` : `<b>${esc(title)}</b>`;
+  const acts = s.origin === "web" ? `<div class="acts"><button class="btn" type="button" data-fcsave="${esc(s.url)}">${esc(F.saveSrc)}</button>
+    <button class="btn" type="button" data-fcblock="${esc(s.sitename && s.sitename.includes(".") ? s.sitename : (new URL(s.url)).hostname)}">${esc(F.block)}</button></div>` : "";
+  return `<div class="fc-src">${link} <span class="muted">· ${esc(s.sitename || "")} · ${esc(F.lineN(s.group))}</span>
+    <div class="tags">${tags.join("")}</div>${s.quote ? `<blockquote>${esc(s.quote)}</blockquote>` : ""}
+    ${s.explanation ? `<div>${esc(s.explanation)}</div>` : ""}${s.error ? `<div class="muted">${esc(s.error)}</div>` : ""}${acts}</div>`;
+}
+function fcRender(r) {
+  const F = T.fc, box = $("#fc-report");
+  if (!r) { box.innerHTML = ""; return; }
+  const banners = [];
+  if (r.went_web) banners.push(`<div class="fc-banner">${esc(F.wentWeb)}</div>`);
+  if ((r.notes || []).includes("web_off")) banners.push(`<div class="fc-banner">${esc(F.webOff)}</div>`);
+  if ((r.notes || []).includes("no_model")) banners.push(`<div class="fc-banner warn">${esc(F.noModel)}</div>`);
+  if ((r.notes || []).includes("high_risk") || r.claims.some(c => c.risk === "high")) banners.push(`<div class="fc-banner warn">${esc(F.highRisk)}</div>`);
+  const claims = r.claims.map(c => {
+    const groups = { supports: [], contradicts: [], supports_with_limits: [], other: [] };
+    (c.sources || []).forEach(s => (groups[s.stance] || groups.other).push(s));
+    const sec = (k, list) => list.length ? `<div class="fc-group-h">${esc(F.groups[k])} · ${list.length}</div>${list.map(fcSource).join("")}` : "";
+    const lines = c.lines ? F.lines(c.lines.support, c.lines.contra, c.lines.limits || 0) : "";
+    const from = c.decision ? F.decision[c.decision] + (c.reason && c.reason.length && c.decision !== "local" ? ` (${c.reason.map(x => F.reasons[x] || x).join(", ")})` : "") : "";
+    return `<div class="card fc-claim"><div class="card-b">
+      <h3>${esc(c.text)}</h3>
+      <span class="fc-v ${esc(c.verdict)}">${esc(F.v[c.verdict] || c.verdict)}</span>
+      <div class="fc-meta">${esc([F.types[c.type] || c.type, c.risk === "high" ? F.riskHigh : "", lines].filter(Boolean).join(" · "))}</div>
+      ${c.explanation ? `<p>${esc(c.explanation)}</p>` : ""}
+      ${c.subclaims && c.subclaims.length ? `<p><b>${esc(F.parts)}:</b> ${esc(c.subclaims.join(" · "))}</p>` : ""}
+      ${from ? `<div class="fc-meta">${esc(from)}</div>` : ""}${c.search_error ? `<div class="fc-meta" style="color:var(--bad)">${esc(F.searchError(c.search_error))}</div>` : ""}
+      ${sec("supports", groups.supports)}${sec("contradicts", groups.contradicts)}${sec("supports_with_limits", groups.supports_with_limits)}
+      ${groups.other.length ? `<details><summary class="fc-group-h" style="cursor:pointer">${esc(F.groups.other)} · ${groups.other.length}</summary>${groups.other.map(fcSource).join("")}</details>` : ""}
+      ${(c.limitations || []).length ? `<div class="fc-group-h">${esc(F.limits)}</div><ul class="fc-lims">${c.limitations.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
+    </div></div>`;
+  }).join("");
+  const acts = r.id && !r.live ? `<div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" type="button" id="fc-copy">${esc(F.copy)}</button>
+    <button class="btn" type="button" id="fc-again">${esc(F.again)}</button>
+    <button class="btn" type="button" id="fc-del" style="color:var(--bad)">${esc(F.del)}</button></div>` : "";
+  box.innerHTML = r.claims.length || banners.length ? `<div class="fc-rep">${banners.join("")}${claims}${acts}</div>` : "";
+  box.querySelectorAll("[data-fcsave]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { const x = await api("/api/factcheck/save_source", { url: b.dataset.fcsave }); toast(x.ok ? F.savedSrc(x.path) : (T.err[x.code] || x.detail || x.code)); }
+    catch (e) { toast(e.message); } finally { b.disabled = false; }
+  });
+  box.querySelectorAll("[data-fcblock]").forEach(b => b.onclick = async () => {
+    if (!(await ask(F.blockConfirm(b.dataset.fcblock), { ok: F.block }))) return;
+    try { const x = await api("/api/factcheck/block", { domain: b.dataset.fcblock }); if (x.ok) { fcPrefs = x.prefs; fcFill(fcPrefs); toast(F.blocked(b.dataset.fcblock)); } }
+    catch (e) { toast(e.message); }
+  });
+  if ($("#fc-copy")) $("#fc-copy").onclick = async () => {
+    let md = r._md; if (!md) { try { md = (await api(`/api/factcheck/report?id=${encodeURIComponent(r.id)}`)).markdown; } catch (e) { return toast(e.message); } }
+    copyText(md, $("#fc-copy"), F.copy);
+  };
+  if ($("#fc-again")) $("#fc-again").onclick = () => { $("#fc-text").value = r.input; $("#fc-form").requestSubmit(); };
+  if ($("#fc-del")) $("#fc-del").onclick = async () => {
+    if (!(await ask(F.delConfirm, { ok: T.dlg.del, danger: true }))) return;
+    try { await api("/api/factcheck/delete", { id: r.id }); fcReport = null; fcRender(null); loadFcHistory(); } catch (e) { toast(e.message); }
+  };
+}
 </script>
 </body>
 </html>

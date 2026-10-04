@@ -26,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, backup, chat, clients, connectors, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, backup, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -277,6 +277,33 @@ def _connections_post(rest: list[str], body: dict) -> dict:
         return {"ok": False, "code": e.code, "detail": e.detail}
 
 
+def _factcheck_post(action: str, body: dict) -> dict:
+    """Fact check: prefs (guardar o reset), save_source (guardar una fuente en brain, siempre a pedido del
+    usuario), block (no volver a usar un dominio) y delete (borrar un informe)."""
+    try:
+        if action == "prefs":
+            return {"ok": True, "prefs": factcheck.save_prefs(body)}
+        if action == "block":
+            return {"ok": True, "prefs": factcheck.block_domain(str(body.get("domain", "")))}
+        if action == "delete":
+            factcheck.delete_report(str(body.get("id", "")))
+            return {"ok": True}
+        if action == "save_source":
+            url = str(body.get("url", "")).strip()
+            if not url.startswith(("http://", "https://")):
+                return {"ok": False, "code": "bad_url"}
+            try:
+                r = mcp_tools.save_url_core(url)
+            except Exception as e:
+                return {"ok": False, "code": _error_code(e), "detail": str(e)}
+            finally:
+                _chunks_cache["at"] = 0.0
+            return {"ok": True, **r}
+    except factcheck.FactCheckError as e:
+        return {"ok": False, "code": e.code, "detail": e.detail}
+    return {"ok": False, "code": "unknown_action"}
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -312,6 +339,31 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(stats.vault_stats())
             elif u.path == "/api/graph":
                 self._json(build_graph())
+            elif u.path == "/api/vault/format":
+                self._json({"missing": vault.missing_metadata()})
+            elif u.path == "/api/factcheck/prefs":
+                self._json({"prefs": factcheck.public(), "defaults": factcheck.public(factcheck.DEFAULTS)})
+            elif u.path == "/api/factcheck/reports":
+                self._json({"reports": factcheck.listing()})
+            elif u.path == "/api/factcheck/report":
+                try:
+                    r = factcheck.get_report(q.get("id", [""])[0])
+                except factcheck.FactCheckError:
+                    return self._json({"ok": False, "code": "unknown"}, 404)
+                self._json({"ok": True, "report": r, "markdown": factcheck.to_markdown(r)})
+            elif u.path == "/api/graph/proposals":
+                self._json({"proposals": graph_proposals.listing(q.get("status", [None])[0])})
+            elif u.path.startswith("/api/graph/proposals/") and u.path.endswith("/preview.svg"):
+                try:
+                    svg = graph_proposals.preview(u.path.split("/")[4])
+                except graph_proposals.ProposalError:
+                    return self._send(404, b"not found", "text/plain")
+                self.send_response(200)
+                self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+                self.end_headers()
+                self.wfile.write(svg.encode())
             elif u.path == "/api/file":
                 meta, content = vault.parse(vault.read_file(q.get("path", [""])[0]))
                 self._json({"meta": meta, "content": content})
@@ -419,6 +471,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "down": down, "hits": [
                     {"text": h["text"], "url": h["url"], "path": h["source_md_path"],
                      "score": h["score"], "match": h["match"]} for h in hits]})
+            elif u.path == "/api/vault/backfill":
+                self._json({"ok": True, **vault.backfill_metadata()})
             elif u.path == "/api/search/reindex":
                 self._json({"ok": True, **mcp_tools.reindex_keyword_core()})
             elif u.path == "/api/reflect":
@@ -485,6 +539,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True})
             elif parts[:2] == ["api", "connections"]:
                 self._json(_connections_post(parts[2:], body))
+            elif parts[:2] == ["api", "factcheck"] and len(parts) == 3:
+                if parts[2] == "run":
+                    return self._stream_events(factcheck.run(str(body.get("text", "")), "en" if body.get("lang") == "en" else "es",
+                                                             None if body.get("web", True) else False))
+                self._json(_factcheck_post(parts[2], body))
+            elif len(parts) == 5 and parts[:3] == ["api", "graph", "proposals"] and parts[4] in ("approve", "reject", "undo"):
+                try:
+                    fn = {"approve": graph_proposals.approve, "reject": graph_proposals.reject, "undo": graph_proposals.undo}[parts[4]]
+                    self._json({"ok": True, "proposal": fn(parts[3], str(body.get("reason") or "")) if parts[4] == "reject" else fn(parts[3])})
+                except graph_proposals.ProposalError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/composio/config":
                 try:
                     st = connectors.composio_configure(body.get("api_key"), body.get("user_id"))
@@ -531,6 +596,29 @@ class Handler(BaseHTTPRequestHandler):
             code = e.code if isinstance(e, backup.BackupError) else "not_a_backup"
             return self._json({"ok": False, "code": code, "detail": str(e)})
         self._json({"ok": True, "name": dest.name, "manifest": man})
+
+    def _stream_events(self, gen) -> None:
+        """NDJSON genérico (Fact check): una línea por evento."""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        try:
+            for ev in gen:
+                self.wfile.write((json.dumps(ev, ensure_ascii=False, default=str) + "\n").encode())
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception as e:
+            log.exception("stream")
+            try:
+                self.wfile.write((json.dumps({"type": "error", "code": "other", "detail": str(e)}) + "\n").encode())
+            except OSError:
+                pass
+        finally:
+            gen.close()
+        self.close_connection = True
 
     def _stream_chat(self, body: dict) -> None:
         """Respuesta del chat como NDJSON: una línea por evento, a medida que el modelo escribe."""

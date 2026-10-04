@@ -111,6 +111,22 @@
   .body ul, .body ol { padding-left: 1.3em; margin: 0 0 .75em; }
   .body h1, .body h2, .body h3 { font-size: 1.05em; margin: 1em 0 .4em; }
   .body table { border-collapse: collapse; font-size: 14px; } .body td, .body th { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+  /* HTML en las respuestas (sanitizado con DOMPurify): contain hace que nada se salga de la burbuja */
+  .body { contain: content; max-width: 100%; }
+  .body .tbl-wrap, .body table { display: block; max-width: 100%; overflow-x: auto; }
+  .body th { font-weight: 700; } .body thead th { border-bottom: 1px solid var(--line-strong); }
+  .body details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin: 0 0 .75em; }
+  .body summary { cursor: pointer; font-weight: 600; }
+  .body mark { background: #fff1a8; color: #0a0a0a; padding: 0 3px; border-radius: 3px; }
+  .body kbd { font: 12px "Courier Prime", monospace; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; }
+  .body img, .body svg { max-width: 100%; height: auto; }
+  .body img[data-blocked] { display: none; }
+  .body blockquote { margin: 0 0 .75em; padding-left: 12px; border-left: 3px solid var(--line-strong); color: var(--text-2); }
+  .body hr { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+  .gp-img { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: #fff; display: block; }
+  .gp-list { margin: 0; padding-left: 1.1em; font-size: 13.5px; } .gp-list .add { color: #1a7f37; } .gp-list .rm { color: var(--bad); }
+  .gp-note { font-size: 13px; color: var(--text-3); }
+  .pill.ok { background: #1a7f37; border-color: #1a7f37; color: #fff; }
   .cursor::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 4px; border-radius: 999px; background: var(--text); vertical-align: middle; animation: breathe 1.1s ease-in-out infinite; }
   @keyframes breathe { 50% { opacity: .25; transform: scale(.7); } }
 
@@ -279,11 +295,19 @@ const I18N = {
     cmds: { organize: "Ordenar el vault y el grafo (carpetas, tags, relaciones, duplicados). Pregunta antes de mover nada.",
       reflect: "Revisar la memoria: duplicados, contradicciones y notas sin entidades.", new: "Empezar un chat nuevo.",
       compact: "Compactar la sesión: resume lo hablado para liberar contexto y seguir en este chat.",
-      "add-mcp": "Agregar un conector: pasale la URL o las instrucciones de un server MCP y lo arma por vos." },
+      "add-mcp": "Agregar un conector: pasale la URL o las instrucciones de un server MCP y lo arma por vos.",
+      factcheck: "Verificar una afirmación: busca primero en tu brain y, si no alcanza, en internet, con fuentes y citas." },
+    fcLink: "Ver el informe completo en Fact check",
     prop: { title: "Conector propuesto", add: "Agregar", discard: "Descartar", added: n => `Agregado: ${n} tools disponibles.`,
       discarded: "Descartado.", gone: "Esta propuesta ya no está pendiente.", needsAuth: "Agregado. Este servicio pide iniciar sesión.",
       login: "Iniciar sesión", loginWait: "Terminá de iniciar sesión en la pestaña que se abrió…", popup: "El navegador bloqueó la pestaña del login.",
       cmd: "Comando", url: "URL", keys: "Pide", warn: "Se va a ejecutar este comando en tu máquina. Agregalo solo si confiás en el paquete." },
+    gprop: { title: "Propuesta de cambio en el grafo", pending: "No se cambió nada todavía. Revisá la imagen y aprobá o rechazá.",
+      approve: "Aprobar cambio", reject: "Rechazar", undo: "Deshacer", see: "Ver en el grafo",
+      applied: s => `Cambio aplicado: ${s.add} conexión(es) nueva(s), ${s.remove} quitada(s).`, rejected: "Rechazada: no se cambió nada.",
+      undone: "Deshecho: las notas volvieron a como estaban.", stale: "Las notas cambiaron después de la propuesta: pedile al chat una nueva.",
+      changed: "Las notas cambiaron después de aplicar: deshacelo desde el historial de cada nota.", gone: "Esta propuesta ya no existe.",
+      add: (a, b, l) => `Conectar ${a} → ${b}${l ? ` (${l})` : ""}`, rm: (a, b) => `Desconectar ${a} → ${b}`, img: "Grafo con los cambios marcados" },
     compacted: "Conversación compactada · el modelo sigue desde este resumen", nothingToCompact: "Todavía no hay nada que compactar en este chat.",
   },
   en: {
@@ -313,11 +337,19 @@ const I18N = {
     cmds: { organize: "Organize the vault and graph (folders, tags, links, duplicates). Asks before moving anything.",
       reflect: "Review your memory: duplicates, contradictions and notes without entities.", new: "Start a new chat.",
       compact: "Compact the session: summarize the conversation to free up context and keep going in this chat.",
-      "add-mcp": "Add a connector: give it the URL or instructions for an MCP server and it sets it up for you." },
+      "add-mcp": "Add a connector: give it the URL or instructions for an MCP server and it sets it up for you.",
+      factcheck: "Verify a claim: searches your brain first and, if that's not enough, the web, with sources and quotes." },
+    fcLink: "See the full report in Fact check",
     prop: { title: "Proposed connector", add: "Add", discard: "Discard", added: n => `Added: ${n} tools available.`,
       discarded: "Discarded.", gone: "This proposal is no longer pending.", needsAuth: "Added. This service asks you to sign in.",
       login: "Sign in", loginWait: "Finish signing in in the tab that opened…", popup: "The browser blocked the sign-in tab.",
       cmd: "Command", url: "URL", keys: "Needs", warn: "This command will run on your machine. Only add it if you trust the package." },
+    gprop: { title: "Proposed graph change", pending: "Nothing has changed yet. Check the image, then approve or reject.",
+      approve: "Approve change", reject: "Reject", undo: "Undo", see: "See in the graph",
+      applied: s => `Change applied: ${s.add} new link(s), ${s.remove} removed.`, rejected: "Rejected: nothing changed.",
+      undone: "Undone: the notes are back to how they were.", stale: "The notes changed after the proposal: ask the chat for a new one.",
+      changed: "The notes changed after applying: undo it from each note's history.", gone: "This proposal no longer exists.",
+      add: (a, b, l) => `Link ${a} → ${b}${l ? ` (${l})` : ""}`, rm: (a, b) => `Unlink ${a} → ${b}`, img: "Graph with the changes marked" },
     compacted: "Conversation compacted · the model continues from this summary", nothingToCompact: "There's nothing to compact in this chat yet.",
   },
 };
@@ -351,7 +383,7 @@ const ICON = {
 let chats = [], current = null, messages = [], busy = false, controller = null, historyOk = true, models = [];
 let chatModel = "";                 // modelo con el que arrancó el chat abierto (queda fijo)
 let usage = { tokens: 0, ctx: 0, max: 0 };  // ventana de contexto del chat abierto
-const COMMANDS = ["organize", "add-mcp", "compact", "reflect", "new"];
+const COMMANDS = ["organize", "add-mcp", "factcheck", "compact", "reflect", "new"];
 let skills = [], skillsAt = 0;      // skills del vault (skills/*.md) para el menú de "/"
 async function loadSkills(force = false) {
   if (!force && Date.now() - skillsAt < 15000) return false;
@@ -377,8 +409,31 @@ async function api(path, body) {
   return j;
 }
 const errText = r => (T.err[r.code] || T.err.other) + (["other", "ollama_http", "pull_failed"].includes(r.code) ? ` ${r.detail || ""}` : "");
+// Las respuestas pueden traer HTML (tablas, <details>, <mark>, un <svg>…). Se sanitiza con DOMPurify y además:
+// sin formularios, iframes ni <style>; imágenes solo del propio brain (/api/…) o data:, así una página
+// guardada con instrucciones escondidas no puede hacer que el modelo filtre datos en la URL de una imagen;
+// estilos sin url(), @import ni position fixed/sticky (nada puede tapar la interfaz).
+const PURIFY = { FORBID_TAGS: ["style", "form", "input", "button", "textarea", "select", "option", "iframe", "frame", "object", "embed", "link", "meta", "base", "audio", "video", "source", "foreignObject"],
+  FORBID_ATTR: ["srcset", "action", "formaction", "ping"], ADD_ATTR: ["target"] };
+if (window.DOMPurify) {
+  DOMPurify.addHook("afterSanitizeAttributes", node => {
+    const tag = node.nodeName.toLowerCase();
+    // (no se reemplaza el nodo: cambiar el árbol dentro del hook corta el recorrido de DOMPurify)
+    if (tag === "img" && !/^(\/api\/|data:image\/(png|jpe?g|gif|webp);)/i.test(node.getAttribute("src") || "")) {
+      node.removeAttribute("src");
+      node.setAttribute("data-blocked", "");
+    }
+    for (const a of ["href", "xlink:href"]) {
+      const v = node.getAttribute(a);
+      if (v != null && node.namespaceURI === "http://www.w3.org/2000/svg" && !v.startsWith("#")) node.removeAttribute(a);
+    }
+    const st = node.getAttribute("style");
+    if (st && /url\s*\(|@import|expression\s*\(|position\s*:\s*(fixed|sticky)/i.test(st)) node.removeAttribute("style");
+    if (tag === "a" && node.getAttribute("href")) { node.setAttribute("target", "_blank"); node.setAttribute("rel", "noopener noreferrer"); }
+  });
+}
 function md(text) {
-  if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(text || ""));
+  if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(text || ""), PURIFY);
   return `<p>${esc(text).replace(/\n/g, "<br>")}</p>`;
 }
 function ago(iso) {
@@ -529,6 +584,55 @@ async function propLogin(id) {
   } catch (err) { propState[id] = { kind: "error", text: err.message }; }
   banner(""); renderMessages(false);
 }
+// ---- cambios en el grafo (propose_graph_change): imagen + aprobar/rechazar/deshacer, por id ----
+const gprops = {}, gpErr = {}, gpAsked = new Set();  // id → propuesta · id → error de la última acción · ids ya pedidos
+let gpLoading = null;
+function loadGraphProps(ids = []) {
+  ids.forEach(id => gpAsked.add(id));
+  if (gpLoading) return gpLoading;
+  gpLoading = api("/api/graph/proposals").then(r => { for (const p of r.proposals) gprops[p.id] = p; })
+    .catch(() => {}).finally(() => { gpLoading = null; renderMessages(false); });
+  return gpLoading;
+}
+function fcCards(tools) {
+  return tools.filter(t => t.name === "fact_check" && t.ok).map(() =>
+    `<div class="prop-actions" style="margin-top:8px"><a class="pill" href="/#factcheck" target="_top">${esc(T.fcLink)}</a></div>`).slice(0, 1).join("");
+}
+function graphCards(tools) {
+  const ids = [...new Set(tools.filter(t => t.name === "propose_graph_change" && t.ok)
+    .flatMap(t => (String(t.result || "").match(/graph-\d{8}-\d{6}-[0-9a-f]{4}/g) || [])))];
+  return ids.map(id => {
+    const p = gprops[id];
+    if (!p) {
+      if (!gpAsked.has(id)) setTimeout(() => loadGraphProps([id]), 0);
+      return gpAsked.has(id) && !gpLoading ? `<div class="prop-card"><div class="prop-h">${esc(T.gprop.title)}</div><p class="gp-note">${esc(T.gprop.gone)}</p></div>` : "";
+    }
+    const G = T.gprop, err = gpErr[id];
+    const list = p.changes.map(c => `<li class="${c.type === "add_link" ? "add" : "rm"}">${esc(c.type === "add_link" ? G.add(c.source_label, c.target_label, c.label) : G.rm(c.source_label, c.target_label))}</li>`).join("");
+    const st = p.status === "pending" ? `<p class="gp-note">${esc(G.pending)}</p><div class="prop-actions">
+        <button class="pill dark" type="button" data-gp="${esc(id)}" data-gp-act="approve">${esc(G.approve)}</button>
+        <button class="pill" type="button" data-gp="${esc(id)}" data-gp-act="reject">${esc(G.reject)}</button></div>`
+      : p.status === "applied" ? `<div class="prop-actions"><span>${esc(G.applied(p.summary))}</span>
+        <button class="pill" type="button" data-gp="${esc(id)}" data-gp-act="undo">${esc(G.undo)}</button>
+        <a class="pill" href="/#grafo" target="_top">${esc(G.see)}</a></div>`
+      : `<p class="gp-note">${esc(G[p.status] || p.status)}</p>`;
+    return `<div class="prop-card"><div class="prop-h">${esc(G.title)}</div>${p.reason ? `<p>${esc(p.reason)}</p>` : ""}
+      <ul class="gp-list">${list}</ul><img class="gp-img" src="${esc(p.preview_url)}" alt="${esc(G.img)}" loading="lazy">
+      ${err ? `<p class="gp-note" style="color:var(--bad)">${esc(G[err] || err)}</p>` : ""}${st}</div>`;
+  }).join("");
+}
+$("#col").addEventListener("click", async e => {
+  const b = e.target.closest("[data-gp-act]");
+  if (!b) return;
+  const id = b.dataset.gp, act = b.dataset.gpAct;
+  b.disabled = true;
+  try {
+    const r = await api(`/api/graph/proposals/${encodeURIComponent(id)}/${act}`, {});
+    if (r.ok) { gprops[id] = r.proposal; delete gpErr[id]; }
+    else { gpErr[id] = r.code === "unknown" ? "gone" : r.code === "not_pending" ? "" : r.code; await loadGraphProps(); }
+  } catch (err) { gpErr[id] = err.message; }
+  renderMessages(false);
+});
 function banner(text, err = false) { $("#banner").innerHTML = text ? `<div class="banner ${err ? "err" : ""}">${esc(text)}</div>` : ""; }
 
 // ================= historial =================
@@ -605,7 +709,7 @@ function msgHtml(m, i, open = new Set()) {
   const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("");
   const body = m.content || !m.live ? `<div class="body ${m.live ? "cursor" : ""}">${md(m.content)}</div>` : `<div class="body cursor"></div>`;
   if (m.compact) return `<div class="msg assistant compact" data-i="${i}"><div class="compact-h">${esc(T.compacted)}</div>${body}${notes}</div>`;
-  return `<div class="msg assistant" data-i="${i}"><div class="who">${ICON.mark}${esc(T.brain)}</div>${trace}${body}${propCards(tools)}${notes}</div>`;
+  return `<div class="msg assistant" data-i="${i}"><div class="who">${ICON.mark}${esc(T.brain)}</div>${trace}${body}${propCards(tools)}${graphCards(tools)}${fcCards(tools)}${notes}</div>`;
 }
 function renderMessages(scroll = true) {
   const col = $("#col"), box = $("#msgs");

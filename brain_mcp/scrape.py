@@ -135,6 +135,18 @@ def _extract(html: str) -> str:
     return (text or "").strip()
 
 
+def page_meta(html: str | None) -> dict:
+    """Autor, fecha (publicación o última actualización que trae la página), sitio y título, si se ven."""
+    try:
+        m = trafilatura.extract_metadata(html) if html else None
+    except Exception:
+        m = None
+    if not m:
+        return {}
+    out = {"author": m.author, "date": m.date, "sitename": m.sitename, "title": m.title, "description": m.description}
+    return {k: str(v).strip() for k, v in out.items() if v and str(v).strip()}
+
+
 def check_public(url: str) -> str:
     """Para el acceso remoto (BRAIN_REMOTE=1): un agente que llega por la URL pública no puede usar a brain
     para leer servicios de esta máquina o de la red local (127.0.0.1, 192.168.x.x…). Solo direcciones públicas.
@@ -197,17 +209,23 @@ def fetch_public(url: str) -> str:
     raise ScrapeError(f"Demasiadas redirecciones: {url}")
 
 
+def scrape_public(url: str) -> dict:
+    """Para URLs que no eligió el usuario (acceso remoto, resultados de Fact check): solo direcciones públicas,
+    validadas en cada redirección, y sin ejecutar el JS de la página (fetch_public)."""
+    html = fetch_public(url)
+    text = _extract(html)
+    if not text:
+        raise ScrapeError(f"No se pudo extraer texto de {url} (sin ejecutar JavaScript).")
+    meta = page_meta(html)
+    return {"title": meta.get("title") or text.split("\n")[0][:120], "text": text, "meta": meta,
+            "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "rendered_js": False}
+
+
 def scrape(url: str, render_js: bool = False) -> dict:
     """render_js=True fuerza Playwright sin probar primero el fetch plano de trafilatura."""
     if os.environ.get("BRAIN_REMOTE") == "1":
         # por el acceso remoto: descarga validada salto por salto y sin Playwright (ver fetch_public)
-        html = fetch_public(url)
-        text = _extract(html)
-        if not text:
-            raise ScrapeError(f"No se pudo extraer texto de {url} (por el acceso remoto no se renderiza JS).")
-        meta = trafilatura.extract_metadata(html)
-        return {"title": (meta.title if meta and meta.title else None) or text.split("\n")[0][:120], "text": text,
-                "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "rendered_js": False}
+        return scrape_public(url)
     html, text, rendered = None, "", False
 
     if not render_js:
@@ -240,11 +258,12 @@ def scrape(url: str, render_js: bool = False) -> dict:
             f"No se pudo extraer texto de {url}, ni renderizando con JS (¿paywall o login?)."
         )
 
-    meta = trafilatura.extract_metadata(html)
-    title = (meta.title if meta and meta.title else None) or text.split("\n")[0][:120]
+    meta = page_meta(html)
+    title = meta.get("title") or text.split("\n")[0][:120]
     return {
         "title": title,
         "text": text,
+        "meta": meta,
         "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "rendered_js": rendered,
     }

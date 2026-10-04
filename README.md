@@ -28,6 +28,7 @@ Then type `brain` and the dashboard opens.
 - [Connecting agents](#connecting-agents)
 - [How it works](#how-it-works)
 - [Connections](#connections)
+- [Fact check](#fact-check)
 - [MCP tools](#mcp-tools)
 - [The `brain` command](#the-brain-command)
 - [Data, privacy and security](#data-privacy-and-security)
@@ -45,10 +46,11 @@ Then type `brain` and the dashboard opens.
 - **One knowledge base, shared by every agent.** Markdown notes organized into projects and skills. What Claude writes today, ChatGPT can read tomorrow.
 - **Save the web.** Give brain a URL and it downloads the page, extracts the text (including sites built with JavaScript), indexes it and makes it available to semantic search: you search by meaning, not exact words.
 - **Chat with your memory.** A local Ollama model that already knows your profile and memory. Ask it things, or have it save, add or edit notes for you. Chats are kept in Chroma, and you can pop the chat out into a floating window that stays on top of your other apps.
-- **See how everything connects.** An interactive graph shows your profile, memories, projects, skills, sources and tags, and how they relate.
+- **See how everything connects.** An interactive graph shows your profile, memories, projects, skills, sources and tags, and how they relate. When the chat or an agent wants to link or unlink notes, you first see an image of the change and approve it.
+- **Check facts, with the evidence in view.** Fact check splits a text into claims, looks in your memory first and on the web only if needed, reads every page, looks for counter-evidence and gives a verdict by rules, with quotes, dates and limitations.
 - **Undo anything.** Every write goes into a version history. If an agent deletes or overwrites something, you get it back.
 - **Bring your apps along.** Plug other MCP servers into brain (GitHub, Notion, Gmail…, or hundreds of apps through Composio): their tools show up in every agent you connected, and whatever they fetch is saved to your memory automatically.
-- **Private by design.** Embeddings are computed on your machine with [Ollama](https://ollama.com), and your data never leaves your computer (the only request brain makes on its own is checking GitHub for a new version).
+- **Private by design.** Embeddings are computed on your machine with [Ollama](https://ollama.com), and your data never leaves your computer (the only request brain makes on its own is checking GitHub for a new version; Fact check searches the web only when you run it).
 
 ## Installation
 
@@ -100,12 +102,13 @@ ollama pull nomic-embed-text
 | Tab | What it's for |
 |---|---|
 | **Dashboard** | Switches to turn **Chroma**, **Ollama** and the **MCP Inspector** (a UI to try the tools by hand) on and off. Vault metrics, activity charts for the last 30 days, sources by domain, operations, system health and recent changes. |
-| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click) when you start a chat; it then stays with that chat. A circle next to the send button fills up as the chat uses the model's context window. Rename a chat with the pencil next to its title. Type `/` for commands: **`/organize`** tidies up the vault and its graph with a built-in skill (adapted from [file-organizer](https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md)): it asks how you want it organized, proposes a plan and changes only what you approve; **`/add-mcp`** sets up a connector from a URL or instructions (you approve it with one click before anything runs); `/compact` summarizes the conversation so far to free up context and keep going in the same chat; `/reflect` brings Reflect's suggestions into the chat; `/new` starts a new chat. Below the commands, under **Your skills**, come the skills saved in your vault's `skills/` (usually written by your agents): `/<skill>` loads it into the chat. The chat always gets a fixed guide to how brain works, so it can tell you where things are. Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
+| **Chat** | Talk to a local Ollama model with your profile, all your memories, the `BRAIN.md` index and related bits of past chats as context. It gets the same tools your agents get (read, search, write, `add_memory`, `save_url`, your connections…), so it can look things up and make changes. Every tool call is listed in the answer, and you can expand each one to see its arguments and result; every write lands in the version history. Models that can't take native tools (common with GGUF models pulled from Hugging Face) get the tools as text instead, so they can act on the vault too. Pick the model from the ones installed in Ollama (or download `llama3.2` in one click) when you start a chat; it then stays with that chat. A circle next to the send button fills up as the chat uses the model's context window. Rename a chat with the pencil next to its title. Type `/` for commands: **`/organize`** tidies up the vault and its graph with a built-in skill (adapted from [file-organizer](https://github.com/davila7/claude-code-templates/blob/main/cli-tool/components/skills/productivity/file-organizer/SKILL.md)): it asks how you want it organized, proposes a plan and changes only what you approve; **`/add-mcp`** sets up a connector from a URL or instructions (you approve it with one click before anything runs); **`/factcheck`** verifies a claim with [Fact check](#fact-check); `/compact` summarizes the conversation so far to free up context and keep going in the same chat; `/reflect` brings Reflect's suggestions into the chat; `/new` starts a new chat. Below the commands, under **Your skills**, come the skills saved in your vault's `skills/` (usually written by your agents): `/<skill>` loads it into the chat. The chat always gets a fixed guide to how brain works, so it can tell you where things are, and clear working rules: understand the request, use just the tools it needs, never repeat the same call, and always end with an answer. Answers can include HTML (tables, collapsible sections, simple diagrams), sanitized so no script, form or outside image gets through. To link or unlink notes it calls `propose_graph_change`: you see an image of the graph with the change marked and approve, reject or undo it. Chats are saved in Chroma (`chats` collection) with a searchable list; **Float** opens the chat in an always-on-top window (Document Picture-in-Picture in Chrome, Edge and Arc; a regular pop-up elsewhere). |
 | **Profile** | Your details (name, headline, about me) and your memory. The importer takes 3 steps: pick the chatbot, copy a prompt that asks it for all its memory in a fixed format, and paste the answer (or upload a `.txt`, `.md` or `.json`). You get a preview before importing and can drop anything you don't want. **Reflect** reviews your memory and suggests fixes (duplicates, contradictions, notes without entities) without changing anything. |
-| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, OpenMausBot, DeepSeek Harness, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, Manus Studio with the values for its form, **remote access by URL** for agents in the cloud, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
+| **Connect agent** | Connect and disconnect brain from Claude Desktop, ChatGPT, OpenMausBot, DeepSeek Harness, Claude Code, Codex, Cursor, VS Code, Windsurf and Gemini CLI in one click, Manus Studio with the values for its form (under *Any other MCP client*), **remote access by URL** for agents in the cloud, plus manual setup for anything else. **My connections** lists the agents brain configured, plus any app that used brain (detected from the MCP handshake, so apps where you added brain with an "Add MCP server" form show up the first time they use it) and apps you note by hand. |
 | **Connections** | Other MCP servers brain uses on your behalf: add them as a local command or a URL (or through Composio), switch each one on or off, choose whether its results are saved to memory, refresh its tools. Servers that need a login (OAuth) show **Sign in**: it opens the service's own sign-in page and brain keeps the token. Connections an agent proposed (`/add-mcp` in the chat) wait here for you to approve them. |
-| **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders, tags and entities. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). |
+| **Graph** | Interactive map of the vault: profile, memory, projects, skills, sources, folders, tags and entities. Click a node to see its content and connections. Controls to zoom in, zoom out and **re-center** (also the `0` key or double-clicking the background). Graph changes proposed by an agent wait at the top, with their image, to be approved or rejected. |
 | **Knowledge** | Save a URL (optionally forcing JavaScript rendering), hybrid search (semantic score, or a *keyword* tag for exact matches), a button to rebuild the keyword index, and the list of saved sources with how old their content is and when they were last checked. **Refresh** re-downloads one source or all of them; if a refresh fails, the last good copy is kept and the error is shown. |
+| **Fact check** | Verify claims: brain searches your memory first and the web only if that's not enough (and says so), reads every page, groups sources that aren't independent, looks for counter-evidence and gives a verdict by rules (supported, likely supported, mixed, inconclusive, likely false, false, not verifiable) with quotes, dates and limitations. Preferences are set once: level, freshness, primary sources, counter-evidence, claim types, high-risk topics, regions, languages, source types, search engine (DuckDuckGo, SearXNG or Brave), blocked domains. Copy the report, save a source to brain or block a domain with one click. |
 | **Logs** | Live output of every service the dashboard manages. |
 
 The bottom of the sidebar has the theme (system, light or dark), the language (**English / Español**), an **i** button that lists the services (Chroma, Ollama, MCP Inspector) and their state, and **Settings** (the gear), a full view where you can:
@@ -117,6 +120,7 @@ The bottom of the sidebar has the theme (system, light or dark), the language (*
 - make a **backup** of everything local (vault, history, settings, connections and what's indexed in Chroma, embeddings included) and **restore** it; credentials are left out unless you tick the box, and restoring first saves a backup of the current state;
 - write a **system prompt** for the chat: how you want it to answer (tone, format, language, focus), added to brain's own instructions; the chat's fixed app context is shown below it, read-only;
 - turn on **system notifications** for uploads, changes and deletions in your vault, whether an agent, the chat or you made them;
+- **note format**: fill in `type`, `created` and `updated` on older notes in one click (new writes get them automatically);
 - give each graph node type (Brain, Profile, Memory, Projects, Skills, Sources, Notes, Folders, Tags, Entities) its own color, or go back to black and white.
 
 The button next to the logo collapses the sidebar into a narrow rail of icons.
@@ -139,7 +143,7 @@ Each agent keeps its list of MCP servers in its own file. When you click *Connec
 | **Gemini CLI** | `~/.gemini/settings.json` | |
 | **OpenMausBot** | `~/.openmausbot/config.json` | Reads its MCP servers when it opens, so it's edited with the app closed; the dashboard offers to quit, connect and reopen it. |
 | **DeepSeek Harness** (desktop app and `dsh` CLI) | `~/.dsh/cordis.patch.yml` | brain adds its own block (an `@deepseek-ai/dsh-mcp-client` row, stdio) and removes only that block; dsh reloads it without restarting. Tools show up as `mcp__brain__…`. |
-| **Manus Studio** | its own form | Manus adds local servers with its *Run a command* form; its card shows the command and arguments to paste, and switches to *Detected* once Manus uses brain. Manus on the web can use [remote access](#remote-access-by-url). |
+| **Manus Studio** | its own form | Manus adds local servers with its *Run a command* form; copy the command and arguments from *Any other MCP client*; its card switches to *Detected* once Manus uses brain. Manus on the web can use [remote access](#remote-access-by-url). |
 | **Anything else** | | The dashboard gives you ready-to-copy config as JSON, TOML, a command, or field by field. |
 
 Paths are the macOS ones; on Windows they're under `%APPDATA%` and on Linux under `~/.config`. All the local agents launch the same server (`uv run --directory ~/.brain python server.py`) with absolute paths, so they work from any folder.
@@ -181,6 +185,18 @@ Every connection has two switches: **Active** (turn it off and its tools disappe
 
 Secrets (env values, headers, the Composio API key) live in `~/.brain/.env` with `600` permissions, outside the vault and never committed. The connection list lives in `~/.brain/data/connections.json`.
 
+## Fact check
+
+The **Fact check** view verifies claims with a process you can see, instead of a "true/false" button:
+
+1. The local chat model splits the text into checkable claims and marks opinions, predictions and vague statements as *not verifiable*.
+2. Each claim is searched in brain first. If nothing relevant is saved, it's old, your notes disagree, there's no primary source or it's a current topic, brain searches the web (if you allow it) and tells you it did.
+3. It runs a neutral query, an evidence query, a **counter-evidence** query and a primary-source query; opens and reads every page (a page it can't open is marked *not fully inspected* and doesn't count); types each source (official, academic, fact-checker, news, reference, social, other) by what it is; and groups pages from the same site or with copied text into one line of evidence.
+4. The model says whether each source supports, contradicts or supports with limits, and must quote the exact sentence; a quote that isn't in the page doesn't count.
+5. The verdict comes from fixed rules over independent lines of evidence: never "supported" with a single secondary source, and conflicting evidence is shown as a conflict.
+
+Preferences (level, freshness, primary sources, counter-evidence, claim types, high-risk topics with extra rigor, regions, languages, source types, search engine, blocked domains) are set once in the view. Nothing is saved to your vault unless you click **Save to brain**. It also works from the chat (`/factcheck`) and for agents (`fact_check`). For health, law, finance or safety it reminds you it's informational, not professional advice.
+
 ## How it works
 
 ```mermaid
@@ -219,6 +235,7 @@ flowchart LR
   - `memory/`: one file per category ("Work", "Preferences"…) with one fact per bullet.
   - `projects/` and `skills/`: your notes and reusable instructions.
   - `knowledge/sources/`: the full text of every saved URL.
+  - Every note carries `type` (Project, Memory, Skill, Source…), `created` and `updated`, filled in by brain on every write: a small profile of the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md), so any AI can tell what a note is and how current it is. Links can be `[text](path.md)` or `[[name]]`.
 - **History (`data/history.sqlite3`).** Every write stores the file's previous and new content. A cross-process file lock makes writes atomic, so Claude, ChatGPT and the dashboard can write at the same time without clobbering each other.
 - **Chroma.** The vector database behind semantic search. It runs as a single HTTP server on `127.0.0.1:8055`, so every process shares it without fighting over the disk.
 - **Ollama.** Computes embeddings on your machine with `nomic-embed-text`, using the prefixes the model expects (`search_document:` when indexing, `search_query:` when searching).
@@ -227,10 +244,10 @@ flowchart LR
 
 1. [trafilatura](https://trafilatura.readthedocs.io) downloads the page and extracts clean text.
 2. If it gets fewer than 30 words (typical of JavaScript-built sites) or the download fails, it renders the page in headless Chromium with Playwright and extracts again.
-3. It splits the text into ~500-word chunks with a 50-word overlap.
+3. It splits the text into chunks of up to ~500 words (50-word overlap) that follow its structure: a heading stays with its first paragraph, lists, tables and code blocks aren't cut, and a chunk that starts mid-section carries the section title, which also goes into the chunk's metadata.
 4. It embeds each chunk with Ollama and stores it in Chroma, with metadata pointing back to the source `.md`. The same chunks go into a keyword index (SQLite FTS5, `data/search.sqlite3`), which catches proper names, IDs and exact numbers that embeddings miss.
 5. If a chat model is installed in Ollama, it adds a short `abstract` (pages over 800 words) and the `entities` it names (people, places, organizations, projects) to the frontmatter. Both are optional: without the model the page is saved the same way.
-6. It writes `knowledge/sources/<slug>.md` with the full text and its chunk ids. Saving the same URL again updates it instead of duplicating it.
+6. It writes `knowledge/sources/<slug>.md` with the full text, its chunk ids, `type: Source`, `title`, `resource` (the URL) and, when the page shows them, `author` and `published`. Saving the same URL again updates it instead of duplicating it.
 
 **Search (`search_knowledge`)** runs the semantic search and the keyword search, and merges both lists with reciprocal rank fusion. If Chroma or Ollama is down, keyword search keeps working and the answer says so.
 
@@ -257,6 +274,8 @@ flowchart LR
 | `restore_file(path, version_id)` | Restores a file to an earlier version (also brings back deleted files) |
 | `move_file(src, dst)` | Moves or renames a note (recoverable). Not for `BRAIN.md`, `profile.md`, `memory/` or `knowledge/sources/` |
 | `vault_overview()` | What's messy in the vault: loose notes, notes with no links or no description, tag variants, similar names |
+| `propose_graph_change(changes, reason?)` | Proposes adding or removing `related` links between notes. It changes nothing: you see an image of the graph with the changes marked and approve or reject it |
+| `inspect_graph_region(nodes)` | Read-only: the neighbors of some notes and why they're linked |
 | `add_memory(fact, category?, supersede?)` | Saves a fact about you to your memory, without duplicates and with the date it was saved. If it replaces an older fact (you moved, changed jobs…), pass the old one in `supersede`: it isn't deleted, it moves to a `## Historial` section of the same file, dated |
 | `memory_history(category?)` | Facts that were superseded in a memory category |
 | `list_skills()` / `get_skill(name)` | Skills: reusable instructions in `skills/` |
@@ -267,6 +286,7 @@ flowchart LR
 | `list_sources()` | Every saved URL, with its `abstract`, when its content was downloaded and when it was last checked |
 | `refresh_sources(path?)` | Re-downloads one saved source (or all); keeps the last good copy if it fails |
 | `read_url(url, max_chars?)` | Reads a web page without saving it (e.g. an MCP server's docs) |
+| `fact_check(text, search_web?)` | Verifies claims: brain first, the web if needed, a verdict by rules with sources and quotes. Saves nothing |
 | `propose_connection(name, url? \| command?, args?, env?, headers?, note?)` | Proposes adding an MCP server to Connections. It doesn't add it: you approve it with one click |
 | `list_connections()` | Your connections, whether they're active, and their tools |
 | `refresh_connectors()` | Re-discovers the tools of every active connection |
@@ -290,12 +310,12 @@ brain help            help
 ## Data, privacy and security
 
 - **Everything is local.** Your data lives in `~/.brain/vault/` and `~/.brain/data/`. Both folders are in `.gitignore`, so they're never uploaded anywhere, not even if you fork the repo.
-- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, checks GitHub for a new version (it only reads the latest release number), or keeps the Cloudflare tunnel open if you turn on remote access. Composio, if you use it, keeps your app tokens in its cloud.
+- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, checks GitHub for a new version (it only reads the latest release number), runs a Fact check that needs the web (the claims go as queries to the search engine you chose, and the result pages are opened; never pages on your machine or local network), or keeps the Cloudflare tunnel open if you turn on remote access. Composio, if you use it, keeps your app tokens in its cloud.
 - **The dashboard only accepts requests from your own machine.** It listens on `127.0.0.1`, rejects requests with any other `Host` (DNS-rebinding protection), and its actions require a custom header browsers won't send from other pages. No website you have open can start processes or write to your vault.
 - **Remote access is opt-in and locked with a token.** The URL carries a secret token (regenerate it any time), can be set to read-only, and the server behind it listens only on `127.0.0.1`. The token is in `~/.brain/data/remote.json` (`600`).
 - **Agents can't leave the vault.** The tools reject paths with `..`, absolute paths, hidden files and symlinks that point outside.
 - **Secrets stay out of the vault and the repo.** Connection tokens and API keys are in `~/.brain/.env`, and OAuth sign-ins in `~/.brain/data/oauth.json` (both permissions `600`, gitignored); the dashboard never shows them back, and backups leave them out unless you ask.
-- **Agents can propose, not install.** An agent (or the chat's `/add-mcp`) can only *propose* a new connection; nothing runs until you click *Add* and see the exact command or URL.
+- **Agents can propose, not install.** An agent (or the chat's `/add-mcp`) can only *propose* a new connection; nothing runs until you click *Add* and see the exact command or URL. The same goes for graph changes: nothing changes until you approve the image.
 - **Everything can be undone.** Any write can be reverted with `file_history` + `restore_file`, and Settings → Backup keeps full copies you can restore.
 
 The website's [privacy policy](https://lautaro005.github.io/brain/privacy/) covers the site too (its chat assistant is provided by [DokBot](https://www.dokbot.app)).

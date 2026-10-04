@@ -14,9 +14,9 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 
-from brain_mcp import chroma_store, clients, connectors, entities, keyword_store, memory, organize, remote, vault  # noqa: E402
+from brain_mcp import chroma_store, clients, connectors, entities, graph_proposals, keyword_store, memory, organize, remote, vault  # noqa: E402
 from brain_mcp.summarize import summarize  # noqa: E402
-from brain_mcp.chunking import chunk_text  # noqa: E402
+from brain_mcp.chunking import chunk_sections, chunk_text  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError, scrape  # noqa: E402
@@ -28,7 +28,7 @@ ABSTRACT_MIN_WORDS = 800  # fuentes más largas llevan un resumen corto en el fr
 # Acceso remoto en modo "solo lectura" (remote.py): solo estas tools quedan visibles y se pueden llamar.
 READ_ONLY_TOOLS = {
     "list_vault", "read_file", "vault_overview", "file_history", "memory_history", "list_connections",
-    "list_skills", "get_skill", "search_knowledge", "list_sources", "distill_skill",
+    "list_skills", "get_skill", "search_knowledge", "list_sources", "distill_skill", "inspect_graph_region",
 }
 
 
@@ -105,7 +105,11 @@ mcp = BrainServer(
         "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
         "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
         "(preguntale al usuario antes de mover o borrar). Para sumar un server MCP que pida el usuario, "
-        "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba."
+        "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba. "
+        "Para conectar o desconectar notas en el grafo usá propose_graph_change (el usuario ve una imagen y "
+        "aprueba); no edites `related` directo. Para verificar un dato, fact_check (busca primero en brain). "
+        "Formato de las notas (perfil OKF): type, name, title, description, tags, related; brain completa solo "
+        "type, created y updated."
     ),
 )
 
@@ -296,6 +300,54 @@ def propose_connection(name: str, url: str | None = None, command: str | None = 
 
 
 @mcp.tool()
+def propose_graph_change(changes: list[dict], reason: str = "") -> dict | str:
+    """Propone cambiar conexiones del grafo (el `related` de las notas). NO cambia nada: valida el pedido,
+    arma una imagen con los cambios marcados y el usuario la aprueba o la rechaza con un click.
+    changes: [{"type": "add_link" | "remove_link", "source": "<nota>", "target": "<nota>", "label"?: "usa"}]
+    (nombre, ruta o nombre de archivo de cada nota; hasta 10 cambios). reason: una línea con el porqué.
+    Usala en vez de set_frontmatter(related) cuando el usuario pida conectar o desconectar notas."""
+    try:
+        p = graph_proposals.propose(changes, reason)
+        s = p["summary"]
+        return {"ok": True, "proposal": p,
+                "next": (f"Propuesta {p['id']}: +{s['add']} / -{s['remove']} conexiones. No se cambió nada todavía: "
+                         "decile al usuario que la revise en la imagen y toque «Aprobar» o «Rechazar».")}
+    except graph_proposals.ProposalError as e:
+        return f"Error: {e.detail or e.code}"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def fact_check(text: str, search_web: bool = True) -> str:
+    """Verifica afirmaciones con un proceso visible: las separa, busca primero en brain y, si lo guardado no
+    alcanza (y el usuario lo permite en Fact check), busca en internet con consultas a favor y en contra,
+    lee cada página, agrupa las fuentes que no son independientes y da un veredicto por reglas
+    (respaldada, probablemente respaldada, mixta, no concluyente, probablemente falsa, falsa, no verificable)
+    con citas, fechas y limitaciones. No guarda nada en el vault. Tarda: usala cuando el usuario pida
+    verificar algo o cuando haga falta comprobar un dato que no está en brain. search_web=False: solo brain."""
+    try:
+        from brain_mcp import factcheck
+
+        rep = factcheck.run_sync(text, "es", None if search_web else False)
+        return factcheck.to_markdown(rep) + f"\n(informe {rep['id']}: se ve completo en el dashboard → Fact check)"
+    except Exception as e:
+        log.exception("fact_check falló")
+        return _err(e)
+
+
+@mcp.tool()
+def inspect_graph_region(nodes: list[str]) -> dict | str:
+    """Solo lee: para cada nota pedida (nombre o ruta, hasta 10), sus vecinos en el grafo y por qué están
+    unidos (link en el texto, related, tag, entidad…), además de su related y tags. Sirve para entender una
+    zona del grafo antes de proponer un cambio con propose_graph_change."""
+    try:
+        return graph_proposals.inspect(nodes)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 def read_url(url: str, max_chars: int = 8000) -> str:
     """Lee una página web y devuelve su texto, SIN guardarla en el vault (para guardarla, save_url).
     Sirve para leer la documentación de un server MCP antes de proponerlo."""
@@ -375,9 +427,11 @@ def save_url_core(url: str, render_js: bool = False, data: dict | None = None) -
     except vault.VaultError:
         pass
 
-    chunks = chunk_text(data["text"])
+    parts = chunk_sections(data["text"])
+    chunks = [c["text"] for c in parts]
     ids = [f"{slug}-{i}" for i in range(len(chunks))]
-    metas = [{"url": url, "source_md_path": md_path, "chunk_index": i} for i in range(len(chunks))]
+    metas = [{"url": url, "source_md_path": md_path, "chunk_index": i, "type": "Source", "title": data["title"][:200],
+              **({"section": c["section"][:200]} if c["section"] else {})} for i, c in enumerate(parts)]
 
     chroma_store.upsert(ids, chunks, metas)  # los ids se repiten (slug-0, slug-1…): pisa los viejos
     keyword_store.upsert(ids, chunks, metas)
@@ -385,8 +439,14 @@ def save_url_core(url: str, render_js: bool = False, data: dict | None = None) -
     chroma_store.delete(stale)
     keyword_store.delete(stale)
 
-    fields = dict(name=slug, description=data["title"], url=url, scraped_at=data["fetched_at"],
-                  checked_at=data["fetched_at"], chroma_ids=ids)
+    # perfil OKF: type + title + resource (la URL de origen); author/published si la página los dice
+    pm = data.get("meta") or {}
+    fields = dict(type="Source", name=slug, title=data["title"], description=data["title"], resource=url, url=url,
+                  scraped_at=data["fetched_at"], checked_at=data["fetched_at"], chroma_ids=ids)
+    if pm.get("author"):
+        fields["author"] = pm["author"][:200]
+    if pm.get("date"):
+        fields["published"] = pm["date"][:40]
     # best-effort con el modelo de chat de Ollama: sin él la fuente se guarda igual, sin estos campos
     abstract = summarize(data["text"]) if len(data["text"].split()) > ABSTRACT_MIN_WORDS else None
     if abstract:
