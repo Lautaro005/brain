@@ -50,7 +50,7 @@ RISK_TOPICS = ("health", "law", "finance", "safety")
 SOURCE_TYPES = ("official", "academic", "factchecker", "news", "reference", "social", "web")
 SOURCE_PREFS = ("prefer", "corroborate", "orient", "lead_only", "exclude")
 FRESHNESS = ("topic", "day", "month", "year", "any", "custom")
-PROVIDERS = ("duckduckgo", "searxng", "brave")
+PROVIDERS = ("duckduckgo", "searxng", "brave", "connection")
 # antigüedad aceptable por tipo de afirmación cuando la frescura es "según el tema" (días; None = sin límite)
 TOPIC_AGE = {"news": 30, "product": 180, "numeric": 365, "legal_finance": 730, "science_health": 1825,
              "history": None, "quote": None, "other": None}
@@ -69,6 +69,8 @@ DEFAULTS = {
     "source_prefs": {"official": "prefer", "academic": "prefer", "factchecker": "prefer", "news": "corroborate",
                      "reference": "orient", "social": "lead_only", "web": "corroborate"},
     "provider": "duckduckgo", "searxng_url": "", "brave_key": "",
+    # "connection": una tool de búsqueda de las Conexiones del usuario (OpenSEO, Composio, Tavily, Exa, Brave MCP…)
+    "connection_tool": "", "connection_args": {},
     "blocked_domains": [],
     "updated_at": "",
 }
@@ -154,6 +156,18 @@ def _clean(raw: dict, base: dict) -> dict:
         if u and not re.match(r"^https?://", u):
             raise FactCheckError("bad_searxng")
         out["searxng_url"] = u[:300]
+    if "connection_tool" in raw:
+        out["connection_tool"] = str(raw["connection_tool"] or "").strip()[:128]
+    if "connection_args" in raw:
+        a = raw["connection_args"]
+        if isinstance(a, str):
+            try:
+                a = json.loads(a) if a.strip() else {}
+            except ValueError:
+                raise FactCheckError("bad_connection_args") from None
+        if not isinstance(a, dict):
+            raise FactCheckError("bad_connection_args")
+        out["connection_args"] = a
     if "brave_key" in raw and raw["brave_key"] is not None:  # "" la borra; sin el campo, queda la anterior
         out["brave_key"] = str(raw["brave_key"]).strip()[:200]
     if "blocked_domains" in raw:
@@ -188,12 +202,14 @@ def save_prefs(data: dict) -> dict:
     if data.get("reset"):
         new = json.loads(json.dumps(DEFAULTS))
         # restaurar los valores recomendados no toca la conexión con el buscador (ni la clave guardada)
-        for k in ("provider", "searxng_url", "brave_key"):
+        for k in ("provider", "searxng_url", "brave_key", "connection_tool", "connection_args"):
             new[k] = cur.get(k, new[k])
     else:
         new = _clean(data, cur)
     if new["provider"] == "brave" and not new.get("brave_key"):
         raise FactCheckError("no_brave_key")
+    if new["provider"] == "connection" and not new.get("connection_tool"):
+        raise FactCheckError("no_connection_tool")
     if new["provider"] == "searxng" and not new.get("searxng_url"):
         raise FactCheckError("no_searxng")
     new["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -542,7 +558,114 @@ def _brave(query: str, p: dict, days: int | None) -> list[dict]:
              "date": str(x.get("page_age") or "")[:10]} for x in (r.json().get("web") or {}).get("results", [])]
 
 
+# ---------- buscar con una tool de las Conexiones ----------
+# El usuario puede tener ya un buscador conectado a brain (OpenSEO get_serp_results, una tool de búsqueda de
+# Composio, Tavily, Exa, el MCP de Brave…). Fact check la usa como buscador: arma los argumentos desde el
+# esquema de la tool (la consulta va en el campo que corresponda) más los fijos que puso el usuario (por ejemplo
+# el projectId de OpenSEO), y saca las URLs del resultado. El resultado NO se captura en knowledge/.
+
+QUERY_FIELDS = ("query", "q", "keyword", "keywords", "search", "search_query", "searchQuery", "term", "text", "prompt")
+URL_KEYS = ("url", "link", "href", "source_url", "sourceUrl", "page_url")
+TITLE_KEYS = ("title", "name", "headline")
+SNIPPET_KEYS = ("snippet", "description", "content", "summary", "text")
+DATE_KEYS = ("date", "published", "publishedDate", "published_date", "page_age", "timestamp")
+
+
+def search_tools() -> list[dict]:
+    """Tools de las Conexiones activas que pueden servir de buscador (las que parecen de búsqueda, primero)."""
+    from . import connectors
+
+    out = []
+    for t in connectors.proxied_tools():
+        hay = f"{t['name']} {t['description']}".lower()
+        score = sum(w in hay for w in ("search", "serp", "google", "web", "busca", "tavily", "exa", "brave", "duck"))
+        if _query_args(t.get("input_schema") or {}, "x", {}) is not None:
+            out.append({"name": t["name"], "description": t["description"][:200], "score": score})
+    return sorted(out, key=lambda x: (-x["score"], x["name"]))
+
+
+def _query_args(schema: dict, query: str, fixed: dict, lang: str = "") -> dict | None:
+    """Argumentos para la tool: los fijos del usuario + la consulta en el campo que corresponda. None si el
+    esquema no tiene dónde poner una consulta."""
+    props = schema.get("properties") or {}
+    args = dict(fixed or {})
+    for name, spec in props.items():  # lista de consultas (OpenSEO: queries: [{keyword, languageCode}])
+        items = (spec or {}).get("items") or {}
+        if (spec or {}).get("type") == "array" and isinstance(items, dict):
+            iprops = items.get("properties") or {}
+            key = next((f for f in QUERY_FIELDS if f in iprops), None)
+            if key:
+                q = {key: query}
+                if lang and "languageCode" in iprops:
+                    q["languageCode"] = lang
+                args[name] = [q]
+                return args
+            if items.get("type") == "string" and name.lower() in ("queries", "keywords", "terms"):
+                args[name] = [query]
+                return args
+    key = next((f for f in QUERY_FIELDS if (props.get(f) or {}).get("type", "string") == "string" and f in props), None)
+    if key:
+        args[key] = query
+        return args
+    return None
+
+
+def _walk_results(node, out: list) -> None:
+    if isinstance(node, dict):
+        url = next((str(node[k]) for k in URL_KEYS if isinstance(node.get(k), str) and node[k].startswith("http")), "")
+        if url:
+            out.append({"url": url,
+                        "title": next((str(node[k]) for k in TITLE_KEYS if node.get(k)), "")[:300],
+                        "snippet": next((str(node[k]) for k in SNIPPET_KEYS if isinstance(node.get(k), str)), "")[:500],
+                        "date": next((str(node[k])[:10] for k in DATE_KEYS if node.get(k)), "")})
+        for v in node.values():
+            _walk_results(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _walk_results(v, out)
+
+
+def parse_tool_results(texts: list[str]) -> list[dict]:
+    """URLs de resultados en lo que devolvió la tool: objetos JSON con url/link, o si no, las URLs del texto."""
+    found: list[dict] = []
+    for t in texts:
+        try:
+            _walk_results(json.loads(t), found)
+        except ValueError:
+            for m in re.finditer(r"https?://[^\s)\]>\"'`]+", t):
+                found.append({"url": m.group(0).rstrip(".,;"), "title": "", "snippet": "", "date": ""})
+    seen, out = set(), []
+    for r in found:
+        if r["url"] not in seen:
+            seen.add(r["url"])
+            out.append(r)
+    return out[:15]
+
+
+def _connection(query: str, p: dict, days: int | None) -> list[dict]:
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
+    from . import connectors
+
+    t = connectors.resolve_tool(p.get("connection_tool") or "")
+    if not t:
+        raise FactCheckError("connection_missing", p.get("connection_tool") or "")
+    args = _query_args(t.get("input_schema") or {}, query, p.get("connection_args") or {}, (p["languages"] or [""])[0])
+    if args is None:
+        raise FactCheckError("no_query_arg", t["name"])
+    # en un thread propio: así funciona igual desde el dashboard y desde el server MCP (que ya tiene un loop)
+    with ThreadPoolExecutor(1) as ex:
+        content, is_error = ex.submit(asyncio.run, connectors.call(t["conn_id"], t["tool"], args, capture_result=False)).result(timeout=120)
+    texts = [getattr(c, "text", "") for c in content if getattr(c, "text", None)]
+    if is_error:
+        raise FactCheckError("search_failed", f"{t['name']}: {' '.join(texts)[:200]}")
+    return parse_tool_results(texts)
+
+
 def search_web(query: str, p: dict, days: int | None = None) -> list[dict]:
+    if p["provider"] == "connection":
+        return _connection(query, p, days)
     fn = {"duckduckgo": _ddg, "searxng": _searxng, "brave": _brave}[p["provider"]]
     try:
         return fn(query, p, days)

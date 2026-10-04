@@ -381,8 +381,9 @@ def resolve_tool(name: str) -> dict | None:
     return next((t for t in proxied_tools() if t["name"] == name), None)
 
 
-async def call(conn_id: str, tool: str, arguments: dict) -> tuple[list, bool]:
-    """Ejecuta la tool en el server de origen. Devuelve (content, is_error)."""
+async def call(conn_id: str, tool: str, arguments: dict, capture_result: bool = True) -> tuple[list, bool]:
+    """Ejecuta la tool en el server de origen. Devuelve (content, is_error). capture_result=False no guarda el
+    resultado en knowledge/ aunque la conexión tenga la captura prendida (Fact check: nada se guarda solo)."""
     c = get(conn_id)
     if not c.get("enabled", True):
         raise ConnectorError("disabled", c["name"])
@@ -396,7 +397,7 @@ async def call(conn_id: str, tool: str, arguments: dict) -> tuple[list, bool]:
         res = await session.call_tool(tool, arguments or {}, read_timeout_seconds=CALL_TIMEOUT)
     content = list(getattr(res, "content", []) or [])
     is_error = bool(getattr(res, "is_error", False) or getattr(res, "isError", False))
-    if not is_error and c.get("capture", True):
+    if not is_error and capture_result and c.get("capture", True):
         import anyio
 
         try:  # en un thread: embeber e indexar es bloqueante y no debe trabar el event loop

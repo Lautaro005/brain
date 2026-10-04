@@ -343,6 +343,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"missing": vault.missing_metadata()})
             elif u.path == "/api/factcheck/prefs":
                 self._json({"prefs": factcheck.public(), "defaults": factcheck.public(factcheck.DEFAULTS)})
+            elif u.path == "/api/factcheck/tools":  # tools de las Conexiones que sirven de buscador
+                self._json({"tools": factcheck.search_tools()})
             elif u.path == "/api/factcheck/reports":
                 self._json({"reports": factcheck.listing()})
             elif u.path == "/api/factcheck/report":
@@ -368,7 +370,11 @@ class Handler(BaseHTTPRequestHandler):
                 meta, content = vault.parse(vault.read_file(q.get("path", [""])[0]))
                 self._json({"meta": meta, "content": content})
             elif u.path == "/api/profile":
-                self._json({"profile": memory.get_profile(), "memory": memory.list_all()})
+                stale = memory.auto_about_enabled() and memory.auto_about_stale()
+                if stale:
+                    memory.schedule_auto_about()  # la memoria cambió (por ej. desde un agente): se pone al día solo
+                self._json({"profile": memory.get_profile(), "memory": memory.list_all(),
+                            "auto_about": {"enabled": memory.auto_about_enabled(), "stale": stale}})
             elif u.path == "/api/connections":
                 self._json({"connections": [connectors.public(c) for c in connectors.load()],
                             "proposals": connectors.proposals(),
@@ -489,6 +495,11 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/profile":
                 path = memory.save_profile(str(body.get("name", "")), str(body.get("headline", "")), str(body.get("about", "")))
                 self._json({"ok": True, "path": path})
+            elif u.path == "/api/profile/auto":
+                if "enabled" in body:
+                    memory.set_auto_about(bool(body["enabled"]))
+                r = memory.refresh_auto_about(force=True) if body.get("refresh") else {"status": "saved"}
+                self._json({"ok": True, **r, "enabled": memory.auto_about_enabled(), "profile": memory.get_profile()})
             elif u.path == "/api/memory/parse":
                 self._json({"ok": True, "categories": memory.parse(str(body.get("text", "")))})
             elif u.path == "/api/memory/import":

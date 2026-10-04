@@ -89,29 +89,49 @@ class BrainServer(MCPServer):
         return await super().call_tool(name, arguments, context)
 
 
-mcp = BrainServer(
-    "brain",
-    instructions=(
-        "Base de conocimiento personal del usuario. Leé primero BRAIN.md (read_file 'BRAIN.md') y "
-        "profile.md + memory/ para saber con quién hablás. Cuando aprendas algo duradero sobre el usuario, "
-        "guardalo con add_memory; si reemplaza a un hecho anterior (se mudó, cambió de trabajo…), pasá "
-        "el hecho viejo en supersede para que quede en el historial en vez de convivir con el nuevo. "
-        "Usá list_skills antes de tareas complejas y search_knowledge para buscar en fuentes scrapeadas "
-        "(es híbrida: sirve para temas y también para nombres, IDs o fechas exactas). Para convertir lo "
-        "que sabés de un tema en un skill, usá distill_skill y guardá el resultado con write_file. "
-        "Las tools con prefijo (ej. gmail__..., composio__...) vienen de conexiones del usuario: su "
-        "resultado se guarda solo en knowledge/ y después se puede buscar con search_knowledge. "
-        "Al escribir notas, conectalas: usá [[nombre]] para linkear otros archivos del vault, y en el "
-        "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
-        "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
-        "(preguntale al usuario antes de mover o borrar). Para sumar un server MCP que pida el usuario, "
-        "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba. "
-        "Para conectar o desconectar notas en el grafo usá propose_graph_change (el usuario ve una imagen y "
-        "aprueba); no edites `related` directo. Para verificar un dato, fact_check (busca primero en brain). "
-        "Formato de las notas (perfil OKF): type, name, title, description, tags, related; brain completa solo "
-        "type, created y updated."
-    ),
+INSTRUCTIONS = (
+    "Base de conocimiento personal del usuario. Leé primero BRAIN.md (read_file 'BRAIN.md') y "
+    "profile.md + memory/ para saber con quién hablás. Cuando aprendas algo duradero sobre el usuario, "
+    "guardalo con add_memory; si reemplaza a un hecho anterior (se mudó, cambió de trabajo…), pasá "
+    "el hecho viejo en supersede para que quede en el historial en vez de convivir con el nuevo. "
+    "Usá list_skills antes de tareas complejas y search_knowledge para buscar en fuentes scrapeadas "
+    "(es híbrida: sirve para temas y también para nombres, IDs o fechas exactas). Para convertir lo "
+    "que sabés de un tema en un skill, usá distill_skill y guardá el resultado con write_file. "
+    "Las tools con prefijo (ej. gmail__..., composio__...) vienen de conexiones del usuario: su "
+    "resultado se guarda solo en knowledge/ y después se puede buscar con search_knowledge. "
+    "Al escribir notas, conectalas: usá [[nombre]] o [texto](ruta.md) para linkear otros archivos del vault, y en el "
+    "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
+    "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
+    "(preguntale al usuario antes de mover o borrar). Para sumar un server MCP que pida el usuario, "
+    "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba. "
+    "Para conectar o desconectar notas en el grafo usá propose_graph_change (el usuario ve una imagen y "
+    "aprueba); no edites `related` directo. Para verificar un dato, fact_check (busca primero en brain y usa "
+    "las preferencias de Fact check del usuario). "
+    "Formato de las notas: leé FORMAT.md. Cada nota lleva type: Project (un proyecto: projects/<nombre>.md o la "
+    "nota principal de projects/<nombre>/), SubProject (la nota principal de una subcarpeta dentro de un "
+    "proyecto), File (cualquier otra nota dentro de un proyecto: documentación, apuntes, entregables), Memory, "
+    "Skill, Source, Reference, Profile, Index o Note (nota suelta). brain completa solo type, created y updated."
 )
+# Preferencia del usuario (Fact check → "Que el chat y los agentes verifiquen solo…"): si está prendida, todos
+# los agentes reciben la instrucción. Se lee al arrancar (instrucciones del server) y en cada search_knowledge.
+FACTCHECK_AUTO = (
+    "Preferencia del usuario: si te pregunta un dato factual (números, noticias, salud, leyes, hechos recientes) "
+    "y no está en su brain (search_knowledge no lo trae o no lo responde), verificalo con fact_check antes de "
+    "responder (usa sus preferencias de Fact check) y avisale que consultaste fuentes externas."
+)
+
+
+def _factcheck_auto() -> bool:
+    try:
+        from brain_mcp import factcheck
+
+        p = factcheck.prefs()
+        return bool(p["chat_auto"] and p["enabled"])
+    except Exception:
+        return False
+
+
+mcp = BrainServer("brain", instructions=INSTRUCTIONS + (" " + FACTCHECK_AUTO if _factcheck_auto() else ""))
 
 
 def _err(e: Exception) -> str:
@@ -319,17 +339,21 @@ def propose_graph_change(changes: list[dict], reason: str = "") -> dict | str:
 
 
 @mcp.tool()
-def fact_check(text: str, search_web: bool = True) -> str:
+async def fact_check(text: str, search_web: bool = True) -> str:
     """Verifica afirmaciones con un proceso visible: las separa, busca primero en brain y, si lo guardado no
     alcanza (y el usuario lo permite en Fact check), busca en internet con consultas a favor y en contra,
     lee cada página, agrupa las fuentes que no son independientes y da un veredicto por reglas
     (respaldada, probablemente respaldada, mixta, no concluyente, probablemente falsa, falsa, no verificable)
     con citas, fechas y limitaciones. No guarda nada en el vault. Tarda: usala cuando el usuario pida
-    verificar algo o cuando haga falta comprobar un dato que no está en brain. search_web=False: solo brain."""
+    verificar algo o cuando haga falta comprobar un dato que no está en brain. Usa las preferencias de Fact check
+    del usuario (nivel, actualidad, fuentes, buscador…). search_web=False: solo brain."""
     try:
         from brain_mcp import factcheck
 
-        rep = factcheck.run_sync(text, "es", None if search_web else False)
+        import anyio
+
+        # tarda (búsquedas, páginas, el modelo local): en un thread, así no frena al resto del server
+        rep = await anyio.to_thread.run_sync(lambda: factcheck.run_sync(text, "es", None if search_web else False))
         return factcheck.to_markdown(rep) + f"\n(informe {rep['id']}: se ve completo en el dashboard → Fact check)"
     except Exception as e:
         log.exception("fact_check falló")
@@ -514,9 +538,14 @@ def search_knowledge(query: str, top_k: int = 5) -> list[dict] | str:
     source_md_path, score (similitud semántica, None si solo matcheó por palabra) y match."""
     try:
         hits, note, _ = search_core(query, top_k)
+        auto = _factcheck_auto()
         if not hits:
-            return "No hay resultados (¿todavía no se guardó ninguna URL con save_url?)." + (f" Nota: {note}" if note else "")
-        return hits + ([{"note": note}] if note else [])
+            return ("No hay resultados (¿todavía no se guardó ninguna URL con save_url?)." + (f" Nota: {note}" if note else "")
+                    + (" " + FACTCHECK_AUTO if auto else ""))
+        extra = [{"note": note}] if note else []
+        if auto:
+            extra.append({"note": "Si estos resultados no responden la pregunta y es un dato factual: " + FACTCHECK_AUTO})
+        return hits + extra
     except (OllamaUnavailable, ChromaUnavailable) as e:
         return _err(e)
     except Exception as e:

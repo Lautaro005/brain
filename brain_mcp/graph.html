@@ -15,6 +15,7 @@
     /* monocromo: cada tipo se distingue por relleno, contorno y trazo, no por color */
     --hub-fill: #0a0a0a; --hub-stroke: #0a0a0a; --profile-fill: #ffffff; --profile-stroke: #0a0a0a;
     --memory-fill: #ffffff; --memory-stroke: #5e5e5e; --project-fill: #0a0a0a; --project-stroke: #0a0a0a;
+    --subproject-fill: #ffffff; --subproject-stroke: #0a0a0a; --file-fill: #e8e8e5; --file-stroke: #5e5e5e;
     --skill-fill: #5e5e5e; --skill-stroke: #5e5e5e; --source-fill: #d6d6d2; --source-stroke: #5e5e5e;
     --note-fill: #9a9a95; --note-stroke: #9a9a95; --folder-fill: #cfcfcc; --folder-stroke: #cfcfcc; --tag-fill: #ffffff; --tag-stroke: #9a9a95;
     --entity-fill: #ffffff; --entity-stroke: #0a0a0a;
@@ -26,6 +27,7 @@
       --edge: #3a3a38; --edge-hi: #f2f2f0;
       --hub-fill: #f2f2f0; --hub-stroke: #f2f2f0; --profile-fill: #191918; --profile-stroke: #f2f2f0;
       --memory-fill: #191918; --memory-stroke: #9a9a95; --project-fill: #f2f2f0; --project-stroke: #f2f2f0;
+      --subproject-fill: #191918; --subproject-stroke: #f2f2f0; --file-fill: #2a2a28; --file-stroke: #9a9a95;
       --skill-fill: #9a9a95; --skill-stroke: #9a9a95; --source-fill: #3a3a38; --source-stroke: #9a9a95;
       --note-fill: #6b6b67; --note-stroke: #6b6b67; --folder-fill: #3a3a38; --folder-stroke: #3a3a38; --tag-fill: #191918; --tag-stroke: #6b6b67;
       --entity-fill: #191918; --entity-stroke: #f2f2f0;
@@ -37,6 +39,7 @@
       --edge: #3a3a38; --edge-hi: #f2f2f0;
       --hub-fill: #f2f2f0; --hub-stroke: #f2f2f0; --profile-fill: #191918; --profile-stroke: #f2f2f0;
       --memory-fill: #191918; --memory-stroke: #9a9a95; --project-fill: #f2f2f0; --project-stroke: #f2f2f0;
+      --subproject-fill: #191918; --subproject-stroke: #f2f2f0; --file-fill: #2a2a28; --file-stroke: #9a9a95;
       --skill-fill: #9a9a95; --skill-stroke: #9a9a95; --source-fill: #3a3a38; --source-stroke: #9a9a95;
       --note-fill: #6b6b67; --note-stroke: #6b6b67; --folder-fill: #3a3a38; --folder-stroke: #3a3a38; --tag-fill: #191918; --tag-stroke: #6b6b67;
       --entity-fill: #191918; --entity-stroke: #f2f2f0;
@@ -148,16 +151,16 @@ const I18N = {
     connections: "Conexiones", none: "Sin conexiones todavía", cut: "… (recortado, el archivo completo está en el vault)",
     stats: (f, l) => `${f} archivos · ${l} conexiones`,
     zin: "Acercar", zout: "Alejar", zfit: "Volver al centro (tecla 0 o doble click en el fondo)",
-    kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
-    rel: { folder: "carpeta", link: "link", mention: "mención", related: "relacionado", tag: "tag", memory: "memoria", entity: "entidad" },
+    kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", subproject: "Subproyectos", file: "Archivos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
+    rel: { folder: "carpeta", part: "parte de", link: "link", mention: "mención", related: "relacionado", tag: "tag", memory: "memoria", entity: "entidad" },
   },
   en: {
     brand: "· connections", search: "Search…", empty: "Click a node to see its content and connections",
     connections: "Connections", none: "No connections yet", cut: "… (truncated, the full file is in the vault)",
     stats: (f, l) => `${f} files · ${l} connections`,
     zin: "Zoom in", zout: "Zoom out", zfit: "Back to center (key 0 or double-click the background)",
-    kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
-    rel: { folder: "folder", link: "link", mention: "mention", related: "related", tag: "tag", memory: "memory", entity: "entity" },
+    kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", subproject: "Sub-projects", file: "Files", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
+    rel: { folder: "folder", part: "part of", link: "link", mention: "mention", related: "related", tag: "tag", memory: "memory", entity: "entity" },
   },
 }[LANG];
 const KINDS = I18N.kinds, REL = I18N.rel;
@@ -171,7 +174,7 @@ const css = k => getComputedStyle(document.documentElement).getPropertyValue(`--
 // colores elegidos en Ajustes del dashboard (localStorage "brain-graph-colors", mismo origen).
 // Sin elegir, queda el sistema monocromo. Los tipos huecos (perfil, memoria, tags) llevan un relleno
 // suave del color para no perder la diferencia de forma.
-const HOLLOW = new Set(["profile", "memory", "tag", "entity"]);
+const HOLLOW = new Set(["profile", "memory", "tag", "entity", "subproject"]);
 let custom = {};
 function loadColors() {
   try { custom = JSON.parse(localStorage.getItem("brain-graph-colors") || "{}") || {}; } catch (e) { custom = {}; }
@@ -215,6 +218,7 @@ function radius(n) {
   if (n.kind === "folder") return 6;
   if (n.kind === "tag") return 5;
   if (n.kind === "entity") return 5.5;
+  if (n.kind === "file") return 5 + Math.min(4, Math.sqrt(n.degree || 0) * 1.5);
   return 7 + Math.min(7, Math.sqrt(n.degree || 0) * 2);
 }
 
@@ -279,7 +283,7 @@ function render() {
   });
   g.attr("class", n => `node ${n.kind}`);
   g.select("circle").attr("r", radius).attr("fill", n => fill(n.kind)).attr("stroke", n => stroke(n.kind))
-    .attr("stroke-width", n => n.kind === "profile" ? 3 : n.kind === "memory" || n.kind === "tag" || n.kind === "entity" ? 1.6 : 1.4)
+    .attr("stroke-width", n => n.kind === "profile" ? 3 : n.kind === "subproject" ? 2.6 : n.kind === "memory" || n.kind === "tag" || n.kind === "entity" ? 1.6 : 1.4)
     .attr("stroke-dasharray", n => n.kind === "source" ? "2.5 2" : n.kind === "entity" ? "1.2 1.8" : null);
   g.select("text").attr("x", n => radius(n) + 5).text(n => n.label);
 

@@ -14,11 +14,20 @@ CODEPATH = re.compile(r"`([\w\-./]+)`")
 TOP_KINDS = {"projects": "project", "skills": "skill", "knowledge": "source", "memory": "memory"}
 
 
-def _kind(rel: str) -> str:
+PROJECT_KINDS = {"Project": "project", "SubProject": "subproject", "File": "file"}
+
+
+def _kind(rel: str, meta: dict | None = None) -> str:
     if rel == "BRAIN.md":
         return "hub"
     if rel == "profile.md":
         return "profile"
+    # Project / SubProject / File (v0.03.1.1): por la ubicación en projects/ o el `type` del frontmatter
+    t = vault.effective_type(rel, meta or {})
+    if t in PROJECT_KINDS and (rel.startswith("projects/") or (meta or {}).get("type") == t):
+        return PROJECT_KINDS[t]
+    if rel.startswith("projects/"):
+        return "note"  # projects/index.md
     return TOP_KINDS.get(rel.split("/")[0], "note")
 
 
@@ -67,7 +76,7 @@ def build_graph() -> dict:
         nodes[rel] = {
             "id": rel,
             "label": label,
-            "kind": _kind(rel),
+            "kind": _kind(rel, meta),
             "path": rel,
             "description": str(meta.get("description", "")),
             "url": meta.get("url"),
@@ -88,6 +97,24 @@ def build_graph() -> dict:
     if "profile.md" in docs:
         links.add(("BRAIN.md", "profile.md", "link"))
 
+    # cada File y SubProject queda unido al proyecto (o subproyecto) del que es parte: la nota principal de su
+    # carpeta o, si no hay, la de la carpeta de arriba
+    mains = {rel.rsplit("/", 1)[0]: rel for rel in docs
+             if "/" in rel and nodes[rel]["kind"] in ("project", "subproject")}
+    for rel in docs:
+        kind = nodes[rel]["kind"]
+        if kind not in ("file", "subproject") or not rel.startswith("projects/"):
+            continue
+        folder = rel.rsplit("/", 1)[0]
+        if kind == "subproject":  # su propia carpeta es la del subproyecto: el padre está una más arriba
+            folder = folder.rsplit("/", 1)[0] if "/" in folder else ""
+        while folder and folder != "projects":
+            owner = mains.get(folder)
+            if owner and owner != rel:
+                links.add((rel, owner, "part"))
+                break
+            folder = folder.rsplit("/", 1)[0] if "/" in folder else ""
+
     def resolve(target: str, src: str) -> str | None:
         t = target.strip().strip("/")
         if not t:
@@ -107,7 +134,8 @@ def build_graph() -> dict:
         text = body
         targets = [(m, "link") for m in WIKILINK.findall(text)]
         targets += [(m, "link") for m in MDLINK.findall(text)]
-        targets += [(m, "mention") for m in CODEPATH.findall(text)]
+        if meta.get("managed") != "brain":  # la guía FORMAT.md nombra todas las carpetas: no son menciones reales
+            targets += [(m, "mention") for m in CODEPATH.findall(text)]
         targets += [(r, "related") for r in _as_list(meta.get("related"))]
         for t, kind in targets:
             dst = resolve(t, rel)
@@ -127,7 +155,7 @@ def build_graph() -> dict:
             links.add((rel, eid, "entity"))
 
     # una sola línea por par de nodos, quedándose con la relación más fuerte
-    rank = {"link": 0, "memory": 1, "related": 2, "entity": 3, "mention": 4, "tag": 5, "folder": 6}
+    rank = {"link": 0, "part": 1, "memory": 1, "related": 2, "entity": 3, "mention": 4, "tag": 5, "folder": 6}
     best: dict[frozenset, tuple[str, str, str]] = {}
     for s, t, k in sorted(links):
         key = frozenset((s, t))

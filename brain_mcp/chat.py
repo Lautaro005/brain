@@ -116,8 +116,16 @@ y los índices, el historial y los ajustes en data/.
   restauración, formato de las notas (completar type/created/updated en notas viejas) y colores del grafo.
 - Grafo: para conectar o desconectar notas, propose_graph_change muestra una imagen con los cambios marcados
   (verde = nueva, rojo = se saca) y el usuario aprueba, rechaza o deshace. También se ven en la vista Grafo.
-- Formato de las notas: Markdown con frontmatter compatible con OKF (type, name, title, description, tags,
-  related); brain completa solo type, created (cuándo se creó) y updated (último cambio).
+- Formato de las notas (detalle en FORMAT.md del vault): Markdown con frontmatter compatible con OKF (type, name,
+  title, description, tags, related); brain completa solo type, created y updated. Tipos: Project (un proyecto:
+  projects/<nombre>.md o la nota principal de projects/<nombre>/), SubProject (la nota principal de una subcarpeta
+  dentro de un proyecto), File (cualquier otra nota de un proyecto: docs, apuntes, entregables), Memory, Skill,
+  Source, Reference, Profile, Index y Note (suelta). En el grafo, cada File y SubProject cuelga de su proyecto.
+- Perfil: debajo de «Sobre vos», «Lo que brain sabe de vos» es un resumen de la memoria que se reescribe solo
+  cuando cambia (se puede apagar o pedir «Actualizar ahora»); va al final de profile.md.
+- Fact check puede buscar con DuckDuckGo, SearXNG, Brave o una tool de búsqueda de las Conexiones del usuario. Si
+  prende «Que el chat y todos tus agentes verifiquen…», todos los agentes conectados usan fact_check para los
+  datos que no están en brain.
 - Acceso remoto: Conectar agente → «Acceso remoto por URL» publica el server MCP con un túnel de Cloudflare.
   La URL lleva un token secreto (es como una contraseña); se puede regenerar y poner en solo lectura. Así se
   conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT.
@@ -148,8 +156,15 @@ vault/ and the indexes, history and settings in data/.
   type/created/updated on older notes) and graph colors.
 - Graph: to link or unlink notes, propose_graph_change shows an image with the changes marked (green = new,
   red = removed) and the user approves, rejects or undoes it. They also show in the Graph view.
-- Note format: Markdown with OKF-compatible frontmatter (type, name, title, description, tags, related); brain
-  fills in type, created (when it was created) and updated (last change) by itself.
+- Note format (details in the vault's FORMAT.md): Markdown with OKF-compatible frontmatter (type, name, title,
+  description, tags, related); brain fills in type, created and updated by itself. Types: Project (a project:
+  projects/<name>.md or the main note of projects/<name>/), SubProject (the main note of a subfolder inside a
+  project), File (any other note in a project: docs, notes, deliverables), Memory, Skill, Source, Reference,
+  Profile, Index and Note (loose). In the graph, every File and SubProject hangs from its project.
+- Profile: below "About you", "What brain knows about you" is a summary of the memory that rewrites itself when it
+  changes (it can be turned off or refreshed with "Update now"); it goes at the end of profile.md.
+- Fact check can search with DuckDuckGo, SearXNG, Brave or a search tool from the user's Connections. If they turn
+  on "Let the chat and all your agents check…", every connected agent uses fact_check for facts not in brain.
 - Remote access: Connect agent → "Remote access by URL" publishes the MCP server through a Cloudflare tunnel.
   The URL carries a secret token (treat it like a password); it can be regenerated and set to read-only. Cloud
   agents such as Manus on the web, Claude.ai or ChatGPT connect this way.
@@ -531,6 +546,8 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         HARNESS.format(reply_lang=reply_lang),
         APP_GUIDE["es"],
         "# Perfil (profile.md)\n" + (f"Nombre: {p['name']}\nEn una línea: {p['headline']}\n\n{p['about']}"
+                                     + (f"\n\nLo que brain sabe de vos (resumen automático de la memoria):\n{p['auto_about']}"
+                                        if p.get("auto_about") else "")
                                      if p["exists"] else "(todavía no cargó su perfil)"),
         "# Memoria del usuario (memory/)\n" + ("\n\n".join(mem_lines) or "(todavía no hay memorias)"),
     ]
