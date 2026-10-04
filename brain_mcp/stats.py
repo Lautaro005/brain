@@ -60,7 +60,7 @@ def vault_stats() -> dict:
 
     return {
         "files": len(files),
-        "by_kind": {k: kinds.get(k, 0) for k in ("project", "skill", "source", "note")},
+        "by_kind": {k: kinds.get(k, 0) for k in ("project", "subproject", "file", "skill", "source", "note")},
         "memories": memories,
         "memory_categories": kinds.get("memory", 0),
         "has_profile": kinds.get("profile", 0) > 0,

@@ -9,6 +9,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("BRAIN_CHROMA_PORT", "59999")  # un puerto donde no hay nada: Chroma "apagado"
+os.environ.setdefault("BRAIN_AUTO_ABOUT", "off")  # el resumen del perfil en segundo plano no corre en los tests
 
 
 @pytest.fixture(autouse=True)

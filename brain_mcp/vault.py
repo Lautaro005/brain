@@ -35,8 +35,8 @@ updated: {today}
 - Conocimiento scrapeado: `knowledge/sources/` o `search_knowledge`
 
 ## Formato de las notas
-Markdown con frontmatter YAML, compatible con OKF (Open Knowledge Format): `type` (Project, Memory, Skill,
-Source, Profile, Index, Reference o Note), `name`, `title`, `description` (una frase), `tags`, `related`,
+Markdown con frontmatter YAML, compatible con OKF (Open Knowledge Format); el detalle está en
+[FORMAT.md](FORMAT.md). `type` (Project, SubProject, File, Memory, Skill, Source, Profile, Index, Reference o Note), `name`, `title`, `description` (una frase), `tags`, `related`,
 y las fechas `created` y `updated`, que brain completa solo. Para linkear notas sirven `[texto](ruta.md)`
 (Markdown estándar, más portable) o `[[nombre]]`.
 """
@@ -47,6 +47,71 @@ class VaultError(ValueError):
     pass
 
 
+FORMAT_VERSION = "2"
+TEMPLATE_FORMAT = """---
+type: Reference
+name: format
+title: Formato de las notas de brain
+description: Qué significa cada type (Project, SubProject, File…), los campos del frontmatter y cómo linkear notas
+managed: brain
+format_version: "{version}"
+created: {today}
+updated: {today}
+---
+# Formato de las notas de brain
+
+Guía para cualquier IA que lea o escriba en este vault. brain la mantiene sola (`managed: brain`): si la
+querés cambiar a mano, sacá esa línea y brain no la vuelve a escribir.
+
+## Tipos (`type`)
+
+| type | Qué es | Dónde va |
+|---|---|---|
+| `Project` | Un proyecto: la nota que lo describe (objetivo, estado, decisiones, pendientes). | `projects/<nombre>.md`, o la nota principal de `projects/<nombre>/` (`index.md`, `README.md` o la que se llama como la carpeta). |
+| `SubProject` | Una parte de un proyecto con entidad propia (un módulo, una app, una etapa). | La nota principal de una subcarpeta: `projects/<proyecto>/<subproyecto>/index.md`. |
+| `File` | Un archivo dentro de un proyecto que no es el proyecto en sí: documentación, apuntes, actas, entregables, specs. | Cualquier otra nota dentro de `projects/<proyecto>/…`. |
+| `Memory` | Hechos sobre el usuario, uno por viñeta, con fecha. | `memory/<categoría>.md` (escribí con `add_memory`). |
+| `Skill` | Instrucciones reutilizables para una tarea. | `skills/`. |
+| `Source` | Una página web guardada, con su URL (`resource`), autor y fecha. | `knowledge/sources/` (con `save_url`). |
+| `Reference` | Conocimiento de consulta: capturas de conexiones, definiciones, guías como esta. | `knowledge/` y esta nota. |
+| `Profile` | El perfil del usuario. | `profile.md`. |
+| `Index` | Un índice: dónde está cada cosa. | `BRAIN.md`, `*/index.md`. |
+| `Note` | Una nota suelta que no es nada de lo anterior. | Cualquier otro lugar. |
+
+Si no ponés `type`, brain lo completa según la carpeta. En el grafo, Project, SubProject y File se ven distintos y
+cada archivo y subproyecto queda unido a su proyecto ("parte de").
+
+## Campos
+
+- `name`: identificador corto y estable (no lo cambies: lo usan los links). `title`: título legible.
+- `description`: una frase; es lo que muestran `list_vault` y el grafo.
+- `tags: [a, b]` agrupa notas por tema. `related: [nombre]` relaciona notas (para cambiarlo usá `propose_graph_change`).
+- `created` y `updated` (`AAAA-MM-DD`) los completa brain en cada escritura.
+
+## Links
+
+`[texto](ruta.md)` (Markdown estándar) o `[[nombre]]`. Los dos cuentan para el grafo.
+"""
+
+
+def ensure_format_note() -> None:
+    """FORMAT.md: la guía de tipos para los agentes. Se crea si falta y se actualiza cuando cambia la versión de
+    la guía, salvo que el usuario le haya sacado `managed: brain`."""
+    p = VAULT / "FORMAT.md"
+    text = TEMPLATE_FORMAT.format(today=date.today().isoformat(), version=FORMAT_VERSION)
+    if p.exists():
+        try:
+            meta = parse(p.read_text(encoding="utf-8"))[0]
+        except Exception:
+            return
+        if meta.get("managed") != "brain" or str(meta.get("format_version")) == FORMAT_VERSION:
+            return
+    try:
+        write_file("FORMAT.md", text, op="update" if p.exists() else "create")
+    except Exception as e:  # nunca frena el arranque
+        log.warning("no se pudo escribir FORMAT.md: %s", e)
+
+
 def ensure_vault() -> None:
     """Crea vault/ con la estructura base si no existe (primer arranque o repo recién clonado)."""
     for d in TEMPLATE_DIRS:
@@ -54,6 +119,7 @@ def ensure_vault() -> None:
     brain = VAULT / "BRAIN.md"
     if not brain.exists():
         brain.write_text(TEMPLATE_BRAIN.format(today=date.today().isoformat()), encoding="utf-8")
+    ensure_format_note()
 
 
 def _resolve(path: str) -> Path:
@@ -143,7 +209,51 @@ TYPES = {"projects": "Project", "skills": "Skill", "memory": "Memory", "knowledg
 STAMP_FIELDS = ("type", "created", "updated")
 
 
+PROJECT_MAIN = ("index", "readme", "main", "overview")
+PROJECT_TYPES = ("Project", "SubProject", "File")
+
+
+def _slugish(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def project_type(rel: str) -> str | None:
+    """Tipo de una nota dentro de projects/ según dónde está (v0.03.1.1):
+    - Project: projects/<nombre>.md, o la nota principal de projects/<nombre>/ (index, readme, main, overview o
+      la que se llama como la carpeta);
+    - SubProject: la nota principal de una subcarpeta dentro de un proyecto (projects/<p>/<sub>/…);
+    - File: cualquier otra nota dentro de un proyecto (documentación, apuntes, entregables).
+    None si no está en projects/. projects/index.md es el índice de la carpeta."""
+    parts = rel.split("/")
+    if parts[0] != "projects" or len(parts) < 2:
+        return None
+    stem = parts[-1][:-3] if parts[-1].endswith(".md") else parts[-1]
+    if len(parts) == 2:
+        return "Index" if stem.lower() == "index" else "Project"
+    folders = parts[1:-1]
+    if stem.lower() in PROJECT_MAIN or _slugish(stem) == _slugish(folders[-1]):
+        return "Project" if len(folders) == 1 else "SubProject"
+    return "File"
+
+
+def effective_type(rel: str, meta: dict) -> str:
+    """El type que vale para una nota: el del frontmatter, salvo el `Project` que v0.03.1 completó solo en
+    todo projects/ (también en los archivos de adentro); ahí manda la ubicación (project_type)."""
+    t = str((meta or {}).get("type") or "").strip()
+    rule = note_type(rel)
+    if not t:
+        return rule
+    if t == "Project" and rule in ("SubProject", "File"):
+        return rule
+    return t
+
+
 def note_type(rel: str) -> str:
+    pt = project_type(rel)
+    if pt:
+        return pt
+    if rel == "FORMAT.md":
+        return "Reference"
     if rel == "BRAIN.md" or rel.endswith("/index.md") or rel == "index.md":
         return "Index"
     if rel == "profile.md":
@@ -367,6 +477,7 @@ def backfill_metadata() -> dict:
             except Exception:
                 first = last = None
             after = stamp(text_ok, rel, None, touch=False, created=_day(first) or mtime, updated=_day(last) or mtime)
+            after = _fix_legacy_type(after, rel)
             if after == text:
                 continue
             f.write_text(after, encoding="utf-8")
@@ -385,9 +496,27 @@ def missing_metadata() -> int:
             meta = parse(f.read_text(encoding="utf-8"))[0]
         except Exception:
             continue
-        if not meta.get("type") or not _day(meta.get("created")) or not _day(meta.get("updated")):
+        rel = _rel(f)
+        if (not meta.get("type") or not _day(meta.get("created")) or not _day(meta.get("updated"))
+                or str(meta.get("type")) != effective_type(rel, meta)):
             n += 1
     return n
+
+
+def _fix_legacy_type(text: str, rel: str) -> str:
+    """`type: Project` en un archivo de adentro de un proyecto (lo completó v0.03.1) → SubProject o File."""
+    m = _FM.match(text)
+    if not m:
+        return text
+    try:
+        meta = yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError:
+        return text
+    want = effective_type(rel, meta) if isinstance(meta, dict) else None
+    if not want or str(meta.get("type")) == want:
+        return text
+    fm = re.sub(r"(?m)^type\s*:.*$", f"type: {want}", m.group(1), count=1)
+    return text[:m.start(1)] + fm + text[m.end(1):]
 
 
 def delete_file(path: str) -> str:

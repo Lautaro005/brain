@@ -528,6 +528,12 @@
   .manual-form > div { min-width: 0; }
   #log-tabs { max-width: 100%; overflow-x: auto; }
   @media (max-width: 760px) { .remote-top { flex-direction: column; } .manual-form { grid-template-columns: 1fr; } }
+  /* "Sobre mí" automático */
+  .auto-about { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
+  .auto-about-h { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
+  .auto-about-h .muted { font-size: 12px; }
+  .auto-about-text { font-size: 13.5px; color: var(--text-2); white-space: pre-wrap; }
+  .auto-about-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   /* Fact check */
   .fc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
   .fc-main, .fc-side { min-width: 0; }
@@ -669,6 +675,15 @@
                 <button class="btn primary" type="submit" id="p-save" data-i18n="profile.save"></button>
               </form>
               <div class="result" id="profile-result"></div>
+              <div class="auto-about" id="auto-about">
+                <div class="auto-about-h"><b data-i18n="profile.autoTitle"></b><span class="muted" id="auto-about-when"></span></div>
+                <div class="auto-about-text" id="auto-about-text"></div>
+                <div class="auto-about-row">
+                  <label class="check"><input type="checkbox" id="auto-about-on"> <span data-i18n="profile.autoOn"></span></label>
+                  <button class="btn" type="button" id="auto-about-refresh" data-i18n="profile.autoRefresh"></button>
+                </div>
+                <p class="form-hint" style="margin:6px 0 0" data-i18n="profile.autoHint"></p>
+              </div>
             </div></div>
           <div class="card"><div class="card-h"><h2 data-i18n="mem.yours"></h2><span class="sub" id="mem-sub"></span></div>
             <div class="card-b">
@@ -874,10 +889,16 @@
                   <span class="fc-label" data-i18n="fc.sourcePrefs"></span>
                   <div class="fc-sp" id="fc-sp"></div>
                   <label class="fc-label" for="fc-provider" data-i18n="fc.provider"></label>
-                  <select class="input full" id="fc-provider"><option value="duckduckgo">DuckDuckGo</option><option value="searxng">SearXNG</option><option value="brave">Brave Search API</option></select>
+                  <select class="input full" id="fc-provider"><option value="duckduckgo">DuckDuckGo</option><option value="searxng">SearXNG</option><option value="brave">Brave Search API</option><option value="connection" id="fc-prov-conn"></option></select>
                   <p class="fc-help" data-i18n="fc.providerHelp"></p>
                   <input class="input full" id="fc-searxng" placeholder="https://searx.example.org" hidden>
                   <input class="input full" id="fc-brave" type="password" autocomplete="off" hidden>
+                  <div id="fc-conn" hidden>
+                    <select class="input full" id="fc-conn-tool"></select>
+                    <p class="fc-help" id="fc-conn-help"></p>
+                    <label class="fc-label" for="fc-conn-args" data-i18n="fc.connArgs"></label>
+                    <textarea class="input full mono" id="fc-conn-args" rows="2" placeholder='{"projectId": "…"}'></textarea>
+                  </div>
                   <label class="fc-label" for="fc-blocked" data-i18n="fc.blocked"></label>
                   <textarea class="input full" id="fc-blocked" rows="3" placeholder="ejemplo.com"></textarea>
                   <label class="check"><input type="checkbox" id="fc-enabled"> <span data-i18n="fc.enabled"></span></label>
@@ -1151,6 +1172,9 @@ const I18N = {
       hints: { ollama: "Prendé el switch de Ollama o abrí la app", chroma: "Prendé el switch de Chroma", agents: "Conectalo desde Conectar agente" } },
     recent: { title: "Últimos cambios", sub: "historial del vault", none: "Sin cambios todavía" },
     profile: { title: "Perfil", sub: "Contexto sobre vos y la memoria que Claude usa para conocerte", about: "Sobre vos",
+      autoTitle: "Lo que brain sabe de vos", autoOn: "Actualizar solo con lo que va aprendiendo", autoRefresh: "Actualizar ahora",
+      autoHint: "Un resumen de tu memoria que se reescribe solo cada vez que un agente, el chat o vos suman, cambian o borran un recuerdo. Va al final de profile.md, así lo leen todos tus agentes; tu texto de arriba nunca se toca.",
+      autoNone: "Todavía no hay memorias para resumir.", autoOff: "Apagado.", autoWhen: w => `actualizado ${w}`, autoBusy: "Actualizando…", autoStale: "actualizándose…",
       name: "Nombre", headline: "En una línea", headlinePh: "Ej: estudiante y desarrollador web", aboutField: "Sobre mí",
       aboutPh: "Lo que quieras que Claude sepa de vos: a qué te dedicás, cómo te gusta trabajar, contexto importante…",
       save: "Guardar perfil", saved: "Perfil guardado en profile.md", empty: "Todavía sin perfil" },
@@ -1196,10 +1220,12 @@ const I18N = {
       regions: "Países prioritarios", languages: "Idiomas de búsqueda", foreign: "Permitir fuentes de otros países", preferLocal: "Priorizar fuentes locales para hechos locales",
       sourcePrefs: "Tipos de fuente", src: { official: "Oficial", academic: "Académica", factchecker: "Verificador profesional", news: "Periodística", reference: "Referencia (enciclopedia)", social: "Redes, foros y blogs", web: "Otra web" },
       pref: { prefer: "Priorizar", corroborate: "Usar con corroboración", orient: "Solo para orientarse", lead_only: "Solo como pista", exclude: "No usar" },
-      provider: "Buscador", providerHelp: "DuckDuckGo no necesita clave. SearXNG: la URL de tu instancia (con salida JSON). Brave: una clave de su API (se guarda en data/, no sale de tu compu).",
+      provider: "Buscador", providerHelp: "DuckDuckGo no necesita clave. SearXNG: la URL de tu instancia (con salida JSON). Brave: una clave de su API (se guarda en data/, no sale de tu compu). O un buscador de tus Conexiones.",
       braveKey: "Clave de Brave Search API", braveSaved: "Clave guardada (dejá vacío para conservarla)",
       blocked: "Dominios que no se usan nunca (uno por línea)", enabled: "Permitir que Fact check busque en internet",
-      chatAuto: "Que el chat verifique solo los datos que no están en brain (sale a internet sin que se lo pidas)",
+      chatAuto: "Que el chat y todos tus agentes (Claude, ChatGPT…) verifiquen con Fact check los datos que no están en brain, sin que se lo pidas (salen a internet)",
+      connOpt: "Una de tus Conexiones", connHelp: "Usa una tool de búsqueda que ya conectaste a brain (OpenSEO, Composio, Tavily, Exa, el MCP de Brave…). La consulta va en el campo que corresponda; lo que devuelve no se guarda en tu brain.",
+      connArgs: "Argumentos fijos (JSON, opcional)", connNone: "No hay tools de búsqueda en tus Conexiones activas", connGone: "ya no está",
       applyNew: "Los cambios valen para las verificaciones nuevas.", save: "Guardar", reset: "Restaurar valores recomendados", saved: "Preferencias guardadas.", resetDone: "Volvieron los valores recomendados.",
       updated: w => `modificadas ${w}`, defaultsOn: "valores recomendados", history: "Verificaciones anteriores", historySub: "últimas 30", noHistory: "Todavía no verificaste nada.",
       steps: { claims: "Separando las afirmaciones…", local: n => `Afirmación ${n}: buscando en tu brain…`, search: (n, why) => `Afirmación ${n}: buscando en internet (${why})…`,
@@ -1219,7 +1245,7 @@ const I18N = {
       highRisk: "Salud, derecho, finanzas o seguridad: esta verificación es informativa y no reemplaza a un profesional ni es asesoramiento.",
       copy: "Copiar informe", again: "Volver a verificar", del: "Borrar", delConfirm: "¿Borrar este informe?", saveSrc: "Guardar en brain", savedSrc: p => `Guardada en ${p}.`,
       block: "No usar este dominio", blockConfirm: d => `¿No volver a usar ${d} en Fact check?`, blocked: d => `${d} quedó bloqueado.`,
-      err: { empty: "Escribí algo para verificar.", no_brave_key: "Falta la clave de Brave Search API.", no_searxng: "Falta la URL de tu SearXNG.", bad_searxng: "La URL de SearXNG tiene que empezar con http:// o https://." } },
+      err: { empty: "Escribí algo para verificar.", no_brave_key: "Falta la clave de Brave Search API.", no_searxng: "Falta la URL de tu SearXNG.", bad_searxng: "La URL de SearXNG tiene que empezar con http:// o https://.", no_connection_tool: "Elegí qué tool de tus Conexiones usar.", bad_connection_args: "Los argumentos fijos tienen que ser un objeto JSON, por ejemplo {\"projectId\": \"abc\"}." } },
     graph: { title: "Grafo", sub: "Cómo se conectan perfil, memoria, proyectos, skills, fuentes, tags y entidades" },
     know: { title: "Conocimiento", sub: "Guardar URLs y buscar en lo scrapeado", save: "Guardar una URL", saveSub: "scrapea, indexa y crea el .md",
       saveBtn: "Guardar", forceJs: "Forzar render con JS (Playwright)", working: "Scrapeando e indexando… (con Playwright puede tardar unos segundos)",
@@ -1260,7 +1286,7 @@ const I18N = {
       graphColors: "Colores del grafo",
       graphHint: "Elegí un color para cada tipo de nodo, así se distinguen de un vistazo. Se aplica al instante y queda guardado en este navegador.",
       vivid: "Usar colores distintos", reset: "Volver a blanco y negro", default: "por defecto",
-      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
+      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", subproject: "Subproyectos", file: "Archivos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
       system: "System prompt", systemSub: "cómo querés que te responda el chat",
       systemHint: "Se suma a las instrucciones de brain en cada respuesta del chat: tono, formato, idioma, en qué enfocarse. No cambia lo que pueden hacer las tools. Queda en este navegador.",
       systemPh: "Ej.: Respondeme corto y directo, en viñetas. Tuteame. Si hablo de código, usá Python. Antes de guardar una memoria, preguntame.",
@@ -1438,6 +1464,9 @@ const I18N = {
       hints: { ollama: "Turn on the Ollama switch or open the app", chroma: "Turn on the Chroma switch", agents: "Connect one from Connect agent" } },
     recent: { title: "Recent changes", sub: "vault history", none: "No changes yet" },
     profile: { title: "Profile", sub: "Context about you and the memory Claude uses to know you", about: "About you",
+      autoTitle: "What brain knows about you", autoOn: "Keep it updated with what it learns", autoRefresh: "Update now",
+      autoHint: "A summary of your memory that rewrites itself every time an agent, the chat or you add, change or delete a memory. It goes at the end of profile.md, so every agent reads it; your text above is never touched.",
+      autoNone: "There are no memories to summarize yet.", autoOff: "Off.", autoWhen: w => `updated ${w}`, autoBusy: "Updating…", autoStale: "updating…",
       name: "Name", headline: "Headline", headlinePh: "E.g. student and web developer", aboutField: "About me",
       aboutPh: "Whatever you want Claude to know: what you do, how you like to work, important context…",
       save: "Save profile", saved: "Profile saved to profile.md", empty: "No profile yet" },
@@ -1483,10 +1512,12 @@ const I18N = {
       regions: "Priority countries", languages: "Search languages", foreign: "Allow sources from other countries", preferLocal: "Prefer local sources for local facts",
       sourcePrefs: "Source types", src: { official: "Official", academic: "Academic", factchecker: "Professional fact-checker", news: "News", reference: "Reference (encyclopedia)", social: "Social, forums and blogs", web: "Other web" },
       pref: { prefer: "Prefer", corroborate: "Use with corroboration", orient: "Orientation only", lead_only: "Lead only", exclude: "Don't use" },
-      provider: "Search engine", providerHelp: "DuckDuckGo needs no key. SearXNG: your instance's URL (with JSON output). Brave: an API key (stored in data/, never leaves your computer).",
+      provider: "Search engine", providerHelp: "DuckDuckGo needs no key. SearXNG: your instance's URL (with JSON output). Brave: an API key (stored in data/, never leaves your computer). Or a search tool from your Connections.",
       braveKey: "Brave Search API key", braveSaved: "Key saved (leave empty to keep it)",
       blocked: "Domains never to use (one per line)", enabled: "Let Fact check search the web",
-      chatAuto: "Let the chat check facts that aren't in brain on its own (it goes online without you asking)",
+      chatAuto: "Let the chat and all your agents (Claude, ChatGPT…) check facts that aren't in brain with Fact check, without you asking (they go online)",
+      connOpt: "One of your Connections", connHelp: "Uses a search tool you already connected to brain (OpenSEO, Composio, Tavily, Exa, Brave's MCP…). The query goes in the right field; what it returns isn't saved to your brain.",
+      connArgs: "Fixed arguments (JSON, optional)", connNone: "No search tools in your active Connections", connGone: "no longer there",
       applyNew: "Changes apply to new checks.", save: "Save", reset: "Restore recommended values", saved: "Preferences saved.", resetDone: "Recommended values restored.",
       updated: w => `changed ${w}`, defaultsOn: "recommended values", history: "Previous checks", historySub: "the last 30", noHistory: "You haven't checked anything yet.",
       steps: { claims: "Splitting the claims…", local: n => `Claim ${n}: searching your brain…`, search: (n, why) => `Claim ${n}: searching the web (${why})…`,
@@ -1506,7 +1537,7 @@ const I18N = {
       highRisk: "Health, law, finance or safety: this check is informational, doesn't replace a professional and isn't advice.",
       copy: "Copy report", again: "Check again", del: "Delete", delConfirm: "Delete this report?", saveSrc: "Save to brain", savedSrc: p => `Saved to ${p}.`,
       block: "Don't use this domain", blockConfirm: d => `Stop using ${d} in Fact check?`, blocked: d => `${d} is now blocked.`,
-      err: { empty: "Type something to check.", no_brave_key: "The Brave Search API key is missing.", no_searxng: "Your SearXNG URL is missing.", bad_searxng: "The SearXNG URL must start with http:// or https://." } },
+      err: { empty: "Type something to check.", no_brave_key: "The Brave Search API key is missing.", no_searxng: "Your SearXNG URL is missing.", bad_searxng: "The SearXNG URL must start with http:// or https://.", no_connection_tool: "Pick which tool from your Connections to use.", bad_connection_args: "Fixed arguments must be a JSON object, e.g. {\"projectId\": \"abc\"}." } },
     graph: { title: "Graph", sub: "How profile, memory, projects, skills, sources, tags and entities connect" },
     know: { title: "Knowledge", sub: "Save URLs and search what was scraped", save: "Save a URL", saveSub: "scrapes, indexes and creates the .md",
       saveBtn: "Save", forceJs: "Force JS rendering (Playwright)", working: "Scraping and indexing… (Playwright can take a few seconds)",
@@ -1547,7 +1578,7 @@ const I18N = {
       graphColors: "Graph colors",
       graphHint: "Pick a color for each node type so they stand apart at a glance. It applies instantly and is saved in this browser.",
       vivid: "Use distinct colors", reset: "Back to black and white", default: "default",
-      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
+      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", subproject: "Sub-projects", file: "Files", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
       system: "System prompt", systemSub: "how you want the chat to answer",
       systemHint: "Added to brain's instructions on every chat reply: tone, format, language, what to focus on. It doesn't change what the tools can do. Saved in this browser.",
       systemPh: "E.g.: Keep answers short and direct, in bullet points. If I talk about code, use Python. Ask me before saving a memory.",
@@ -1645,7 +1676,7 @@ function setLang(l) {
   applyStatic();
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
-  renderMemSource(); renderProfileView(); renderMemory(); renderAgents(); renderConnections();
+  renderMemSource(); renderProfileView(); renderMemory(); renderAutoAbout(); renderAgents(); renderConnections();
   fcStatic(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") loadFormat();
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
@@ -1712,9 +1743,9 @@ $("#collapse-btn").onclick = () => {
 
 // ================= ajustes: colores del grafo =================
 // se guardan en localStorage (mismo origen que el grafo): graph.html los lee y escucha el evento storage
-const GRAPH_KINDS = ["hub", "profile", "memory", "project", "skill", "source", "note", "folder", "tag", "entity"];
-const GRAPH_MONO = { hub: "#0a0a0a", profile: "#0a0a0a", memory: "#5e5e5e", project: "#0a0a0a", skill: "#5e5e5e", source: "#5e5e5e", note: "#9a9a95", folder: "#cfcfcc", tag: "#9a9a95", entity: "#0a0a0a" };
-const GRAPH_VIVID = { hub: "#e11d48", profile: "#f59e0b", memory: "#8b5cf6", project: "#2563eb", skill: "#059669", source: "#0891b2", note: "#64748b", folder: "#a8a29e", tag: "#65a30d", entity: "#db2777" };
+const GRAPH_KINDS = ["hub", "profile", "memory", "project", "subproject", "file", "skill", "source", "note", "folder", "tag", "entity"];
+const GRAPH_MONO = { hub: "#0a0a0a", profile: "#0a0a0a", memory: "#5e5e5e", project: "#0a0a0a", subproject: "#0a0a0a", file: "#5e5e5e", skill: "#5e5e5e", source: "#5e5e5e", note: "#9a9a95", folder: "#cfcfcc", tag: "#9a9a95", entity: "#0a0a0a" };
+const GRAPH_VIVID = { hub: "#e11d48", profile: "#f59e0b", memory: "#8b5cf6", project: "#2563eb", subproject: "#60a5fa", file: "#94a3b8", skill: "#059669", source: "#0891b2", note: "#64748b", folder: "#a8a29e", tag: "#65a30d", entity: "#db2777" };
 function graphColors() { try { return JSON.parse(localStorage.getItem("brain-graph-colors") || "{}") || {}; } catch (e) { return {}; } }
 function saveGraphColors(c) {
   try { if (Object.keys(c).length) localStorage.setItem("brain-graph-colors", JSON.stringify(c)); else localStorage.removeItem("brain-graph-colors"); }
@@ -2439,7 +2470,10 @@ async function loadProfile() {
     const first = profile === null;
     profile = r.profile; memoryCats = r.memory;
     if (first) { $("#p-name").value = profile.name; $("#p-headline").value = profile.headline; $("#p-about").value = profile.about; }
-    renderProfileView(); renderMemory();
+    autoAbout = r.auto_about || autoAbout;
+    renderProfileView(); renderMemory(); renderAutoAbout();
+    // la memoria cambió y el resumen se está reescribiendo en segundo plano: se vuelve a pedir en un rato
+    if (autoAbout.stale && view === "perfil") setTimeout(() => { if (view === "perfil") loadProfile(); }, 6000);
   } catch (e) { toast(e.message); }
 }
 $("#profile-form").onsubmit = async e => {
@@ -2453,6 +2487,25 @@ $("#profile-form").onsubmit = async e => {
   } catch (e2) { showResult($("#profile-result"), "err", e2.message); }
   finally { btn.disabled = false; }
 };
+let autoAbout = { enabled: true, stale: false };
+function renderAutoAbout() {
+  if (!profile) return;
+  const P = T.profile;
+  $("#auto-about-on").checked = autoAbout.enabled;
+  $("#auto-about-text").textContent = (profile.auto_about || "").replace(/\*\*/g, "") || (autoAbout.enabled ? (autoAbout.stale ? P.autoBusy : P.autoNone) : P.autoOff);
+  $("#auto-about-when").textContent = autoAbout.stale && autoAbout.enabled ? P.autoStale : profile.auto_updated ? P.autoWhen(ago(profile.auto_updated)) : "";
+}
+async function autoAboutPost(body) {
+  const b = $("#auto-about-refresh"); b.disabled = true;
+  if (body.refresh) $("#auto-about-when").textContent = T.profile.autoBusy;
+  try {
+    const r = await api("/api/profile/auto", body);
+    autoAbout = { enabled: r.enabled, stale: false }; profile = { ...profile, auto_about: r.profile.auto_about, auto_updated: r.profile.auto_updated };
+    renderAutoAbout();
+  } catch (e) { toast(e.message); } finally { b.disabled = false; }
+}
+$("#auto-about-on").onchange = () => autoAboutPost({ enabled: $("#auto-about-on").checked, refresh: $("#auto-about-on").checked });
+$("#auto-about-refresh").onclick = () => autoAboutPost({ refresh: true });
 function renderMemory() {
   const q = $("#mem-filter").value.trim().toLowerCase();
   const total = memoryCats.reduce((a, c) => a + c.items.length, 0);
@@ -3055,6 +3108,7 @@ const FC_PREF = ["prefer", "corroborate", "orient", "lead_only", "exclude"];
 function fcStatic() {
   const F = T.fc;
   $("#fc-text").placeholder = F.textPh;
+  $("#fc-prov-conn").textContent = F.connOpt; $("#fc-conn-help").textContent = F.connHelp; BrainUI.sync($("#fc-provider"));
   $("#fc-brave").placeholder = F.braveKey;
   [...$("#fc-level").options].forEach(o => { o.textContent = F.levels[o.value][0]; o.dataset.sub = F.levels[o.value][1]; });
   [...$("#fc-fresh").options].forEach(o => o.textContent = F.freshOpts[o.value]);
@@ -3084,15 +3138,26 @@ function fcFill(p) {
   $("#fc-sp").innerHTML = FC_SRC.map(t => `<span>${esc(F.src[t])}</span><select class="input full" data-fcsp="${t}">${FC_PREF.map(v => `<option value="${v}" ${p.source_prefs[t] === v ? "selected" : ""}>${esc(F.pref[v])}</option>`).join("")}</select>`).join("");
   $("#fc-sp").querySelectorAll("select").forEach(sel => BrainUI.select(sel));
   $("#fc-searxng").value = p.searxng_url || ""; $("#fc-brave").value = "";
+  $("#fc-conn-args").value = p.connection_args && Object.keys(p.connection_args).length ? JSON.stringify(p.connection_args) : "";
   fcProvider();
   $("#fc-blocked").value = p.blocked_domains.join("\n");
   $("#fc-enabled").checked = p.enabled; $("#fc-auto").checked = p.chat_auto;
   $("#fc-web").checked = p.enabled; $("#fc-web").disabled = !p.enabled;
   $("#fc-prefs-when").textContent = p.updated_at ? F.updated(ago(p.updated_at)) : F.defaultsOn;
 }
+let fcTools = [];
+async function loadFcTools() {
+  try { fcTools = (await api("/api/factcheck/tools")).tools; } catch (e) { fcTools = []; }
+  const sel = $("#fc-conn-tool"), cur = fcPrefs ? fcPrefs.connection_tool : "";
+  sel.innerHTML = fcTools.length ? fcTools.map(t => `<option value="${esc(t.name)}" data-sub="${esc(t.description)}" ${t.name === cur ? "selected" : ""}>${esc(t.name)}</option>`).join("")
+    : `<option value="">${esc(T.fc.connNone)}</option>`;
+  if (cur && !fcTools.some(t => t.name === cur)) sel.insertAdjacentHTML("afterbegin", `<option value="${esc(cur)}" selected>${esc(cur)} (${esc(T.fc.connGone)})</option>`);
+  if (!sel._bui) { BrainUI.select(sel); sel._bui = true; } else BrainUI.sync(sel);
+}
 function fcProvider() {
   const v = $("#fc-provider").value;
-  $("#fc-searxng").hidden = v !== "searxng"; $("#fc-brave").hidden = v !== "brave";
+  $("#fc-searxng").hidden = v !== "searxng"; $("#fc-brave").hidden = v !== "brave"; $("#fc-conn").hidden = v !== "connection";
+  if (v === "connection") loadFcTools();
   $("#fc-brave").placeholder = fcPrefs && fcPrefs.has_brave_key ? T.fc.braveSaved : T.fc.braveKey;
 }
 $("#fc-provider").onchange = fcProvider;
@@ -3114,6 +3179,7 @@ function fcCollect() {
     allow_foreign: $("#fc-foreign").checked, prefer_local: $("#fc-local").checked,
     source_prefs: Object.fromEntries([...document.querySelectorAll("[data-fcsp]")].map(x => [x.dataset.fcsp, x.value])),
     provider: $("#fc-provider").value, searxng_url: $("#fc-searxng").value, blocked_domains: $("#fc-blocked").value,
+    connection_tool: $("#fc-conn-tool").value, connection_args: $("#fc-conn-args").value,
     enabled: $("#fc-enabled").checked, chat_auto: $("#fc-auto").checked,
   };
   if ($("#fc-brave").value.trim()) body.brave_key = $("#fc-brave").value.trim();

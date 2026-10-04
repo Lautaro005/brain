@@ -265,13 +265,21 @@ Uses the ideas from [pricing that converts](../knowledge/pricing-that-converts.m
   <p>Since v0.03.1 notes follow a small profile of the <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md">Open Knowledge Format</a> (OKF v0.2), so any AI or tool can tell what each note is and how current it is, without a special translation. brain's own fields stay valid as extensions.</p>
   <table>
     <tr><th>Field</th><th>What it says</th></tr>
-    <tr><td><code>type</code></td><td>What the note is: <code>Project</code>, <code>Memory</code>, <code>Skill</code>, <code>Source</code>, <code>Reference</code>, <code>Profile</code>, <code>Index</code> or <code>Note</code>. brain fills it in from the folder if it's missing.</td></tr>
+    <tr><td><code>type</code></td><td>What the note is: <code>Project</code>, <code>SubProject</code>, <code>File</code>, <code>Memory</code>, <code>Skill</code>, <code>Source</code>, <code>Reference</code>, <code>Profile</code>, <code>Index</code> or <code>Note</code>. brain fills it in from the folder if it's missing (see <i>Projects, sub-projects and files</i> below).</td></tr>
     <tr><td><code>created</code></td><td>When the note was created (<code>YYYY-MM-DD</code>). Filled in on the first write and kept afterwards, even if an agent rewrites the file without it.</td></tr>
     <tr><td><code>updated</code></td><td>Last change. Every write moves it, except pure bookkeeping (<code>checked_at</code>, <code>refresh_error</code>).</td></tr>
     <tr><td><code>title</code>, <code>description</code></td><td>A readable title and a one-line summary. The file name stays the stable identity for links and history.</td></tr>
     <tr><td><code>resource</code>, <code>author</code>, <code>published</code></td><td>On saved pages: the source URL and, when the page says so, its author and date.</td></tr>
   </table>
-  <p>For older notes, <b>Settings → Note format → Fill in type and dates</b> adds the three fields without touching anything else: <code>created</code> from the first change in the history (or the file date) and <code>updated</code> from the last one. Each note it touches is kept in history with the <code>format</code> operation.</p>
+  <p>For older notes, <b>Settings → Note format → Fill in type and dates</b> adds the three fields without touching anything else: <code>created</code> from the first change in the history (or the file date) and <code>updated</code> from the last one. Each note it touches is kept in history with the <code>format</code> operation. It also fixes the <code>type: Project</code> that v0.03.1 gave to every note inside a project folder.</p>
+  <h2>Projects, sub-projects and files</h2>
+  <table>
+    <tr><th>type</th><th>What it is</th><th>Where</th></tr>
+    <tr><td><code>Project</code></td><td>The note that describes a project (goal, status, decisions, pending work).</td><td><code>projects/&lt;name&gt;.md</code>, or the main note of <code>projects/&lt;name&gt;/</code> (<code>index.md</code>, <code>README.md</code> or the one named like the folder).</td></tr>
+    <tr><td><code>SubProject</code></td><td>A part of a project with its own identity (a module, an app, a stage).</td><td>The main note of a subfolder: <code>projects/&lt;project&gt;/&lt;sub&gt;/index.md</code>.</td></tr>
+    <tr><td><code>File</code></td><td>Anything else inside a project: docs, notes, minutes, deliverables, specs.</td><td>Any other note under <code>projects/&lt;project&gt;/</code>.</td></tr>
+  </table>
+  <p>In the graph each one looks different, and every file and sub-project is linked to the project it belongs to (<i>part of</i>). An explicit <code>type</code> in the frontmatter wins over the folder. <code>FORMAT.md</code>, at the root of the vault, explains every type and field to your agents; brain keeps it up to date (remove <code>managed: brain</code> from it to edit it yourself).</p>
   <p>Fields brain writes on its own: <code>type</code>, <code>created</code>, <code>updated</code>, <code>chroma_ids</code> (chunk ids of a source), <code>abstract</code> (summary of long sources), <code>entities</code> (names mentioned, for the graph), <code>url</code>, <code>scraped_at</code>, and in memory files <code>category</code>, <code>sources</code> and <code>related</code>.</p>
   <h2>Linking notes</h2>
   <ul>
@@ -317,13 +325,21 @@ Usa las ideas de [precios que convierten](../knowledge/precios-que-convierten.md
   <p>Desde v0.03.1 las notas siguen un perfil chico del <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md">Open Knowledge Format</a> (OKF v0.2), así cualquier IA o herramienta entiende qué es cada nota y qué tan vigente está, sin una traducción especial. Los campos propios de brain siguen siendo válidos como extensiones.</p>
   <table>
     <tr><th>Campo</th><th>Qué dice</th></tr>
-    <tr><td><code>type</code></td><td>Qué es la nota: <code>Project</code>, <code>Memory</code>, <code>Skill</code>, <code>Source</code>, <code>Reference</code>, <code>Profile</code>, <code>Index</code> o <code>Note</code>. Si falta, brain lo completa según la carpeta.</td></tr>
+    <tr><td><code>type</code></td><td>Qué es la nota: <code>Project</code>, <code>SubProject</code>, <code>File</code>, <code>Memory</code>, <code>Skill</code>, <code>Source</code>, <code>Reference</code>, <code>Profile</code>, <code>Index</code> o <code>Note</code>. Si falta, brain lo completa según la carpeta (ver <i>Proyectos, subproyectos y archivos</i> más abajo).</td></tr>
     <tr><td><code>created</code></td><td>Cuándo se creó la nota (<code>AAAA-MM-DD</code>). Se completa en la primera escritura y se conserva después, aunque un agente reescriba el archivo sin ese campo.</td></tr>
     <tr><td><code>updated</code></td><td>Último cambio. Cada escritura lo mueve, salvo los campos de control (<code>checked_at</code>, <code>refresh_error</code>).</td></tr>
     <tr><td><code>title</code>, <code>description</code></td><td>Un título legible y un resumen de una línea. El nombre del archivo sigue siendo la identidad estable para links e historial.</td></tr>
     <tr><td><code>resource</code>, <code>author</code>, <code>published</code></td><td>En las páginas guardadas: la URL de origen y, si la página lo dice, su autor y su fecha.</td></tr>
   </table>
-  <p>Para las notas viejas, <b>Ajustes → Formato de las notas → Completar tipo y fechas</b> agrega los tres campos sin tocar nada más: <code>created</code> sale del primer cambio del historial (o de la fecha del archivo) y <code>updated</code> del último. Cada nota que toca queda en el historial con la operación <code>format</code>.</p>
+  <p>Para las notas viejas, <b>Ajustes → Formato de las notas → Completar tipo y fechas</b> agrega los tres campos sin tocar nada más: <code>created</code> sale del primer cambio del historial (o de la fecha del archivo) y <code>updated</code> del último. Cada nota que toca queda en el historial con la operación <code>format</code>. También corrige el <code>type: Project</code> que v0.03.1 les puso a todas las notas de adentro de un proyecto.</p>
+  <h2>Proyectos, subproyectos y archivos</h2>
+  <table>
+    <tr><th>type</th><th>Qué es</th><th>Dónde</th></tr>
+    <tr><td><code>Project</code></td><td>La nota que describe un proyecto (objetivo, estado, decisiones, pendientes).</td><td><code>projects/&lt;nombre&gt;.md</code>, o la nota principal de <code>projects/&lt;nombre&gt;/</code> (<code>index.md</code>, <code>README.md</code> o la que se llama como la carpeta).</td></tr>
+    <tr><td><code>SubProject</code></td><td>Una parte de un proyecto con entidad propia (un módulo, una app, una etapa).</td><td>La nota principal de una subcarpeta: <code>projects/&lt;proyecto&gt;/&lt;sub&gt;/index.md</code>.</td></tr>
+    <tr><td><code>File</code></td><td>Todo lo demás dentro de un proyecto: documentación, apuntes, actas, entregables, specs.</td><td>Cualquier otra nota dentro de <code>projects/&lt;proyecto&gt;/</code>.</td></tr>
+  </table>
+  <p>En el grafo cada uno se ve distinto, y cada archivo y subproyecto queda unido al proyecto del que es parte (<i>parte de</i>). Un <code>type</code> explícito en el frontmatter gana sobre la carpeta. <code>FORMAT.md</code>, en la raíz del vault, les explica a tus agentes cada tipo y cada campo; brain lo mantiene al día (sacale <code>managed: brain</code> si lo querés editar vos).</p>
   <p>Campos que escribe brain solo: <code>type</code>, <code>created</code>, <code>updated</code>, <code>chroma_ids</code> (ids de los chunks de una fuente), <code>abstract</code> (resumen de fuentes largas), <code>entities</code> (nombres mencionados, para el grafo), <code>url</code>, <code>scraped_at</code>, y en los archivos de memoria <code>category</code>, <code>sources</code> y <code>related</code>.</p>
   <h2>Relacionar notas</h2>
   <ul>
@@ -344,6 +360,7 @@ Usa las ideas de [precios que convierten](../knowledge/precios-que-convierten.md
   <p class="lead">What your agents know about you: a profile you write, plus facts imported from other chatbots or saved by agents as they learn them. Facts are dated, and when one changes the old version is kept.</p>
   <h2>Profile</h2>
   <p><code>profile.md</code> holds your name, a one-line headline and a free "about me". Edit it in the <b>Profile</b> tab. Agents are told to read it first.</p>
+  <p>Below it, <b>What brain knows about you</b> is a summary of your memory that rewrites itself every time an agent, the chat or you add, change or delete a memory (with the local chat model if there is one; otherwise a list of the key facts per category). It goes at the end of <code>profile.md</code>, between markers, so every agent reads it; your own text is never touched. Turn it off or click <i>Update now</i> in the same card.</p>
   <h2>Memory files</h2>
   <p>Each category is one file in <code>memory/</code> with one fact per bullet. Every active fact carries the date it was saved, as an HTML comment at the end of the line (invisible when reading the note):</p>
   <pre>---
@@ -382,6 +399,7 @@ entities: [Palermo, Next.js]
   <p class="lead">Lo que tus agentes saben de vos: un perfil que escribís vos, más hechos importados de otros chatbots o guardados por los agentes a medida que los aprenden. Los hechos llevan fecha, y cuando uno cambia se conserva la versión vieja.</p>
   <h2>Perfil</h2>
   <p><code>profile.md</code> guarda tu nombre, una línea que te describe y un "sobre mí" libre. Se edita en la pestaña <b>Perfil</b>. Los agentes tienen la instrucción de leerlo primero.</p>
+  <p>Debajo, <b>Lo que brain sabe de vos</b> es un resumen de tu memoria que se reescribe solo cada vez que un agente, el chat o vos suman, cambian o borran un recuerdo (con el modelo de chat local si hay uno; si no, una lista de los hechos principales por categoría). Va al final de <code>profile.md</code>, entre marcas, así lo leen todos tus agentes; tu texto nunca se toca. Se apaga o se actualiza con <i>Actualizar ahora</i> en la misma tarjeta.</p>
   <h2>Archivos de memoria</h2>
   <p>Cada categoría es un archivo en <code>memory/</code> con un hecho por viñeta. Cada hecho activo lleva la fecha en que se guardó, como comentario HTML al final de la línea (no se ve al leer la nota):</p>
   <pre>---
@@ -493,7 +511,10 @@ entities: [Palermo, Next.js]
     <tr><td>Brain</td><td><code>BRAIN.md</code>, the hub</td></tr>
     <tr><td>Profile</td><td><code>profile.md</code>, thick ring, labeled with your name</td></tr>
     <tr><td>Memory</td><td>A memory category (hollow)</td></tr>
-    <tr><td>Projects, Skills, Notes</td><td>Files in those folders</td></tr>
+    <tr><td>Projects</td><td>A project (solid)</td></tr>
+    <tr><td>Sub-projects</td><td>A part of a project (hollow, thick outline), linked to its project</td></tr>
+    <tr><td>Files</td><td>Any other note inside a project (small, light), linked to its project or sub-project</td></tr>
+    <tr><td>Skills, Notes</td><td>Files in <code>skills/</code> and loose notes</td></tr>
     <tr><td>Sources</td><td>Saved pages and captures (dashed outline)</td></tr>
     <tr><td>Folders, Tags</td><td>Folder hierarchy and <code>tags:</code></td></tr>
     <tr><td>Entities</td><td>A person, place, organization or project named in <code>entities</code> (small, dotted ring)</td></tr>
@@ -527,7 +548,10 @@ entities: [Palermo, Next.js]
     <tr><td>Brain</td><td><code>BRAIN.md</code>, el centro</td></tr>
     <tr><td>Perfil</td><td><code>profile.md</code>, anillo grueso, con tu nombre</td></tr>
     <tr><td>Memoria</td><td>Una categoría de memoria (hueca)</td></tr>
-    <tr><td>Proyectos, Skills, Notas</td><td>Archivos de esas carpetas</td></tr>
+    <tr><td>Proyectos</td><td>Un proyecto (relleno)</td></tr>
+    <tr><td>Subproyectos</td><td>Una parte de un proyecto (hueco, contorno grueso), unida a su proyecto</td></tr>
+    <tr><td>Archivos</td><td>Cualquier otra nota dentro de un proyecto (chico, claro), unida a su proyecto o subproyecto</td></tr>
+    <tr><td>Skills, Notas</td><td>Archivos de <code>skills/</code> y notas sueltas</td></tr>
     <tr><td>Fuentes</td><td>Páginas guardadas y capturas (contorno punteado)</td></tr>
     <tr><td>Carpetas, Tags</td><td>Jerarquía de carpetas y <code>tags:</code></td></tr>
     <tr><td>Entidades</td><td>Una persona, lugar, organización o proyecto nombrado en <code>entities</code> (chico, anillo de puntos)</td></tr>
@@ -862,9 +886,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>DuckDuckGo (default)</td><td>Nothing.</td></tr>
     <tr><td>SearXNG</td><td>The URL of your instance, with JSON output enabled.</td></tr>
     <tr><td>Brave Search API</td><td>An API key. It's stored in <code>data/factcheck.json</code> (600) and never returned by the API.</td></tr>
+    <tr><td>One of your <a href="#connections">Connections</a></td><td>A search tool you already connected to brain (OpenSEO's <code>get_serp_results</code>, a Composio search tool, Tavily, Exa, Brave's MCP…). Pick it in the list and add fixed arguments as JSON if it needs them (e.g. <code>{"projectId": "…"}</code>). The query goes in the right field, the URLs are read from the result, and nothing it returns is saved to your brain.</td></tr>
   </table>
   <h2>From the chat and agents</h2>
-  <p><code>/factcheck &lt;text&gt;</code> runs it from the chat, and agents have the <code>fact_check</code> tool. With <i>Let the chat check facts that aren't in brain on its own</i> (off by default), the chat uses it when you ask about a fact it can't find in your vault.</p>
+  <p><code>/factcheck &lt;text&gt;</code> runs it from the chat, and agents have the <code>fact_check</code> tool, which always applies your preferences. With <i>Let the chat and all your agents check facts that aren't in brain</i> (off by default), every agent gets the instruction: brain's chat in its system prompt, and Claude, ChatGPT and any MCP client in the server instructions and in <code>search_knowledge</code> itself, which suggests <code>fact_check</code> when it finds nothing (or when what it found may not answer). Agents read the server instructions when they connect, so reopen them after turning it on.</p>
   <p>For health, law, finance or safety the report reminds you it's informational and doesn't replace a professional. Fact check needs a chat model in Ollama to split claims and compare evidence; without one it says so.</p>
 </div>
 <div class="l-es">
@@ -889,9 +914,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>DuckDuckGo (por defecto)</td><td>Nada.</td></tr>
     <tr><td>SearXNG</td><td>La URL de tu instancia, con la salida JSON activada.</td></tr>
     <tr><td>Brave Search API</td><td>Una clave de su API. Se guarda en <code>data/factcheck.json</code> (600) y la API nunca la devuelve.</td></tr>
+    <tr><td>Una de tus <a href="#connections">Conexiones</a></td><td>Una tool de búsqueda que ya conectaste a brain (<code>get_serp_results</code> de OpenSEO, una de búsqueda de Composio, Tavily, Exa, el MCP de Brave…). Elegila en la lista y sumá argumentos fijos en JSON si los pide (por ej. <code>{"projectId": "…"}</code>). La consulta va en el campo que corresponda, las URLs salen del resultado y nada de lo que devuelve se guarda en tu brain.</td></tr>
   </table>
   <h2>Desde el chat y los agentes</h2>
-  <p><code>/factcheck &lt;texto&gt;</code> lo usa desde el chat, y los agentes tienen la tool <code>fact_check</code>. Con <i>Que el chat verifique solo los datos que no están en brain</i> (apagado por defecto), el chat la usa cuando preguntás un dato que no encuentra en tu vault.</p>
+  <p><code>/factcheck &lt;texto&gt;</code> lo usa desde el chat, y los agentes tienen la tool <code>fact_check</code>, que siempre aplica tus preferencias. Con <i>Que el chat y todos tus agentes verifiquen los datos que no están en brain</i> (apagado por defecto), todos los agentes reciben la instrucción: el chat de brain en su system prompt, y Claude, ChatGPT y cualquier cliente MCP en las instrucciones del server y en el propio <code>search_knowledge</code>, que sugiere <code>fact_check</code> cuando no encuentra nada (o cuando lo que encontró puede no responder). Los agentes leen las instrucciones del server al conectarse: reabrilos después de prenderlo.</p>
   <p>En salud, derecho, finanzas o seguridad el informe aclara que es informativo y no reemplaza a un profesional. Fact check necesita un modelo de chat en Ollama para separar afirmaciones y comparar la evidencia; sin uno, lo avisa.</p>
 </div>
 </section>

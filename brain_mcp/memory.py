@@ -1,20 +1,28 @@
 """Perfil y memoria del usuario dentro del vault.
 
-- profile.md: datos que el usuario carga sobre sí mismo (nombre, en una línea, sobre mí).
+- profile.md: datos que el usuario carga sobre sí mismo (nombre, en una línea, sobre mí) y, debajo, un bloque
+  "Lo que brain sabe de vos" que se actualiza solo a partir de la memoria (refresh_auto_about).
 - memory/<categoria>.md: un archivo por categoría con un hecho por viñeta. Se llena importando la
   memoria de otro chatbot (Claude, ChatGPT, Gemini…) o con la tool add_memory.
 
 En el grafo, profile.md es un nodo central y cada categoría de memoria cuelga de él; si una
 memoria menciona un proyecto/skill/fuente existente, la categoría queda relacionada con ese nodo.
 """
+import hashlib
 import json
+import logging
+import os
 import re
+import threading
+import time
 import unicodedata
-from datetime import date
+from datetime import date, datetime, timezone
 
 import frontmatter
 
 from . import entities, vault
+
+log = logging.getLogger(__name__)
 
 PROFILE_PATH = "profile.md"
 MEMORY_DIR = "memory"
@@ -213,7 +221,9 @@ def _save(category: str, meta: dict, items: list[dict], old: list[str] | None = 
     elif meta.get("entities"):  # sin Ollama no se pierden las que ya había
         fields["entities"] = meta["entities"]
     post = frontmatter.Post(body, **fields)
-    return vault.write_file(path, frontmatter.dumps(post) + "\n", op=op)
+    out = vault.write_file(path, frontmatter.dumps(post) + "\n", op=op)
+    schedule_auto_about()
+    return out
 
 
 def _category_of(path: str, meta: dict) -> str:
@@ -317,29 +327,174 @@ def history(category: str) -> list[str]:
 
 
 # ---------- perfil ----------
+# profile.md = "# Nombre" + "Sobre mí" (lo que escribe el usuario) + un bloque entre AUTO_START y AUTO_END que brain
+# reescribe solo con un resumen de la memoria ("Lo que brain sabe de vos"). Los agentes leen profile.md entero,
+# así que el resumen les llega a todos; el texto del usuario nunca se toca.
+
+AUTO_START, AUTO_END = "<!-- brain:auto-about -->", "<!-- /brain:auto-about -->"
+AUTO_HEADING = "## Lo que brain sabe de vos"
+AUTO_PROMPT = ("Con estos hechos sobre una persona, escribí un párrafo de 4 a 6 oraciones en segunda persona "
+               "(\"Trabajás en…\", \"Preferís…\") que resuma quién es, qué hace, qué le importa y cómo le gusta "
+               "trabajar. Usá solo estos hechos, sin inventar nada ni agregar consejos. En español. Solo el párrafo.\n\n"
+               "Hechos:\n{facts}")
+AUTO_MAX_FACTS = 120
+
+
+def _split_auto(body: str) -> tuple[str, str]:
+    """(texto del usuario, contenido del bloque automático sin el título)."""
+    i = body.find(AUTO_START)
+    if i < 0:
+        return body, ""
+    j = body.find(AUTO_END, i)
+    auto = body[i + len(AUTO_START): j if j >= 0 else len(body)].strip()
+    if auto.startswith(AUTO_HEADING):
+        auto = auto[len(AUTO_HEADING):].strip()
+    rest = body[:i] + (body[j + len(AUTO_END):] if j >= 0 else "")
+    return rest.strip(), auto
+
 
 def get_profile() -> dict:
     try:
         m, body = vault.parse(vault.read_file(PROFILE_PATH))
     except vault.VaultError:
-        return {"exists": False, "name": "", "headline": "", "about": ""}
+        return {"exists": False, "name": "", "headline": "", "about": "", "auto_about": "", "auto_updated": ""}
     # el cuerpo es "# Nombre" + "Sobre mí"; un agente puede haberlo reescrito sin la línea en blanco
     # (o solo con el título), así que se saca el título sin asumir cuántas líneas hay
-    body = body.strip()
+    body, auto = _split_auto(body.strip())
     if body.startswith("# "):
         body = body.split("\n", 1)[1] if "\n" in body else ""
     return {"exists": True, "name": str(m.get("display_name") or ""),
-            "headline": str(m.get("headline") or ""), "about": body.strip()}
+            "headline": str(m.get("headline") or ""), "about": body.strip(),
+            "auto_about": auto, "auto_updated": str(m.get("auto_about_updated") or "")}
+
+
+def _profile_text(name: str, headline: str, about: str, auto: str, extra: dict) -> str:
+    title = name or "Perfil"
+    body = f"# {title}\n\n{about}\n" if about else f"# {title}\n"
+    if auto:
+        body += f"\n{AUTO_START}\n{AUTO_HEADING}\n\n{auto}\n{AUTO_END}\n"
+    post = frontmatter.Post(body, name="profile", description=headline or "Perfil del usuario",
+                            display_name=name, headline=headline, **extra)
+    return frontmatter.dumps(post, sort_keys=False) + "\n"
+
+
+def _auto_meta(meta: dict) -> dict:
+    return {k: meta[k] for k in ("type", "created", "auto_about_sig", "auto_about_updated") if meta.get(k)}
 
 
 def save_profile(name: str, headline: str, about: str) -> str:
     name, headline, about = name.strip(), headline.strip(), about.strip()
-    title = name or "Perfil"
-    post = frontmatter.Post(
-        f"# {title}\n\n{about}\n" if about else f"# {title}\n",
-        name="profile",
-        description=headline or "Perfil del usuario",
-        display_name=name,
-        headline=headline,
-    )
-    return vault.write_file(PROFILE_PATH, frontmatter.dumps(post) + "\n")
+    meta, auto = {}, ""
+    try:
+        meta, body = vault.parse(vault.read_file(PROFILE_PATH))
+        auto = _split_auto(body)[1]  # el resumen automático se conserva
+    except vault.VaultError:
+        pass
+    return vault.write_file(PROFILE_PATH, _profile_text(name, headline, about, auto, _auto_meta(meta)))
+
+
+# ---------- "Sobre mí" automático ----------
+
+def _settings_path():
+    from . import history
+    return history.DATA / "profile_settings.json"
+
+
+def auto_about_enabled() -> bool:
+    try:
+        return bool(json.loads(_settings_path().read_text(encoding="utf-8")).get("auto_about", True))
+    except (OSError, ValueError):
+        return True  # prendido por defecto
+
+
+def set_auto_about(enabled: bool) -> bool:
+    p = _settings_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"auto_about": bool(enabled)}), encoding="utf-8")
+    return bool(enabled)
+
+
+def _active_facts() -> list[tuple[str, str]]:
+    return [(c["category"], i) for c in list_all() for i in c["items"]]
+
+
+def memory_signature() -> str:
+    return hashlib.sha256(json.dumps(_active_facts(), ensure_ascii=False).encode()).hexdigest()[:16]
+
+
+def _fallback_summary(facts: list[tuple[str, str]]) -> str:
+    """Sin modelo de chat: las categorías con sus primeros hechos, en viñetas."""
+    by: dict[str, list[str]] = {}
+    for cat, fact in facts:
+        by.setdefault(cat, []).append(fact)
+    return "\n".join(f"- **{cat}**: " + "; ".join(items[:4]) + ("…" if len(items) > 4 else "") for cat, items in by.items())
+
+
+def refresh_auto_about(force: bool = False) -> dict:
+    """Reescribe el bloque "Lo que brain sabe de vos" de profile.md si la memoria cambió desde la última vez
+    (o si force). {"status": "updated" | "unchanged" | "off" | "empty", "text"?}."""
+    from .summarize import generate
+
+    if not force and not auto_about_enabled():
+        return {"status": "off"}
+    facts = _active_facts()
+    sig = memory_signature()
+    try:
+        meta, body = vault.parse(vault.read_file(PROFILE_PATH))
+    except vault.VaultError:
+        meta, body = {}, ""
+    if not facts:
+        return {"status": "empty"}
+    if not force and str(meta.get("auto_about_sig") or "") == sig:
+        return {"status": "unchanged"}
+    lines = "\n".join(f"- [{c}] {f}" for c, f in facts[:AUTO_MAX_FACTS])
+    text = (generate(AUTO_PROMPT.format(facts=lines)) or "").strip() or _fallback_summary(facts)
+    text = text.replace(AUTO_START, "").replace(AUTO_END, "")[:3000]
+    p = get_profile()
+    extra = _auto_meta(meta)
+    extra.update(auto_about_sig=sig, auto_about_updated=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    vault.write_file(PROFILE_PATH, _profile_text(p["name"], p["headline"], p["about"], text, extra))
+    return {"status": "updated", "text": text}
+
+
+_auto_lock = threading.Lock()
+_auto_pending = threading.Event()
+
+
+def _auto_worker() -> None:
+    while True:
+        time.sleep(2)  # junta los cambios seguidos (un import escribe varias categorías)
+        _auto_pending.clear()
+        try:
+            refresh_auto_about()
+        except Exception as e:
+            log.info("no se pudo actualizar el resumen del perfil: %s", e)
+        if not _auto_pending.is_set():
+            break
+
+
+def schedule_auto_about() -> None:
+    """Actualiza el resumen en segundo plano (nunca frena la escritura de una memoria). BRAIN_AUTO_ABOUT=off lo
+    apaga para este proceso (los tests lo usan)."""
+    if os.environ.get("BRAIN_AUTO_ABOUT", "").lower() in ("off", "0", "false") or not auto_about_enabled():
+        return
+    _auto_pending.set()
+    if not _auto_lock.acquire(blocking=False):
+        return  # ya hay un worker: va a ver el pendiente
+
+    def run():
+        try:
+            _auto_worker()
+        finally:
+            _auto_lock.release()
+
+    threading.Thread(target=run, name="auto-about", daemon=True).start()
+
+
+def auto_about_stale() -> bool:
+    try:
+        meta = vault.parse(vault.read_file(PROFILE_PATH))[0]
+    except vault.VaultError:
+        meta = {}
+    facts = _active_facts()
+    return bool(facts) and str(meta.get("auto_about_sig") or "") != memory_signature()
