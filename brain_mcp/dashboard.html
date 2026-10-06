@@ -465,6 +465,27 @@
   .bk-main .mono { font-size: 12.5px; overflow-wrap: anywhere; }
   .bk-act { display: flex; gap: 6px; flex-wrap: wrap; }
   .bk-act .btn { padding: 4px 10px; font-size: 12.5px; }
+  .bk-tag { font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line-strong); padding: 2px 6px; border-radius: 3px; margin-left: 6px; color: var(--text-2); }
+  .autobk-line { font-size: 12.5px; margin: 10px 0 0; }
+  .autobk-line:empty { display: none; }
+  .autobk { margin-top: 12px; padding: 14px; border: 1px dashed var(--line-strong); border-radius: 3px; display: grid; gap: 6px; }
+  .autobk-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .autobk-grid { display: grid; gap: 8px; }
+  .autobk-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  .autobk-row .input { min-width: 0; }
+  #ab-folder, #ab-name { flex: 1 1 260px; }
+  .autobk .ab-num { width: 84px; flex: none; padding: 6px 8px; }
+  .autobk .ab-time { width: 120px; flex: none; padding: 6px 8px; }
+  #ab-when > span { display: inline-flex; gap: 6px; align-items: center; }
+  .autobk-tokens { display: flex; gap: 6px; flex-wrap: wrap; }
+  .autobk-tokens button { font: 12px/1 "Courier Prime", monospace; border: 1px solid var(--line); background: var(--surface); border-radius: 3px; padding: 4px 7px; cursor: pointer; color: var(--text-2); }
+  .autobk-dirs { border: 1px solid var(--line-strong); border-radius: 3px; max-height: 260px; overflow: auto; font-size: 13px; }
+  .autobk-dirs .ab-cur { position: sticky; top: 0; background: var(--surface); padding: 8px 10px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .autobk-dirs .ab-cur .mono { flex: 1; min-width: 160px; overflow-wrap: anywhere; font-size: 12.5px; }
+  .autobk-dirs button.ab-d { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 7px 10px; cursor: pointer; color: var(--text); overflow-wrap: anywhere; }
+  .autobk-dirs button.ab-d:hover, .autobk-dirs button.ab-d:focus-visible { background: var(--soft); }
+  .autobk-status { font-size: 12.5px; color: var(--text-2); display: grid; gap: 2px; margin-top: 6px; }
+  .autobk-status .err, .autobk-line.err-text { color: var(--bad); }
   /* conocimiento: frescura de las fuentes */
   .src-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   .src-wrap { overflow-x: auto; }
@@ -519,6 +540,8 @@
   .remote-url .code-block { margin-bottom: 4px; }
   .remote-url pre { overflow-wrap: anywhere; white-space: pre-wrap; }
   .remote-warn { font-size: 12.5px; color: var(--text-2); border-left: 3px solid var(--text); padding: 4px 0 4px 10px; }
+  .remote-changed { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--text); }
+  .remote-changed span { flex: 1; min-width: 200px; }
   .remote-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .remote-adv summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }
   .remote-adv .form-grid { display: grid; gap: 10px; margin-top: 10px; }
@@ -1008,6 +1031,41 @@
                 <button class="btn" type="button" id="backup-upload-btn" data-i18n="settings.backupUpload"></button>
                 <input type="file" id="backup-file" accept=".zip,application/zip" hidden>
                 <button class="btn" type="button" id="backup-rebuild" data-i18n="settings.backupRebuild"></button>
+                <button class="btn" type="button" id="autobk-btn" aria-expanded="false" aria-controls="autobk-panel"><span data-i18n="settings.autoBtn"></span></button>
+              </div>
+              <p class="autobk-line muted" id="autobk-line"></p>
+              <div class="autobk" id="autobk-panel" hidden>
+                <div class="autobk-h"><b data-i18n="settings.autoTitle"></b>
+                  <label class="switch"><input type="checkbox" role="switch" id="ab-enabled"><span class="track"></span></label></div>
+                <p class="form-hint" style="margin-top:0" data-i18n="settings.autoHint"></p>
+                <div class="autobk-grid">
+                  <label class="code-label" for="ab-folder" data-i18n="settings.autoFolder"></label>
+                  <div class="autobk-row"><input class="input mono" id="ab-folder" autocomplete="off" spellcheck="false">
+                    <button class="btn" type="button" id="ab-browse" data-i18n="settings.autoBrowse"></button>
+                    <button class="btn" type="button" id="ab-default" data-i18n="settings.autoDefault"></button></div>
+                  <div class="autobk-dirs" id="ab-dirs" hidden></div>
+                  <span class="code-label" data-i18n="settings.autoEvery"></span>
+                  <div class="seg" id="ab-freq" role="radiogroup">
+                    <button type="button" data-freq="hours" data-i18n="settings.autoHours"></button>
+                    <button type="button" data-freq="daily" data-i18n="settings.autoDaily"></button>
+                    <button type="button" data-freq="weekly" data-i18n="settings.autoWeekly"></button></div>
+                  <div class="autobk-row" id="ab-when">
+                    <span id="ab-hours-box"><span data-i18n="settings.autoEveryN"></span> <input class="input mono ab-num" id="ab-hours" type="number" min="1" max="720"> <span data-i18n="settings.autoHoursUnit"></span></span>
+                    <span id="ab-day-box"><select id="ab-weekday"></select></span>
+                    <span id="ab-at-box"><span data-i18n="settings.autoAt"></span> <input class="input mono ab-time" id="ab-at" type="time"></span></div>
+                  <label class="code-label" for="ab-name" data-i18n="settings.autoName"></label>
+                  <div class="autobk-row"><input class="input mono" id="ab-name" autocomplete="off" spellcheck="false"><span class="mono muted">.zip</span></div>
+                  <div class="autobk-tokens" id="ab-tokens"></div>
+                  <p class="form-hint" id="ab-preview" style="margin:0"></p>
+                  <div class="autobk-row"><span data-i18n="settings.autoKeep"></span> <input class="input mono ab-num" id="ab-keep" type="number" min="0" max="1000"> <span class="muted" data-i18n="settings.autoKeepHint"></span></div>
+                  <label class="check"><input type="checkbox" id="ab-changes"> <span data-i18n="settings.autoChanges"></span></label>
+                  <label class="check"><input type="checkbox" id="ab-secrets"> <span data-i18n="settings.autoSecrets"></span></label>
+                </div>
+                <div class="autobk-row" style="margin-top:12px">
+                  <button class="btn primary" type="button" id="ab-save" data-i18n="settings.autoSave"></button>
+                  <button class="btn" type="button" id="ab-now" data-i18n="settings.autoNow"></button></div>
+                <div class="autobk-status" id="ab-status"></div>
+                <div class="result" id="ab-result"></div>
               </div>
               <div class="result" id="backup-result"></div>
               <ul class="backup-list" id="backup-list"></ul>
@@ -1306,6 +1364,32 @@ const I18N = {
       backupNoChroma: "No se pudo reconstruir lo indexado en Chroma (¿Ollama o Chroma apagados?): la búsqueda por palabra funciona igual; probá «Reconstruir índices» después.",
       backupUploading: "Subiendo el archivo…", backupBadFile: "Ese archivo no es un backup de brain:",
       backupRebuilding: "Reconstruyendo desde el vault…", backupRebuilt: (k, c) => `Listo: ${k} chunks en la búsqueda por palabra${c != null ? ` y ${c} en Chroma` : ""}.`,
+      autoBtn: "Backup automático…", autoTitle: "Backup automático", autoOn: "Prender o apagar el backup automático",
+      autoHint: "brain hace el backup solo mientras está abierto. Si la compu estaba apagada o brain cerrado cuando tocaba, lo hace al volver a abrirlo.",
+      autoFolder: "Carpeta", autoBrowse: "Elegir…", autoDefault: "Usar la de brain", autoUseThis: "Usar esta carpeta", autoUp: "Subir", autoHome: "Inicio",
+      autoEmptyDir: "(sin subcarpetas)", autoEvery: "Cada cuánto", autoHours: "Cada X horas", autoDaily: "Todos los días", autoWeekly: "Una vez por semana",
+      autoEveryN: "Cada", autoHoursUnit: "horas", autoAt: "a las",
+      days: ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"],
+      autoName: "Nombre del archivo", autoTokens: { date: "fecha", time: "hora", version: "versión de brain", n: "número" },
+      autoPreview: n => `El próximo se va a llamar ${n}`,
+      autoKeep: "Conservar los últimos", autoKeepHint: "(0 = todos; solo borra los que hizo el automático)",
+      autoChanges: "Saltear el backup si no cambió nada desde el anterior",
+      autoSecrets: "Incluir credenciales (.env, sesiones de conexiones y el token del acceso remoto)",
+      autoSave: "Guardar", autoNow: "Hacer uno ahora", autoSaved: "Guardado.", autoRunning: "Haciendo el backup…",
+      autoDone: (n, s) => `Listo: ${n} (${s}).`,
+      autoOff: "Backup automático apagado.",
+      autoLine: (w, nx) => `Automático: ${w}${nx ? ` · próximo ${nx}` : ""}`,
+      autoWhen: c => c.frequency === "hours" ? `cada ${c.hours} h` : c.frequency === "daily" ? `todos los días a las ${c.at}` : `los ${["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"][c.weekday]} a las ${c.at}`,
+      autoLast: (n, w) => `Último: ${n} · ${w}`, autoSkipped: w => `Última vuelta (${w}): no había cambios, no se creó un archivo nuevo.`,
+      autoNext: w => `Próximo: ${w}`, autoErr: e => `Último error: ${e}`, autoCount: n => `${n} backup(s) automáticos en la carpeta.`,
+      autoWhere: p => `Se guardan en ${p}`, autoTag: "auto",
+      autoErrs: { folder_relative: "La carpeta tiene que ser una ruta completa (ej. /Users/vos/Backups o D:\\Backups).",
+        folder_in_vault: "La carpeta no puede estar dentro del vault: el backup se incluiría a sí mismo.",
+        folder_not_writable: "No se puede escribir en esa carpeta:", folder_missing: "La carpeta no existe (¿un disco desconectado?):",
+        bad_name: "El nombre solo puede tener letras, números, . _ - y {date} {time} {version} {n}.",
+        bad_hours: "Elegí entre 1 y 720 horas.", bad_time: "Hora inválida.", bad_keep: "Elegí entre 0 y 1000.",
+        bad_frequency: "Frecuencia desconocida.", bad_weekday: "Día inválido.", busy: "Ya hay un backup en curso.",
+        not_a_dir: "Esa carpeta no existe:", not_readable: "No se puede leer esa carpeta:", failed: "No se pudo hacer el backup:" },
       ctx: "Contexto", ctxSub: "cuánto recuerda el chat de cada modelo",
       ctxHint: "La ventana de contexto es cuánto texto ve el modelo a la vez (tu memoria, el chat y las tools). Más contexto usa más RAM y responde más lento: si el chat se pone lento, bajalo.",
       ctxCap: "El máximo de cada modelo, con un tope para todos:", ctxMax: "El máximo que soporta cada modelo, sin tope",
@@ -1334,7 +1418,14 @@ const I18N = {
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
     remote: { title: "Acceso remoto por URL", sub: "túnel de Cloudflare",
       text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Manus en la web, Claude.ai → Conectores, ChatGPT en modo desarrollador…). Usa un túnel de Cloudflare: no abre puertos en tu router.",
-      on: "Prender", off: "Apagar", st: { off: "Apagado", starting: "Abriendo el túnel…", on: "Publicado", error: "Error" },
+      on: "Prender", off: "Apagar", st: { off: "Apagado", starting: "Abriendo el túnel…", reconnecting: "Reconectando…", on: "Publicado", error: "Error" },
+      reconnect: "Reconectar", reconnecting: "Reabriendo el túnel…",
+      reconnectingNote: "cloudflared perdió la conexión con Cloudflare (pasa cuando la compu se duerme o cambia de red). Se reconecta solo con la misma URL; si en un minuto no puede, brain reabre el túnel.",
+      urlChanged: "El túnel se reabrió después de que la compu se durmió.",
+      urlChangedQuick: "La URL cambió: el túnel rápido se cerró mientras la compu dormía y brain abrió otro. Pegá la URL nueva en tus agentes (o usá un túnel con nombre para que no cambie nunca).",
+      gotIt: "Entendido",
+      keepAwake: "Que la compu no se duerma sola mientras está prendido (la pantalla se puede apagar igual)",
+      awakeOn: "activo", awakeNo: "este sistema no lo permite",
       url: "URL del server MCP (con el token)", copy: "Copiar", copied: "Copiado ✓",
       bearer: "Si tu app pide la URL sin el token y un header aparte:", bearerUrl: "URL", bearerHeader: "Header",
       warn: "La URL lleva un token secreto: quien la tenga puede leer y, si no está en solo lectura, cambiar tu vault. Tratala como una contraseña.",
@@ -1598,6 +1689,32 @@ const I18N = {
       backupNoChroma: "Couldn't rebuild the Chroma index (Ollama or Chroma off?): keyword search still works; try “Rebuild indexes” later.",
       backupUploading: "Uploading the file…", backupBadFile: "That file isn't a brain backup:",
       backupRebuilding: "Rebuilding from the vault…", backupRebuilt: (k, c) => `Done: ${k} chunks in keyword search${c != null ? ` and ${c} in Chroma` : ""}.`,
+      autoBtn: "Automatic backup…", autoTitle: "Automatic backup", autoOn: "Turn automatic backup on or off",
+      autoHint: "brain makes the backup by itself while it's open. If the computer was off or brain was closed when one was due, it makes it when you open brain again.",
+      autoFolder: "Folder", autoBrowse: "Choose…", autoDefault: "Use brain's folder", autoUseThis: "Use this folder", autoUp: "Up", autoHome: "Home",
+      autoEmptyDir: "(no subfolders)", autoEvery: "How often", autoHours: "Every X hours", autoDaily: "Every day", autoWeekly: "Once a week",
+      autoEveryN: "Every", autoHoursUnit: "hours", autoAt: "at",
+      days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      autoName: "File name", autoTokens: { date: "date", time: "time", version: "brain version", n: "number" },
+      autoPreview: n => `The next one will be called ${n}`,
+      autoKeep: "Keep the last", autoKeepHint: "(0 = all; only deletes the ones made automatically)",
+      autoChanges: "Skip the backup if nothing changed since the previous one",
+      autoSecrets: "Include credentials (.env, connection sessions and the remote access token)",
+      autoSave: "Save", autoNow: "Make one now", autoSaved: "Saved.", autoRunning: "Making the backup…",
+      autoDone: (n, s) => `Done: ${n} (${s}).`,
+      autoOff: "Automatic backup is off.",
+      autoLine: (w, nx) => `Automatic: ${w}${nx ? ` · next ${nx}` : ""}`,
+      autoWhen: c => c.frequency === "hours" ? `every ${c.hours} h` : c.frequency === "daily" ? `every day at ${c.at}` : `${["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays"][c.weekday]} at ${c.at}`,
+      autoLast: (n, w) => `Last: ${n} · ${w}`, autoSkipped: w => `Last run (${w}): nothing had changed, no new file was created.`,
+      autoNext: w => `Next: ${w}`, autoErr: e => `Last error: ${e}`, autoCount: n => `${n} automatic backup(s) in the folder.`,
+      autoWhere: p => `Saved in ${p}`, autoTag: "auto",
+      autoErrs: { folder_relative: "The folder must be a full path (e.g. /Users/you/Backups or D:\\Backups).",
+        folder_in_vault: "The folder can't be inside the vault: the backup would include itself.",
+        folder_not_writable: "Can't write to that folder:", folder_missing: "The folder doesn't exist (a disconnected drive?):",
+        bad_name: "The name can only have letters, numbers, . _ - and {date} {time} {version} {n}.",
+        bad_hours: "Choose between 1 and 720 hours.", bad_time: "Invalid time.", bad_keep: "Choose between 0 and 1000.",
+        bad_frequency: "Unknown frequency.", bad_weekday: "Invalid day.", busy: "A backup is already running.",
+        not_a_dir: "That folder doesn't exist:", not_readable: "Can't read that folder:", failed: "Couldn't make the backup:" },
       ctx: "Context", ctxSub: "how much each model's chat remembers",
       ctxHint: "The context window is how much text the model sees at once (your memory, the chat and the tools). More context uses more RAM and answers slower: if the chat gets slow, lower it.",
       ctxCap: "Each model's maximum, with a cap for all of them:", ctxMax: "The most each model supports, no cap",
@@ -1626,7 +1743,14 @@ const I18N = {
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
     remote: { title: "Remote access by URL", sub: "Cloudflare tunnel",
       text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Manus on the web, Claude.ai → Connectors, ChatGPT in developer mode…). It uses a Cloudflare tunnel: no ports are opened on your router.",
-      on: "Turn on", off: "Turn off", st: { off: "Off", starting: "Opening the tunnel…", on: "Published", error: "Error" },
+      reconnect: "Reconnect", reconnecting: "Reopening the tunnel…",
+      reconnectingNote: "cloudflared lost its connection to Cloudflare (this happens when the computer sleeps or changes networks). It reconnects by itself with the same URL; if it can't within a minute, brain reopens the tunnel.",
+      urlChanged: "The tunnel was reopened after the computer slept.",
+      urlChangedQuick: "The URL changed: the quick tunnel closed while the computer was asleep and brain opened a new one. Paste the new URL in your agents (or use a named tunnel so it never changes).",
+      gotIt: "Got it",
+      keepAwake: "Keep the computer from sleeping by itself while it's on (the screen can still turn off)",
+      awakeOn: "active", awakeNo: "not supported on this system",
+      on: "Turn on", off: "Turn off", st: { off: "Off", starting: "Opening the tunnel…", reconnecting: "Reconnecting…", on: "Published", error: "Error" },
       url: "MCP server URL (with the token)", copy: "Copy", copied: "Copied ✓",
       bearer: "If your app wants the URL without the token plus a separate header:", bearerUrl: "URL", bearerHeader: "Header",
       warn: "The URL carries a secret token: anyone who has it can read and, unless it's read-only, change your vault. Treat it like a password.",
@@ -1799,7 +1923,7 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAppCtx(); renderNotify(); loadFormat(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAutoBackup(); loadAppCtx(); renderNotify(); loadFormat(); }
 
 // ================= ajustes: backup y restauración (brain_mcp/backup.py) =================
 const fmtSize = n => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -1808,7 +1932,7 @@ async function loadBackups() {
   const S = T.settings;
   $("#backup-list").innerHTML = (r.backups || []).map(b => {
     const m = b.manifest || {};
-    return `<li><div class="bk-main"><span class="mono">${esc(b.name)}</span>
+    return `<li><div class="bk-main"><span class="mono">${esc(b.name)}${b.auto ? `<span class="bk-tag">${esc(S.autoTag)}</span>` : ""}</span>
       <span class="muted">${esc(m.created_at ? ago(m.created_at) : "")} · ${esc(fmtSize(b.size))} · ${esc(S.backupFiles(m.files || 0))}${m.includes_secrets ? ` · <b>${esc(S.backupWithSecrets)}</b>` : ""}</span></div>
       <div class="bk-act"><a class="btn" href="/api/backup/download?name=${encodeURIComponent(b.name)}" download>${esc(S.backupDownload)}</a>
       <button class="btn" type="button" data-bk-restore="${esc(b.name)}">${esc(S.backupRestore)}</button>
@@ -1866,6 +1990,132 @@ $("#backup-rebuild").onclick = async () => {
     showResult(out, r.chroma_error ? "err" : "ok", T.settings.backupRebuilt(r.keyword.chunks, r.chroma) + (r.chroma_error ? ` ${T.settings.backupNoChroma}` : ""));
   } catch (e) { showResult(out, "err", e.message); }
 };
+
+// ---- backup automático (brain_mcp/autobackup.py): lo corre el dashboard mientras está abierto ----
+let abData = null, abFreq = "daily";
+const abWhenAbs = iso => { try { return new Date(iso).toLocaleString(lang === "en" ? "en-US" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return iso; } };
+const abErr = r => { const S = T.settings, e = S.autoErrs[r.code]; return e ? `${e} ${["folder_not_writable", "folder_missing", "not_a_dir", "not_readable", "failed"].includes(r.code) ? (r.detail || "") : ""}`.trim() : (r.detail || r.code || T.err.other); };
+async function loadAutoBackup() {
+  let r; try { r = await api("/api/backup/auto"); } catch (e) { return; }
+  if (!r.ok) return;
+  abData = r; renderAutoLine();
+  if ($("#autobk-panel").hidden) return;
+  // no pisar lo que el usuario está editando
+  if ($("#autobk-panel").contains(document.activeElement) && document.activeElement.matches("input")) return renderAutoStatus();
+  fillAutoForm();
+}
+function renderAutoLine() {
+  const S = T.settings, d = abData;
+  if (!d) return;
+  $("#autobk-line").textContent = d.enabled ? S.autoLine(S.autoWhen(d), d.next_run ? `${ago(d.next_run)} (${abWhenAbs(d.next_run)})` : "") + (d.last_error ? ` · ${S.autoErr(d.last_error)}` : "") : "";
+  $("#autobk-line").classList.toggle("err-text", !!(d.enabled && d.last_error));
+}
+function fillAutoForm() {
+  const d = abData, S = T.settings;
+  $("#ab-enabled").checked = !!d.enabled;
+  $("#ab-enabled").closest(".switch").title = S.autoOn;
+  $("#ab-folder").value = d.folder || "";
+  $("#ab-folder").placeholder = d.default_folder;
+  abFreq = d.frequency;
+  $("#ab-hours").value = d.hours; $("#ab-at").value = d.at; $("#ab-keep").value = d.keep;
+  $("#ab-name").value = d.name;
+  $("#ab-changes").checked = !!d.only_changes; $("#ab-secrets").checked = !!d.include_secrets;
+  const wd = $("#ab-weekday");
+  wd.innerHTML = S.days.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join("");
+  wd.value = String(d.weekday);
+  if (!wd._bui) { BrainUI.select(wd); wd._bui = true; } else BrainUI.sync(wd);
+  $("#ab-tokens").innerHTML = Object.entries(S.autoTokens).map(([k, v]) => `<button type="button" data-tok="${k}" title="${esc(v)}">{${k}}</button>`).join("");
+  $("#ab-tokens").querySelectorAll("[data-tok]").forEach(b => b.onclick = () => {
+    const i = $("#ab-name"), at = i.selectionStart ?? i.value.length;
+    i.value = i.value.slice(0, at) + `{${b.dataset.tok}}` + i.value.slice(i.selectionEnd ?? at); i.focus(); renderAutoPreview();
+  });
+  renderAutoFreq(); renderAutoPreview(); renderAutoStatus();
+}
+function renderAutoFreq() {
+  $("#ab-freq").querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.freq === abFreq); b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(b.dataset.freq === abFreq)); });
+  $("#ab-hours-box").hidden = abFreq !== "hours";
+  $("#ab-day-box").hidden = abFreq !== "weekly";
+  $("#ab-at-box").hidden = abFreq === "hours";
+}
+function renderAutoPreview() {
+  // lo mismo que autobackup.render_name, para mostrar el nombre antes de guardar
+  const now = new Date(), p2 = n => String(n).padStart(2, "0");
+  const name = ($("#ab-name").value.trim().replace(/\.zip$/i, "") || "…")
+    .replaceAll("{date}", `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}`)
+    .replaceAll("{time}", `${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`)
+    .replaceAll("{version}", ($("#ver-current")?.textContent || "v").trim().replace(/[^\w.-]/g, "") || "v")
+    .replaceAll("{n}", String(abData?.next_n ?? 1));
+  $("#ab-preview").textContent = T.settings.autoPreview(name + ".zip");
+}
+function renderAutoStatus() {
+  const d = abData, S = T.settings;
+  const rows = [S.autoWhere(d.folder_effective)];
+  if (d.last_reason === "skipped" && d.last_run) rows.push(S.autoSkipped(ago(d.last_run)));
+  else if (d.last_name && d.last_run) rows.push(S.autoLast(d.last_name, `${ago(d.last_run)} · ${fmtSize(d.last_size || 0)}`));
+  if (d.enabled && d.next_run) rows.push(S.autoNext(`${ago(d.next_run)} (${abWhenAbs(d.next_run)})`));
+  if (!d.enabled) rows.push(S.autoOff);
+  if (d.count) rows.push(S.autoCount(d.count));
+  $("#ab-status").innerHTML = rows.map(t => `<span>${esc(t)}</span>`).join("") + (d.last_error ? `<span class="err">${esc(S.autoErr(d.last_error))}</span>` : "");
+}
+function autoBody() {
+  return { enabled: $("#ab-enabled").checked, folder: $("#ab-folder").value.trim(), frequency: abFreq,
+    hours: +$("#ab-hours").value || 0, at: $("#ab-at").value, weekday: +$("#ab-weekday").value,
+    name: $("#ab-name").value.trim(), keep: $("#ab-keep").value === "" ? 0 : +$("#ab-keep").value,
+    only_changes: $("#ab-changes").checked, include_secrets: $("#ab-secrets").checked };
+}
+async function saveAuto(okText = T.settings.autoSaved) {
+  const out = $("#ab-result");
+  try {
+    const r = await api("/api/backup/auto", autoBody());
+    if (!r.ok) { showResult(out, "err", abErr(r)); return false; }
+    abData = r; fillAutoForm(); renderAutoLine();
+    if (okText) { showResult(out, "ok", okText); setTimeout(() => { if (out.classList.contains("ok")) out.className = "result"; }, 3500); }
+    return true;
+  } catch (e) { showResult(out, "err", e.message); return false; }
+}
+$("#autobk-btn").onclick = () => {
+  const p = $("#autobk-panel"), open = p.hidden;
+  p.hidden = !open; $("#autobk-btn").setAttribute("aria-expanded", String(open));
+  if (open) { if (abData) fillAutoForm(); loadAutoBackup(); }
+};
+$("#ab-freq").querySelectorAll("button").forEach(b => b.onclick = () => { abFreq = b.dataset.freq; renderAutoFreq(); });
+$("#ab-name").oninput = renderAutoPreview;
+$("#ab-enabled").onchange = () => saveAuto(null);
+$("#ab-save").onclick = () => saveAuto();
+$("#ab-default").onclick = () => { $("#ab-folder").value = ""; $("#ab-dirs").hidden = true; };
+$("#ab-secrets").onchange = e => { if (e.target.checked) toast(T.settings.backupSecretsWarn); };
+$("#ab-now").onclick = async () => {
+  const S = T.settings, out = $("#ab-result"), btn = $("#ab-now");
+  btn.disabled = true;
+  try {
+    if (!(await saveAuto(null))) return;  // con los ajustes que se ven en pantalla
+    showResult(out, "info", S.autoRunning, true);
+    const r = await api("/api/backup/auto_run", {});
+    if (!r.ok) return showResult(out, "err", abErr(r));
+    abData = r.status; renderAutoStatus(); renderAutoLine();
+    showResult(out, "ok", S.autoDone(r.name, fmtSize(r.size)));
+    loadBackups();
+  } catch (e) { showResult(out, "err", e.message); }
+  finally { btn.disabled = false; }
+};
+// selector de carpeta: el navegador no da rutas de disco, así que el server lista las subcarpetas
+async function browseDirs(path) {
+  const box = $("#ab-dirs"), S = T.settings;
+  let r; try { r = await api(`/api/backup/dirs?path=${encodeURIComponent(path || "")}`); } catch (e) { r = { ok: false, detail: e.message }; }
+  if (!r.ok) { showResult($("#ab-result"), "err", abErr(r)); if (path) return browseDirs(""); return; }
+  box.hidden = false;
+  const join = n => r.path.endsWith(r.sep) ? r.path + n : r.path + r.sep + n;
+  box.innerHTML = `<div class="ab-cur"><span class="mono">${esc(r.path)}</span>
+      ${r.parent ? `<button class="btn" type="button" data-go="${esc(r.parent)}">${esc(S.autoUp)}</button>` : ""}
+      <button class="btn" type="button" data-go="${esc(r.home)}">${esc(S.autoHome)}</button>
+      ${(r.roots || []).map(d => `<button class="btn" type="button" data-go="${esc(d)}">${esc(d)}</button>`).join("")}
+      <button class="btn primary" type="button" data-use="${esc(r.path)}">${esc(S.autoUseThis)}</button></div>`
+    + (r.dirs.length ? r.dirs.map(n => `<button class="ab-d" type="button" data-go="${esc(join(n))}">${esc(n)}/</button>`).join("") : `<div class="muted" style="padding:8px 10px">${esc(S.autoEmptyDir)}</div>`);
+  box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => browseDirs(b.dataset.go));
+  box.querySelector("[data-use]").onclick = e => { $("#ab-folder").value = e.currentTarget.dataset.use; box.hidden = true; $("#ab-save").focus(); };
+}
+$("#ab-browse").onclick = () => { const b = $("#ab-dirs"); if (!b.hidden) { b.hidden = true; return; } browseDirs($("#ab-folder").value.trim() || abData?.folder_effective || ""); };
+setInterval(() => { if (view === "ajustes" && !document.hidden) loadAutoBackup(); }, 30000);
 
 // ================= ajustes: contexto por modelo =================
 // Se guarda en el server (data/chat_settings.json) porque lo usa chat.py al pedirle num_ctx a Ollama.
@@ -2699,7 +2949,7 @@ async function loadRemote() {
 }
 function remoteState(r) {
   const t = r.tunnel.status;
-  if (t === "running") return "on";
+  if (t === "running") return r.tunnel.reconnecting ? "reconnecting" : "on";
   if (!r.enabled) return "off";  // apagado a propósito: un error viejo del túnel ya no importa
   if (t === "starting" || (r.mcp.status === "starting" && r.enabled)) return "starting";
   if (t === "error" || r.mcp.status === "error") return "error";
@@ -2715,8 +2965,9 @@ function renderRemote() {
   const advOpen = box.querySelector("details.remote-adv")?.open || false;
   // con error sigue "prendido" (enabled): así el switch sirve para apagarlo
   const st = remoteState(r), on = st !== "off";
-  const pillCls = { on: "st-running", starting: "st-starting", error: "st-error", off: "st-stopped" }[st];
-  const pillIcon = st === "starting" ? statusIcon("starting") : st === "error" ? ICON.alert : st === "on" ? ICON.check : ICON.dot;
+  const pillCls = { on: "st-running", starting: "st-starting", reconnecting: "st-starting", error: "st-error", off: "st-stopped" }[st];
+  const pillIcon = st === "starting" || st === "reconnecting" ? statusIcon("starting") : st === "error" ? ICON.alert : st === "on" ? ICON.check : ICON.dot;
+  const changed = r.tunnel.url_changed_at && r.url && Date.now() / 1000 - r.tunnel.url_changed_at < 86400 && (() => { try { return localStorage.getItem("brain-remote-seen"); } catch (e) { return null; } })() !== r.url;
   const host = r.url ? new URL(r.url).origin : "";
   const bearerBase = r.base_url ? `${r.base_url.replace(/\/$/, "")}/mcp` : "";
   box.innerHTML = `<div class="card-b">
@@ -2728,7 +2979,10 @@ function renderRemote() {
     </div>
     <div class="remote-state"><span class="pill ${pillCls}">${pillIcon}${esc(T.remote.st[st])}</span>
       ${r.cloudflared ? `<span class="mono" style="font-size:12px">${esc(T.remote.cfAt(r.cloudflared))}</span>` : ""}
-      ${r.tunnel.managed || st === "error" ? `<button class="btn" type="button" data-logs="tunnel">${ICON.logs}${esc(T.remote.logs)}</button>` : ""}</div>
+      ${r.tunnel.managed || st === "error" ? `<button class="btn" type="button" data-logs="tunnel">${ICON.logs}${esc(T.remote.logs)}</button>` : ""}
+      ${r.enabled && ["starting", "reconnecting", "error"].includes(st) && r.cloudflared ? `<button class="btn" type="button" id="remote-reconnect">${esc(T.remote.reconnect)}</button>` : ""}</div>
+    ${st === "reconnecting" ? `<div class="remote-warn">${esc(T.remote.reconnectingNote)}</div>` : ""}
+    ${changed ? `<div class="remote-warn remote-changed"><span>${esc(r.mode === "quick" ? T.remote.urlChangedQuick : T.remote.urlChanged)}</span> <button class="btn" type="button" id="remote-seen">${esc(T.remote.gotIt)}</button></div>` : ""}
     ${st === "error" && r.error ? `<div class="src-err mono" style="overflow-wrap:anywhere">${esc(r.error)}</div>` : ""}
     ${!r.cloudflared ? `<div class="remote-row"><span class="muted" style="font-size:13px">${esc(T.remote.noCf)}</span>
       <button class="btn primary" type="button" id="remote-install">${esc(T.remote.install)}</button></div>` : ""}
@@ -2737,6 +2991,7 @@ function renderRemote() {
         ${codeBlock(T.remote.bearerUrl, bearerBase, "remote-bearer-url")}${codeBlock(T.remote.bearerHeader, `Authorization: Bearer ${r.token}`, "remote-bearer-h")}</details></div>` : ""}
     <div class="remote-warn">${esc(T.remote.warn)}</div>
     <label class="check"><input type="checkbox" id="remote-ro" ${r.read_only ? "checked" : ""}> <span>${esc(T.remote.readOnly)}</span></label>
+    <label class="check"><input type="checkbox" id="remote-awake" ${r.keep_awake ? "checked" : ""}> <span>${esc(T.remote.keepAwake)}${r.enabled && r.keep_awake ? ` <span class="muted">· ${esc(r.awake ? T.remote.awakeOn : T.remote.awakeNo)}</span>` : ""}</span></label>
     <div class="remote-row"><button class="btn" type="button" id="remote-regen">${esc(T.remote.regenerate)}</button></div>
     <details class="remote-adv" ${advOpen ? "open" : ""}><summary>${esc(T.remote.adv)}</summary>
       <p class="form-hint">${esc(T.remote.quickNote)}</p>
@@ -2758,6 +3013,9 @@ function renderRemote() {
   $("#remote-switch").onchange = e => remoteAction(e.target.checked ? "start" : "stop");
   if ($("#remote-install")) $("#remote-install").onclick = () => remoteAction("install", {}, T.remote.installing, T.remote.installed);
   $("#remote-ro").onchange = e => remoteAction("settings", { read_only: e.target.checked }, null, T.remote.saved);
+  $("#remote-awake").onchange = e => remoteAction("settings", { keep_awake: e.target.checked }, null, T.remote.saved);
+  if ($("#remote-reconnect")) $("#remote-reconnect").onclick = () => remoteAction("reconnect", {}, T.remote.reconnecting, null);
+  if ($("#remote-seen")) $("#remote-seen").onclick = () => { try { localStorage.setItem("brain-remote-seen", r.url); } catch (e) {} renderRemote(); };
   $("#remote-regen").onclick = async () => {
     if (!(await ask(T.remote.regenConfirm, { ok: T.remote.regenerate, danger: true }))) return;
     remoteAction("regenerate", {}, null, T.remote.regenerated);
@@ -3060,7 +3318,9 @@ setInterval(() => { if (view === "panel" || view === "conocimiento") loadStats()
 setInterval(() => { if (view === "logs") loadLogs(); }, 1500);
 setInterval(() => { if (view === "agentes") loadAgents(); }, 5000);
 // mientras el túnel arranca, la URL aparece en unos segundos: se consulta más seguido
-setInterval(() => { if (view === "agentes" && remoteData && remoteState(remoteData) === "starting") loadRemote(); }, 1500);
+setInterval(() => { if (view === "agentes" && remoteData && ["starting", "reconnecting"].includes(remoteState(remoteData))) loadRemote(); }, 1500);
+// prendido: cada 10 s, así después de que la compu se despierta la tarjeta muestra lo que hizo el watchdog
+setInterval(() => { if (view === "agentes" && !document.hidden && remoteData && remoteData.enabled) loadRemote(); }, 10000);
 setInterval(() => { if (view === "conexiones" && !connEditing) loadConnections(); }, 8000);
 
 // ================= cambios en el grafo pendientes (graph_proposals.py) =================

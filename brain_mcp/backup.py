@@ -86,12 +86,36 @@ def _export_collection(name: str) -> list[dict] | None:
         return None
 
 
-def create(include_secrets: bool = False, prefix: str = "brain-backup") -> dict:
-    """Arma el .zip en data/backups/ y devuelve {name, size, manifest}."""
-    name = f"{prefix}-{_stamp()}.zip"
-    dest = backups_dir() / name
+def _free_name(folder: Path, name: str) -> str:
+    """name, o name-2, name-3… si ya existe: un backup nunca pisa a otro."""
+    stem, n = name[:-len(".zip")], 2
+    while (folder / name).exists():
+        name, n = f"{stem}-{n}.zip", n + 1
+    return name
+
+
+def create(include_secrets: bool = False, prefix: str = "brain-backup", folder: Path | None = None,
+           name: str | None = None, auto: bool = False) -> dict:
+    """Arma el .zip (en data/backups/ o en `folder`) y devuelve {name, size, path, manifest}. Se escribe en un
+    .part y se renombra al final: si algo falla a mitad de camino no queda un backup roto."""
+    folder = Path(folder) if folder else backups_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    name = _free_name(folder, name or f"{prefix}-{_stamp()}.zip")
+    dest = folder / name
+    part = folder / f".{name}.part"
     manifest = {"app": "brain", "version": updates.current(), "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                "includes_secrets": include_secrets, "chroma": {}, "files": 0}
+                "includes_secrets": include_secrets, "chroma": {}, "files": 0, "auto": auto}
+    try:
+        _write(part, manifest, include_secrets)
+        if os.name != "nt":
+            os.chmod(part, 0o600)  # tiene notas personales (y quizás secretos)
+        os.replace(part, dest)
+    finally:
+        part.unlink(missing_ok=True)
+    return {"name": name, "size": dest.stat().st_size, "path": str(dest), "manifest": manifest}
+
+
+def _write(dest: Path, manifest: dict, include_secrets: bool) -> None:
     with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
         with vault._lock():  # nadie escribe el vault ni el historial mientras se copia
             for f in sorted(vault.VAULT.rglob("*")):
@@ -116,31 +140,47 @@ def create(include_secrets: bool = False, prefix: str = "brain-backup") -> dict:
                 if path().exists():
                     z.write(path(), arc)
         z.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
-    if os.name != "nt":
-        os.chmod(dest, 0o600)  # tiene notas personales (y quizás secretos)
-    return {"name": name, "size": dest.stat().st_size, "manifest": manifest}
 
 
-def listing() -> list[dict]:
-    out = []
-    for f in sorted(backups_dir().glob("*.zip"), reverse=True):
-        try:
-            with zipfile.ZipFile(f) as z:
-                man = json.loads(z.read("manifest.json"))
-        except (zipfile.BadZipFile, KeyError, ValueError, OSError):
-            continue
-        out.append({"name": f.name, "size": f.stat().st_size, "manifest": man})
+def folders() -> list[Path]:
+    """Dónde se buscan backups: data/backups y, si el backup automático usa otra, su carpeta."""
+    out = [backups_dir()]
+    try:
+        from . import autobackup
+        extra = autobackup.folder()
+        if extra.resolve() != out[0].resolve() and extra.is_dir():
+            out.append(extra)
+    except Exception as e:  # una carpeta que ya no existe (un disco externo desconectado) no rompe la lista
+        log.info("carpeta del backup automático: %s", e)
     return out
 
 
+def listing() -> list[dict]:
+    out, seen = [], set()
+    for d in folders():
+        for f in d.glob("*.zip"):
+            if f.name in seen:
+                continue
+            try:
+                with zipfile.ZipFile(f) as z:
+                    man = json.loads(z.read("manifest.json"))
+            except (zipfile.BadZipFile, KeyError, ValueError, OSError):
+                continue
+            seen.add(f.name)
+            out.append({"name": f.name, "size": f.stat().st_size, "manifest": man, "folder": str(d),
+                        "auto": bool(man.get("auto")), "mtime": f.stat().st_mtime})
+    return sorted(out, key=lambda b: b["mtime"], reverse=True)
+
+
 def path_of(name: str) -> Path:
-    """Path de un backup por nombre (validado: nada de rutas)."""
+    """Path de un backup por nombre (validado: nada de rutas), en data/backups o en la carpeta del automático."""
     if not re.fullmatch(r"[\w.-]+\.zip", name or ""):
         raise BackupError("bad_name", name)
-    p = backups_dir() / name
-    if not p.is_file():
-        raise BackupError("not_found", name)
-    return p
+    for d in folders():
+        p = d / name
+        if p.is_file():
+            return p
+    raise BackupError("not_found", name)
 
 
 def delete(name: str) -> None:
