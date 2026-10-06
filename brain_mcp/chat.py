@@ -19,6 +19,7 @@ import logging
 import os
 import re
 import secrets
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -56,11 +57,27 @@ COMMANDS = {
 }
 # /compact no es un modo: resume lo anterior en un mensaje marcado `compact` y, desde ahí, al modelo le
 # llega ese resumen en lugar de los mensajes viejos (que siguen guardados y visibles en el chat).
-COMPACT_PROMPT = (
-    "Resumí la conversación de abajo para poder seguirla sin el historial completo. Incluí: qué pidió el "
-    "usuario, qué se decidió o respondió, datos concretos (nombres, números, paths de archivos), qué cambios "
-    "se hicieron en el vault con las tools, y qué quedó pendiente. Viñetas, máximo ~300 palabras, sin "
-    "introducción. Escribí en el idioma de la conversación.")
+# Como el /compact de Claude Code: un resumen con secciones fijas que conserva lo necesario para seguir
+# trabajando (pedidos, decisiones, archivos, errores, pendientes y en qué se estaba), no un resumen suelto.
+COMPACT_PROMPT = """Tu tarea es resumir la conversación de abajo para que el asistente pueda seguirla sin el \
+historial completo: el resumen va a reemplazar a todos esos mensajes. Tiene que conservar todo lo que haga \
+falta para continuar sin preguntarle de nuevo nada al usuario.
+
+Escribí en el idioma de la conversación, sin introducción ni cierre, con estas secciones (omití las vacías):
+1. Pedido principal e intención: qué quiere lograr el usuario, con sus palabras cuando importan.
+2. Mensajes del usuario: cada pedido, corrección o preferencia que dio (en orden, una línea cada uno).
+3. Decisiones y respuestas: qué se resolvió, qué se descartó y por qué.
+4. Datos concretos: nombres, números, fechas, URLs, paths de notas del vault, valores exactos.
+5. Cambios hechos con las tools: qué tool, sobre qué archivo o dato, y el resultado (incluí errores).
+6. Pendientes: lo que quedó sin hacer o esperando respuesta del usuario.
+7. Trabajo en curso: qué se estaba haciendo justo antes de este resumen y cuál era el próximo paso (solo si \
+estaba claro).
+
+Viñetas cortas. Máximo ~500 palabras. No inventes nada que no esté en la conversación."""
+COMPACT_PARTIAL = ("Esto es una parte de una conversación larga. Resumila con las mismas secciones; si hay un "
+                   "resumen anterior, integralo (no lo pierdas).")
+AUTO_COMPACT = float(os.environ.get("BRAIN_AUTO_COMPACT", "0.85"))  # compacta solo al pasar este % de la ventana
+KEEP_ALIVE = os.environ.get("BRAIN_CHAT_KEEP_ALIVE", "30m")         # cuánto deja Ollama el modelo cargado
 CMD_TITLES = {"es": {"organize": "Ordenar el vault", "reflect": "Revisar la memoria", "add-mcp": "Agregar un conector",
                      "factcheck": "Fact check"},
               "en": {"organize": "Organize the vault", "reflect": "Review my memory", "add-mcp": "Add a connector",
@@ -128,9 +145,17 @@ y los índices, el historial y los ajustes en data/.
   datos que no están en brain.
 - Acceso remoto: Conectar agente → «Acceso remoto por URL» publica el server MCP con un túnel de Cloudflare.
   La URL lleva un token secreto (es como una contraseña); se puede regenerar y poner en solo lectura. Así se
-  conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT.
+  conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT. Mientras está prendido, brain evita
+  que la compu se duerma sola y, si se durmió igual, reconecta el túnel al despertar (con un túnel rápido la
+  URL puede cambiar; con uno con nombre, nunca). Se corta solo si se apaga o se cierra brain.
+- Backup: Ajustes → Backup crea y restaura backups; «Backup automático…» elige carpeta, cada cuánto (cada X
+  horas, todos los días o una vez por semana, a qué hora), el nombre del archivo ({date}, {time}, {version},
+  {n}), cuántos conservar y si incluye credenciales. Corre mientras brain está abierto.
+- Respuestas con HTML: un bloque ```html se muestra como vista previa (con un botón para ver el código). Sin
+  scripts ni recursos de internet salvo que el usuario toque «Ejecutar scripts».
 - Comandos del chat: /organize (ordenar el vault), /reflect (revisar la memoria), /compact (resumir la
-  conversación), /add-mcp (proponer un conector), /factcheck (verificar una afirmación), /new (chat nuevo), y
+  conversación como Claude: pedidos, decisiones, archivos, pendientes; acepta instrucciones, ej. «/compact
+  enfocate en el código»; además se compacta solo cuando la conversación llega al 85% del contexto), /add-mcp (proponer un conector), /factcheck (verificar una afirmación), /new (chat nuevo), y
   /<skill> para usar un skill guardado en skills/.
 - Conectores: propose_connection solo propone; el usuario los aprueba con un click. Vos no podés agregarlos.
 Si el usuario pregunta cómo hacer algo en brain, explicale dónde está en el dashboard con estos nombres.""",
@@ -167,9 +192,17 @@ vault/ and the indexes, history and settings in data/.
   on "Let the chat and all your agents check…", every connected agent uses fact_check for facts not in brain.
 - Remote access: Connect agent → "Remote access by URL" publishes the MCP server through a Cloudflare tunnel.
   The URL carries a secret token (treat it like a password); it can be regenerated and set to read-only. Cloud
-  agents such as Manus on the web, Claude.ai or ChatGPT connect this way.
-- Chat commands: /organize (tidy the vault), /reflect (review memory), /compact (summarize the conversation),
-  /add-mcp (propose a connector), /factcheck (verify a claim), /new (new chat), and /<skill> to use a skill
+  agents such as Manus on the web, Claude.ai or ChatGPT connect this way. While it's on, brain keeps the
+  computer from sleeping by itself and, if it slept anyway, reconnects the tunnel on wake (with a quick tunnel
+  the URL may change; with a named one, never). It only stops if it's turned off or brain is closed.
+- Backup: Settings → Backup creates and restores backups; "Automatic backup…" picks the folder, how often (every
+  X hours, every day or once a week, at what time), the file name ({date}, {time}, {version}, {n}), how many to
+  keep and whether to include credentials. It runs while brain is open.
+- HTML answers: an ```html block shows as a live preview (with a button to see the code). No scripts or
+  internet resources unless the user clicks "Run scripts".
+- Chat commands: /organize (tidy the vault), /reflect (review memory), /compact (summarize the conversation
+  like Claude: requests, decisions, files, pending work; takes instructions, e.g. "/compact focus on the code";
+  it also compacts by itself when the conversation reaches 85% of the context), /add-mcp (propose a connector), /factcheck (verify a claim), /new (new chat), and /<skill> to use a skill
   saved in skills/.
 - Connectors: propose_connection only proposes; the user approves with one click. You can't add them yourself.
 If the user asks how to do something in brain, tell them where it is in the dashboard using these names.""",
@@ -447,13 +480,43 @@ def _split_compact(history: list[dict]) -> tuple[str, list[dict]]:
     return history[last]["content"], history[last + 1:]
 
 
-def _transcript(summary: str, msgs: list[dict]) -> str:
-    out = [f"(Resumen anterior)\n{summary}"] if summary else []
+def _tool_line(t: dict) -> str:
+    args = json.dumps(t.get("args") or {}, ensure_ascii=False, default=str)
+    res = " ".join(str(t.get("result") or "").split())
+    return (f"  - {t.get('name', '')}({args[:300]}) → {'ok' if t.get('ok', True) else 'error'}"
+            + (f": {res[:300]}" if res else ""))
+
+
+def _transcript_parts(msgs: list[dict]) -> list[str]:
+    """Cada mensaje como texto, con las tools que usó (argumentos y un pedazo del resultado): así el resumen
+    sabe qué se cambió en el vault, no solo que se usó una tool."""
+    out = []
     for m in msgs:
         who = "Usuario" if m["role"] == "user" else "Asistente"
-        tools = ", ".join(t.get("name", "") for t in m.get("tools") or [])
-        out.append(f"{who}: {m['content']}" + (f"\n[tools usadas: {tools}]" if tools else ""))
-    return "\n\n".join(out)
+        tools = m.get("tools") or []
+        out.append(f"{who}: {m['content']}" + ("\n[tools]\n" + "\n".join(_tool_line(t) for t in tools) if tools else ""))
+    return out
+
+
+def _transcript(summary: str, msgs: list[dict]) -> str:
+    out = [f"(Resumen anterior)\n{summary}"] if summary else []
+    return "\n\n".join(out + _transcript_parts(msgs))
+
+
+def _chunks_by_budget(parts: list[str], budget: int) -> list[str]:
+    """Agrupa los mensajes en tramos de hasta `budget` caracteres sin cortar un mensaje al medio (salvo uno
+    que solo ya no entra: ese se recorta, dejando el principio y el final)."""
+    chunks, cur = [], ""
+    for p in parts:
+        if len(p) > budget:
+            p = p[: budget // 2] + "\n[…]\n" + p[-budget // 3:]
+        if cur and len(cur) + len(p) + 2 > budget:
+            chunks.append(cur)
+            cur = ""
+        cur = f"{cur}\n\n{p}" if cur else p
+    if cur:
+        chunks.append(cur)
+    return chunks
 
 
 # nombre válido para /<skill>: ASCII (el regex del front y el del back tienen que coincidir), sin espacios,
@@ -526,7 +589,14 @@ def _command_prompt(cmd: str) -> str:
     return ""
 
 
-def _context(text: str, chat_id: str, lang: str, user_system: str = "", command: str = "") -> str:
+def _past_block(text: str, chat_id: str) -> str:
+    past = _related_past(text, chat_id)
+    return "# De chats anteriores (pueden servir de contexto)\n" + "\n".join(past) if past else ""
+
+
+def _context(text: str, chat_id: str, lang: str, user_system: str = "", command: str = "", past: bool = True) -> str:
+    """System prompt. Lo que cambia en cada mensaje (fragmentos de otros chats) va al final: Ollama reusa
+    el caché del prefijo que no cambió, así no vuelve a procesar el perfil, la memoria y las tools cada vez."""
     p = memory.get_profile()
     mem_lines, used = [], 0
     for c in memory.list_all():
@@ -540,7 +610,6 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         index = vault.read_file("BRAIN.md")[:3000]
     except vault.VaultError:
         index = ""
-    past = _related_past(text, chat_id)
     reply_lang = "Respondé en español rioplatense" if lang == "es" else "Answer in English"
     parts = [
         HARNESS.format(reply_lang=reply_lang),
@@ -553,8 +622,6 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
     ]
     if index:
         parts.append("# Índice del vault (BRAIN.md)\n" + index)
-    if past:
-        parts.append("# De chats anteriores (pueden servir de contexto)\n" + "\n".join(past))
     if user_system.strip():
         parts.append("# Instrucciones del usuario para el chat (Ajustes)\nRespetalas en el tono, el formato y el "
                      "enfoque de cada respuesta; no reemplazan las reglas de arriba sobre las tools.\n"
@@ -571,6 +638,10 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         except Exception as e:
             log.warning("comando /%s: %s", command, e)
     parts.append(f"Fecha de hoy: {datetime.now().strftime('%Y-%m-%d')}")
+    if past:
+        block = _past_block(text, chat_id)
+        if block:
+            parts.append(block)
     return "\n\n".join(parts)
 
 
@@ -679,11 +750,12 @@ def _run_tool(name: str, args: dict, valid: set[str]) -> tuple[str, bool]:
 
 # ---------- conversación ----------
 
-def _stream(model: str, messages: list[dict], tools: list[dict] | None, num_ctx: int = 0):
+def _stream(model: str, messages: list[dict], tools: list[dict] | None, num_ctx: int = 0, options: dict | None = None):
     """Llama a /api/chat con stream. Devuelve un iterador de chunks (dicts)."""
-    body = {"model": model, "messages": messages, "stream": True}
-    if num_ctx:
-        body["options"] = {"num_ctx": num_ctx}
+    body = {"model": model, "messages": messages, "stream": True, "keep_alive": KEEP_ALIVE}
+    opts = {**({"num_ctx": num_ctx} if num_ctx else {}), **(options or {})}
+    if opts:
+        body["options"] = opts
     if tools:
         body["tools"] = tools
     try:
@@ -747,23 +819,58 @@ class _TagFilter:
         return rest
 
 
-def _compact(chat_id, title, model, created, history, summary, recent, user_msg, num_ctx, win, system, native,
-             saved_ok, command):
-    """Resume la conversación (con streaming) y la guarda como un mensaje `compact`."""
+def _summarize(model: str, summary: str, recent: list[dict], num_ctx: int, instructions: str = "",
+               stream: bool = True):
+    """Genera eventos (compact_progress, token) y devuelve el resumen. Si la conversación no entra en la
+    ventana, la resume por tramos: cada tramo se resume junto con lo acumulado, y el último se transmite.
+    El resumen anterior (de un /compact previo) siempre entra: antes se cortaba el principio del texto y,
+    con él, el resumen viejo."""
+    budget = max(4000, (num_ctx - 1500) * 3)  # ~3 caracteres por token, dejando lugar al prompt y la respuesta
+    extra = f"\n\nInstrucciones del usuario para este resumen: {instructions.strip()}" if instructions.strip() else ""
+    chunks = _chunks_by_budget(_transcript_parts(recent), max(2000, budget - len(summary) - 600)) or [""]
+    acc = summary
+    for i, chunk in enumerate(chunks):
+        last = i == len(chunks) - 1
+        if not last:
+            yield {"type": "compact_progress", "part": i + 1, "total": len(chunks)}
+        text = (f"(Resumen anterior)\n{acc}\n\n" if acc else "") + chunk
+        sys_ = COMPACT_PROMPT + extra + ("" if last else "\n\n" + COMPACT_PARTIAL)
+        out = ""
+        for c in _stream(model, [{"role": "system", "content": sys_}, {"role": "user", "content": text}], None,
+                         num_ctx, {"temperature": 0.2}):
+            piece = (c.get("message") or {}).get("content") or ""
+            if piece:
+                out += piece
+                if last and stream:
+                    yield {"type": "token", "text": piece}
+        acc = out.strip() or acc
+    return acc
+
+
+def _warm(model: str, messages: list[dict], native: list | None, num_ctx: int) -> None:
+    """Después de compactar, Ollama tiene en caché el pedido del resumen, no el del chat: el mensaje siguiente
+    tenía que volver a procesar todo el system prompt (perfil, memoria, tools), y esa era la demora. Esto lo
+    procesa en segundo plano mientras el usuario lee el resumen (num_predict 1: no genera nada útil)."""
+    def go():
+        try:
+            for _ in _stream(model, messages, native, num_ctx, {"num_predict": 1}):
+                pass
+        except Exception as e:
+            log.info("no se pudo precargar el contexto: %s", e)
+    threading.Thread(target=go, name="chat-warm", daemon=True).start()
+
+
+def _compact(chat_id, title, model, created, history, summary, recent, user_msg, num_ctx, win, next_prompt, native,
+             saved_ok, command, instructions=""):
+    """/compact: resume la conversación (con streaming), la guarda como un mensaje `compact` y precarga el
+    contexto con el que va a seguir el chat. `next_prompt(resumen)` arma el system del próximo pedido."""
     if not recent:
         yield {"type": "error", "code": "nothing_to_compact"}
         yield {"type": "done", "chat_id": chat_id, "title": title, "saved": None}
         return
-    # si la conversación no entra en la ventana, se manda lo más nuevo (~3 caracteres por token de margen)
-    text = _transcript(summary, recent)[-max(4000, num_ctx * 3):]
-    msgs = [{"role": "system", "content": COMPACT_PROMPT}, {"role": "user", "content": text}]
     answer, failed = "", False
     try:
-        for chunk in _stream(model, msgs, None, num_ctx):
-            piece = (chunk.get("message") or {}).get("content") or ""
-            if piece:
-                answer += piece
-                yield {"type": "token", "text": piece}
+        answer = yield from _summarize(model, summary, recent, num_ctx, instructions)
     except ChatError as e:
         failed = True
         yield {"type": "error", "code": e.code, "detail": e.detail}
@@ -771,11 +878,13 @@ def _compact(chat_id, title, model, created, history, summary, recent, user_msg,
         failed = True
         log.exception("compact")
         yield {"type": "error", "code": "other", "detail": str(e)}
-    answer = answer.strip()
-    # lo que va a ocupar el próximo pedido: system + tools + el resumen
-    tokens = (len(system) + len(answer) + (len(json.dumps(native)) if native else 0)) // 4
+    answer = (answer or "").strip()
     if answer and not failed:
+        sys_ = next_prompt(answer)
+        # lo que va a ocupar el próximo pedido: system (con el resumen) + tools
+        tokens = (len(sys_) + (len(json.dumps(native)) if native else 0)) // 4
         yield {"type": "usage", "tokens": tokens, "ctx": num_ctx, "max": win["max"]}
+        _warm(model, [{"role": "system", "content": sys_}], native, num_ctx)
         try:
             if not saved_ok:
                 raise RuntimeError("historial no disponible")
@@ -831,10 +940,14 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
     # lo que ve el modelo: un comando solo ("/organize") se traduce a un pedido en palabras
     to_model = _command_request(cmd, rest) if cmd else text
     try:
-        system = _context(text, chat_id, lang, user_system, command)
+        system = _context(text, chat_id, lang, user_system, command, past=False)
     except Exception as e:
         log.exception("contexto del chat")
         system = f"(no se pudo cargar la memoria del usuario: {e})"
+    try:
+        past = "" if cmd == "compact" else _past_block(text, chat_id)
+    except Exception:
+        past = ""
     win = context_window(model)
     num_ctx = win["ctx"]
 
@@ -848,10 +961,15 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
 
     summary, recent = _split_compact(history)
 
-    def build(mode: str) -> list[dict]:
+    def stable(mode: str, summ: str) -> str:
+        # lo que no cambia entre mensajes va primero (caché de Ollama); los fragmentos de otros chats, al final
         sys_ = system + ("\n\n" + _text_tools_prompt(mcp_tools) if mode == "text" else "")
-        if summary:
-            sys_ += "\n\n# Resumen de la conversación hasta ahora (se compactó con /compact)\n" + summary
+        if summ:
+            sys_ += "\n\n# Resumen de la conversación hasta ahora (se compactó con /compact)\n" + summ
+        return sys_
+
+    def build(mode: str) -> list[dict]:
+        sys_ = stable(mode, summary) + (f"\n\n{past}" if past else "")
         ms = [{"role": "system", "content": sys_}]
         for m in recent[-MAX_HISTORY:]:
             c = m["content"]
@@ -872,10 +990,27 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
 
     if cmd == "compact":
         yield from _compact(chat_id, title, model, created, history, summary, recent, user_msg, num_ctx, win,
-                            system, _native_tools(mcp_tools) if mode == "native" else None, saved_ok, command)
+                            lambda summ: stable(mode, summ), _native_tools(mcp_tools) if mode == "native" else None,
+                            saved_ok, command, rest)
         return
 
     msgs = build(mode)
+    # auto-compact (como Claude): si la conversación ya casi no entra en la ventana, se resume sola antes
+    # de responder, en vez de que Ollama corte el principio sin avisar
+    if (AUTO_COMPACT and saved_ok and len(recent) >= 4
+            and estimate(msgs, _native_tools(mcp_tools) if mode == "native" else None) > AUTO_COMPACT * num_ctx):
+        yield {"type": "notice", "code": "auto_compact"}
+        try:
+            new_summary = yield from _summarize(model, summary, recent, num_ctx, stream=False)
+            pair = [{"role": "user", "content": "/compact", "ts": _now()},
+                    {"role": "assistant", "content": new_summary, "ts": _now(), "compact": True}]
+            _save(chat_id, title, model, created, pair, len(history), {"command": command, "tokens": tokens, "ctx": num_ctx})
+            history = history + pair
+            summary, recent = new_summary, []
+            msgs = build(mode)
+            yield {"type": "compacted", "summary": new_summary}
+        except Exception as e:  # si no se pudo, se sigue como antes (Ollama recorta lo más viejo)
+            log.info("auto-compact: %s", e)
     answer, used, failed = "", [], False
     seen_calls, repeats, out_of_rounds = set(), 0, False
     try:

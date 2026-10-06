@@ -123,6 +123,20 @@
   .body img[data-blocked] { display: none; }
   .body blockquote { margin: 0 0 .75em; padding-left: 12px; border-left: 3px solid var(--line-strong); color: var(--text-2); }
   .body hr { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+  /* vista previa de HTML */
+  .hp { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 0 0 .75em; background: var(--softer); }
+  .hp-bar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .hp-label { font: 700 11px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+  .hp-sp { flex: 1; }
+  .hp-btn, .hp-seg button { font: 12px/1 system-ui, sans-serif; font-family: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--text-2); padding: 5px 9px; cursor: pointer; }
+  .hp-btn { border-radius: 8px; }
+  .hp-seg { display: inline-flex; }
+  .hp-seg button:first-child { border-radius: 8px 0 0 8px; } .hp-seg button:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+  .hp-seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .hp-frame { height: 380px; min-height: 120px; resize: vertical; overflow: hidden; background: #fff; }
+  .hp-frame.svg { height: 240px; }
+  .hp-frame iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+  .hp pre { margin: 0; border: 0; border-radius: 0; }
   .gp-img { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: #fff; display: block; }
   .gp-list { margin: 0; padding-left: 1.1em; font-size: 13.5px; } .gp-list .add { color: #1a7f37; } .gp-list .rm { color: var(--bad); }
   .gp-note { font-size: 13px; color: var(--text-3); }
@@ -309,6 +323,11 @@ const I18N = {
       changed: "Las notas cambiaron después de aplicar: deshacelo desde el historial de cada nota.", gone: "Esta propuesta ya no existe.",
       add: (a, b, l) => `Conectar ${a} → ${b}${l ? ` (${l})` : ""}`, rm: (a, b) => `Desconectar ${a} → ${b}`, img: "Grafo con los cambios marcados" },
     compacted: "Conversación compactada · el modelo sigue desde este resumen", nothingToCompact: "Todavía no hay nada que compactar en este chat.",
+    autoCompact: "La conversación llegó al límite del contexto: brain la compactó sola y el modelo sigue desde el resumen.",
+    compactProgress: (p, t) => `Es larga: resumiendo por partes (${p} de ${t})…`,
+    hp: { preview: "Vista previa", code: "Código", copy: "Copiar", copied: "Copiado ✓", run: "Ejecutar scripts",
+      runTitle: "Este HTML trae JavaScript. Se ejecuta aislado (sin acceso a brain), pero puede cargar recursos de internet.",
+      safe: "Vista previa sin scripts ni recursos de internet", label: "HTML", svg: "SVG" },
   },
   en: {
     chats: "Chats", newTitle: "New chat", search: "Search chats", noChats: "No saved chats yet.",
@@ -322,6 +341,11 @@ const I18N = {
     noHistory: "Chroma is off: the chat works, but it isn't saved to history.",
     notSaved: "Couldn't save to history (is Chroma off?).",
     textTools: "This model doesn't take native tools: they're passed as text, so it can still read and edit the vault.",
+    autoCompact: "The conversation hit the context limit: brain compacted it by itself and the model continues from the summary.",
+    compactProgress: (p, t) => `It's long: summarizing in parts (${p} of ${t})…`,
+    hp: { preview: "Preview", code: "Code", copy: "Copy", copied: "Copied ✓", run: "Run scripts",
+      runTitle: "This HTML has JavaScript. It runs isolated (no access to brain), but it can load resources from the internet.",
+      safe: "Preview without scripts or internet resources", label: "HTML", svg: "SVG" },
     maxRounds: "Stopped after several actions in a row.", delConfirm: "Delete this chat from history?", del: "Delete chat",
     actions: n => n === 1 ? "1 action" : `${n} actions`, args: "Arguments", result: "Result", running: "running…",
     err: { ollama: "Ollama isn't running. Turn it on from the Dashboard.", no_model: "Pick an installed model.", empty: "Write a message.",
@@ -706,7 +730,8 @@ function msgHtml(m, i, open = new Set()) {
   }
   const tools = m.tools || [];
   const trace = tools.length ? `<div class="trace"><div class="trace-h">${esc(T.actions(tools.length))}</div>${tools.map((t, j) => callHtml(t, j, open)).join("")}</div>` : "";
-  const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("");
+  const notes = (m.notes || []).map(n => `<div class="note ${n.err ? "err" : ""}">${esc(n.text)}</div>`).join("")
+    + (m.live && m.progress ? `<div class="note">${esc(m.progress)}</div>` : "");
   const body = m.content || !m.live ? `<div class="body ${m.live ? "cursor" : ""}">${md(m.content)}</div>` : `<div class="body cursor"></div>`;
   if (m.compact) return `<div class="msg assistant compact" data-i="${i}"><div class="compact-h">${esc(T.compacted)}</div>${body}${notes}</div>`;
   return `<div class="msg assistant" data-i="${i}"><div class="who">${ICON.mark}${esc(T.brain)}</div>${trace}${body}${propCards(tools)}${graphCards(tools)}${fcCards(tools)}${notes}</div>`;
@@ -722,7 +747,72 @@ function renderMessages(scroll = true) {
     return;
   }
   col.innerHTML = messages.map((m, i) => msgHtml(m, i)).join("");
+  col.querySelectorAll(".msg.assistant").forEach(htmlPreviews);
   if (scroll) box.scrollTop = box.scrollHeight;
+}
+// ---- vista previa de HTML: un bloque ```html (o ```svg) se muestra renderizado cuando termina la respuesta ----
+// Va en un iframe aislado (sandbox sin allow-same-origin: no puede tocar el chat, las cookies ni la API de brain)
+// con una CSP propia: sin scripts ni nada de internet, así una respuesta no puede filtrar datos en la URL de una
+// imagen o un CSS (la misma regla que el HTML de las respuestas). Si trae JavaScript, el usuario lo puede ejecutar
+// con un click. El toggle de arriba a la derecha vuelve al código.
+const hpState = {};  // "<mensaje>:<bloque>" → {view: "preview"|"code", js: bool}
+const CSP_SAFE = "default-src 'none'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; form-action 'none'";
+const CSP_JS = "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' https:; style-src 'unsafe-inline' https:; img-src data: blob: https:; font-src data: https:; media-src data: blob: https:; connect-src 'none'; form-action 'none'";
+function htmlKind(code) {
+  const lang = (/language-([\w-]+)/.exec(code.className) || [])[1] || "";
+  const head = code.textContent.trimStart().slice(0, 200).toLowerCase();
+  if (/^(html|htm|xhtml)$/.test(lang)) return "html";
+  if (lang === "svg" || ((lang === "xml" || !lang) && head.startsWith("<svg"))) return "svg";
+  if (!lang && (head.startsWith("<!doctype html") || head.startsWith("<html"))) return "html";
+  return "";
+}
+function previewDoc(src, kind, js) {
+  const meta = `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${js ? CSP_JS : CSP_SAFE}">`;
+  const base = `<style>html{color-scheme:light}body{margin:${kind === "svg" ? 0 : "12px"};font-family:system-ui,sans-serif;background:#fff;color:#111}${kind === "svg" ? "body{min-height:100vh;display:grid;place-items:center}svg{max-width:100%;height:auto;display:block}" : ""}</style>`;
+  // la CSP tiene que ir antes que cualquier cosa del documento: se saca el doctype y se pone primero
+  const rest = src.replace(/^\s*<!doctype[^>]*>/i, "");
+  return `<!doctype html>${meta}${base}${rest}`;
+}
+function htmlPreviews(msgEl) {
+  if (!msgEl || msgEl.querySelector(".body.cursor")) return;  // mientras se escribe se ve el código
+  const mi = msgEl.dataset.i;
+  msgEl.querySelectorAll(".body pre > code").forEach((code, bi) => {
+    const kind = htmlKind(code);
+    if (!kind) return;
+    const pre = code.parentElement, src = code.textContent, key = `${mi}:${bi}`;
+    const st = hpState[key] || (hpState[key] = { view: "preview", js: false });
+    const hasJs = kind === "html" && /<script\b|\son[a-z]+\s*=/i.test(src);
+    const box = document.createElement("div");
+    box.className = "hp";
+    box.innerHTML = `<div class="hp-bar"><span class="hp-label">${esc(kind === "svg" ? T.hp.svg : T.hp.label)}</span>
+      ${hasJs && !st.js && st.view === "preview" ? `<button type="button" class="hp-btn" data-hp="run" title="${esc(T.hp.runTitle)}">${esc(T.hp.run)}</button>` : ""}
+      <span class="hp-sp"></span>
+      <button type="button" class="hp-btn" data-hp="copy">${esc(T.hp.copy)}</button>
+      <div class="hp-seg" role="group"><button type="button" data-hp="preview" aria-pressed="${st.view === "preview"}">${esc(T.hp.preview)}</button><button type="button" data-hp="code" aria-pressed="${st.view === "code"}">${esc(T.hp.code)}</button></div></div>`;
+    pre.replaceWith(box);
+    if (st.view === "preview") {
+      const frame = document.createElement("div");
+      frame.className = `hp-frame ${kind}`;
+      const f = document.createElement("iframe");
+      f.setAttribute("sandbox", st.js ? "allow-scripts" : "");
+      f.setAttribute("referrerpolicy", "no-referrer");
+      f.title = st.js ? T.hp.preview : T.hp.safe;
+      f.srcdoc = previewDoc(src, kind, st.js);
+      frame.appendChild(f);
+      box.appendChild(frame);
+    } else box.appendChild(pre);
+    box.querySelectorAll("[data-hp]").forEach(b => b.onclick = () => {
+      const a = b.dataset.hp;
+      if (a === "copy") { navigator.clipboard?.writeText(src).then(() => { b.textContent = T.hp.copied; setTimeout(() => { b.textContent = T.hp.copy; }, 1500); }); return; }
+      if (a === "run") st.js = true; else st.view = a;
+      const i = +mi, el = $("#msgs").querySelector(`.msg[data-i="${i}"]`);
+      if (el && messages[i]) {
+        const open = new Set([...el.querySelectorAll("details.call[open]")].map(d => +d.dataset.call));
+        el.outerHTML = msgHtml(messages[i], i, open);
+        htmlPreviews($("#msgs").querySelector(`.msg[data-i="${i}"]`));
+      }
+    });
+  });
 }
 let raf = 0;
 function updateLive() {
@@ -735,6 +825,8 @@ function updateLive() {
       // conservar las llamadas que el usuario abrió mientras se generaba la respuesta
       const open = new Set([...el.querySelectorAll("details.call[open]")].map(d => +d.dataset.call));
       el.outerHTML = msgHtml(messages[i], i, open);
+      const now = box.querySelector(`.msg[data-i="${i}"]`);
+      if (now) htmlPreviews(now);
     } else renderMessages(false);
     if (atBottom) box.scrollTop = box.scrollHeight;
   });
@@ -745,7 +837,8 @@ async function send() {
   if (!text || busy) return;
   if (text === "/new") { $("#text").value = ""; autosize(); hideCmds(); newChat(); return; }
   const compacting = /^\/compact\b/.test(text);
-  if (compacting && !messages.some(m => m.role === "assistant" && !m.compact)) { hideCmds(); banner(T.nothingToCompact, true); return; }
+  const lastCompact = messages.map(m => !!m.compact).lastIndexOf(true);
+  if (compacting && !messages.slice(lastCompact + 1).some(m => m.role === "assistant" && !m.compact)) { hideCmds(); banner(T.nothingToCompact, true); return; }
   const model = activeModel();
   if (!model) { banner(T.err.no_model, true); return; }
   if (!chatModel || !modelInfo(chatModel)) chatModel = model;
@@ -783,14 +876,21 @@ async function send() {
 function handle(ev, reply) {
   if (ev.type === "start") { current = ev.chat_id; store.set("brain-chat-current", current); if (!chats.some(c => c.id === current)) chats.unshift({ id: current, title: ev.title }); renderList(); renderMessages(false); }
   else if (ev.type === "usage") { usage = { tokens: ev.tokens, ctx: ev.ctx, max: ev.max }; renderCtx(); return; }
-  else if (ev.type === "token") reply.content += ev.text;
+  else if (ev.type === "token") { reply.content += ev.text; reply.progress = ""; }
   else if (ev.type === "rewrite") reply.content = ev.text;
   else if (ev.type === "tool") reply.tools[ev.i ?? reply.tools.length] = { name: ev.name, args: ev.args };
   else if (ev.type === "tool_result") {
     const t = ev.i !== undefined ? reply.tools[ev.i] : [...reply.tools].reverse().find(x => x.name === ev.name && x.ok === undefined);
     if (t) { t.ok = ev.ok; t.result = ev.result ?? ev.preview ?? ""; }
   }
-  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "text_tools" || ev.code === "no_tools" ? T.textTools : T.maxRounds });
+  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "text_tools" || ev.code === "no_tools" ? T.textTools : ev.code === "auto_compact" ? T.autoCompact : T.maxRounds });
+  else if (ev.type === "compact_progress") reply.progress = T.compactProgress(ev.part, ev.total);
+  else if (ev.type === "compacted") {
+    // auto-compact: el resumen va antes del mensaje que se está respondiendo, como un /compact
+    const at = messages.lastIndexOf(reply) - 1;
+    messages.splice(at, 0, { role: "user", content: "/compact" }, { role: "assistant", content: ev.summary, tools: [], compact: true });
+    renderMessages(false); return;
+  }
   else if (ev.type === "error") reply.notes.push({ text: errText(ev), err: true });
   else if (ev.type === "done" && ev.saved === false) reply.notes.push({ text: T.notSaved });
   updateLive();

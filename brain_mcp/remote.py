@@ -33,7 +33,8 @@ CONFIG = DATA / "remote.json"
 BIN = DATA / "bin"
 PORT = int(os.environ.get("BRAIN_REMOTE_PORT", "8770"))
 MCP_PATH = "/mcp"
-DEFAULTS = {"token": "", "enabled": False, "read_only": False, "mode": "quick", "hostname": "", "tunnel_token": ""}
+DEFAULTS = {"token": "", "enabled": False, "read_only": False, "mode": "quick", "hostname": "", "tunnel_token": "",
+            "keep_awake": True}
 CF_RELEASES = "https://github.com/cloudflare/cloudflared/releases"
 CF_API = "https://api.github.com/repos/cloudflare/cloudflared/releases/latest"
 QUICK_URL = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
@@ -106,6 +107,8 @@ def configure(body: dict) -> dict:
     changes = {}
     if "read_only" in body:
         changes["read_only"] = bool(body["read_only"])
+    if "keep_awake" in body:
+        changes["keep_awake"] = bool(body["keep_awake"])
     if "mode" in body:
         if body["mode"] not in ("quick", "named"):
             raise RemoteError("bad_mode")
@@ -134,6 +137,7 @@ def public(base_url: str | None) -> dict:
     tok = cfg["token"] or token()
     return {
         "enabled": cfg["enabled"], "read_only": cfg["read_only"], "mode": cfg["mode"], "hostname": cfg["hostname"],
+        "keep_awake": cfg["keep_awake"],
         "has_tunnel_token": bool(cfg["tunnel_token"]), "port": PORT,
         "base_url": base_url, "url": f"{base_url.rstrip('/')}/{tok}{MCP_PATH}" if base_url else None,
         "token": tok, "local_url": f"http://127.0.0.1:{PORT}/{tok}{MCP_PATH}",

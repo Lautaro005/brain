@@ -26,12 +26,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, backup, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, autobackup, backup, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
 from brain_mcp.graph import build_graph  # noqa: E402
-from brain_mcp.services import SERVICES, stop_all  # noqa: E402
+from brain_mcp.services import KEEP_AWAKE, SERVICES, WATCHDOG, stop_all  # noqa: E402
 
 log = logging.getLogger("dashboard")
 HERE = Path(__file__).resolve().parent / "brain_mcp"
@@ -90,7 +90,7 @@ def _remote_info() -> dict:
         lines = list(SERVICES["tunnel" if t["status"] == "error" else "remote_mcp"].logs)
         err = next((ln for ln in reversed(lines) if any(w in ln for w in ("ERR", "failed", "Error", "error"))), None)
     return {"ok": True, **remote.public(t["link"] if t["status"] == "running" else None), "tunnel": t, "mcp": m,
-            "error": err[-300:] if err else None}
+            "error": err[-300:] if err else None, "awake": KEEP_AWAKE.active(), "awake_method": KEEP_AWAKE.method}
 
 
 def _remote_start() -> None:
@@ -106,26 +106,46 @@ def _remote_start() -> None:
     if not t.ours():
         t.start()
     remote.set_enabled(True)
+    WATCHDOG.start()  # lo mantiene vivo aunque la compu se duerma (services.RemoteWatchdog)
+
+
+def _remote_reconnect() -> None:
+    """Reabre el túnel (y el server MCP si se cayó). Con un túnel con nombre la URL no cambia."""
+    m, t = SERVICES["remote_mcp"], SERVICES["tunnel"]
+    if not m.ours():
+        _remote_start()
+        return
+    t.stop()
+    _remote_start()
 
 
 def _remote_post(action: str, body: dict) -> dict:
-    """/api/remote/start · stop · settings · regenerate · install"""
+    """/api/remote/start · stop · reconnect · settings · regenerate · install"""
     try:
         if action == "start":
             _remote_start()
         elif action == "stop":
+            remote.set_enabled(False)  # primero: así el watchdog no vuelve a prender lo que se está apagando
             SERVICES["tunnel"].stop()
             SERVICES["remote_mcp"].stop()
-            remote.set_enabled(False)
+            KEEP_AWAKE.stop()
+        elif action == "reconnect":
+            _remote_reconnect()
         elif action == "settings":
             before = remote.load()
             after = remote.configure(body)
             t = SERVICES["tunnel"]
+            if before["keep_awake"] != after["keep_awake"]:
+                # prende o apaga KeepAwake ya, sin esperar la próxima vuelta del watchdog
+                KEEP_AWAKE.start() if after["enabled"] and after["keep_awake"] else KEEP_AWAKE.stop()
             if t.ours() and any(before[k] != after[k] for k in ("mode", "hostname", "tunnel_token")):
                 t.stop()
                 t.start()
         elif action == "regenerate":
             remote.regenerate()  # la URL vieja deja de andar en el acto: el server lee el token en cada pedido
+            t = SERVICES["tunnel"]
+            if remote.load()["enabled"] and not (t.ours() and t.healthy() and t.connected() is not False):
+                _remote_reconnect()  # el túnel estaba caído: una URL nueva sin túnel no sirve de nada
         elif action == "install":
             remote.install_cloudflared()
         else:
@@ -195,7 +215,14 @@ def _backup_post(action: str, body: dict) -> dict:
         if action == "rebuild":
             _chunks_cache["at"] = 0.0
             return {"ok": True, **backup.rebuild_indexes()}
+        if action == "auto":  # ajustes del backup automático
+            return {"ok": True, **autobackup.save(body)}
+        if action == "auto_run":  # «Hacer uno ahora» con los ajustes del automático
+            r = autobackup.run_now("manual")
+            return {"ok": True, **r, "status": autobackup.status()}
     except backup.BackupError as e:
+        return {"ok": False, "code": e.code, "detail": e.detail}
+    except autobackup.AutoBackupError as e:
         return {"ok": False, "code": e.code, "detail": e.detail}
     return {"ok": False, "code": "unknown_action"}
 
@@ -391,6 +418,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"agents": st, "manual": agents.manual_snippets(), "mine": clients.listing(st)})
             elif u.path == "/api/backup/list":
                 self._json({"ok": True, "backups": backup.listing()})
+            elif u.path == "/api/backup/auto":
+                self._json({"ok": True, **autobackup.status()})
+            elif u.path == "/api/backup/dirs":  # selector de carpeta del backup automático (solo nombres)
+                try:
+                    self._json({"ok": True, **autobackup.list_dirs(q.get("path", [""])[0])})
+                except autobackup.AutoBackupError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/backup/download":
                 try:
                     p = backup.path_of(q.get("name", [""])[0])
@@ -691,6 +725,8 @@ def main() -> None:
                 log.info("Acceso remoto prendido (túnel de Cloudflare)")
             except Exception as e:
                 log.warning("No se pudo prender el acceso remoto: %s", e)
+
+    autobackup.start_scheduler()  # backup automático (Ajustes → Backup), si está prendido
 
     url = f"http://127.0.0.1:{args.port}"
     log.info("Dashboard en %s  (Ctrl+C apaga todo lo que prendió)", url)
