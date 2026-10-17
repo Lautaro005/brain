@@ -51,9 +51,52 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.03.2 ===================== -->
+  <article class="release" id="v0.03.2">
+    <div class="when"><div class="ver">v0.03.2</div><time class="date" datetime="2026-10-17">2026-10-17</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>A vault with a clear structure, files only you can change, and Obsidian one click away</h2>
+        <p>brain's core files are now yours alone, you can edit any note right from the graph, a new FACT-CHECK.md tells every AI what to do when your brain isn't enough, and the graph shows how everything hangs together.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>Core files only you can change</b>: <code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code> and the base folders (<code>projects/</code>, <code>skills/</code>, <code>memory/</code>, <code>knowledge/</code>) can't be written, moved or deleted by any AI, the chat included. They read them and ask you for changes. In the graph they show a lock that opens the editor.</li>
+          <li><b>Edit any note from the graph</b>: a pencil next to the title opens a floating window with the note's Markdown, a preview tab, <code>Ctrl/⌘ + S</code> to save and a check that nobody changed it while you were editing. Every save is in the version history.</li>
+          <li><b>FACT-CHECK.md</b>: a new core file, next to <code>FORMAT.md</code>, that tells any AI when to leave your brain and search the web, which sources count, how to quote, which verdict to give and how to answer. Its preferences block follows what you set in the Fact check view. Agents are pointed to it, and the chat gets it when it needs it.</li>
+          <li><b>A clear vault structure</b>: <code>BRAIN.md</code> is the root, and <code>FORMAT.md</code>, <code>FACT-CHECK.md</code>, your profile and the base folders come out of it; each project has its folders and files, and files and projects are tied together by the project's tag. <code>FORMAT.md</code> explains it to the AIs, with where each new note goes. The graph shows it, even with empty folders.</li>
+          <li><b>Open in Obsidian</b>: a new sidebar item (you can hide it from Settings) opens your vault in Obsidian with its folders and files. brain adds it to Obsidian's vault list and leaves a small setup so links and graph colors match brain.</li>
+        </ul>
+        <h3>Fixed</h3>
+        <ul>
+          <li><b>Colors when the system theme switches</b> by itself between light and dark: the graph kept the previous theme's colors (black nodes on a dark background). Now the graph, its filters and the color settings follow the change, and the graph also follows the dashboard's theme without reloading.</li>
+          <li><b>Saved pages in the graph</b> show a short title (the page's title without the site name, or the end of the URL) instead of the long URL.</li>
+          <li>Moving the last note out of a base folder no longer deletes the folder.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Un vault con una estructura clara, archivos que solo cambiás vos y Obsidian a un click</h2>
+        <p>Los archivos centrales de brain ahora son solo tuyos, podés editar cualquier nota desde el grafo, un FACT-CHECK.md nuevo le dice a cada IA qué hacer cuando tu brain no alcanza, y el grafo muestra cómo se arma todo.</p>
+        <h3>Nuevo</h3>
+        <ul>
+          <li><b>Archivos centrales que cambiás solo vos</b>: <code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code> y las carpetas base (<code>projects/</code>, <code>skills/</code>, <code>memory/</code>, <code>knowledge/</code>) no los puede escribir, mover ni borrar ninguna IA, ni el chat. Los leen y te piden los cambios. En el grafo muestran un candado que abre el editor.</li>
+          <li><b>Editar cualquier nota desde el grafo</b>: un lápiz al lado del título abre una ventana flotante con el Markdown de la nota, una pestaña de vista previa, <code>Ctrl/⌘ + S</code> para guardar y un aviso si alguien la cambió mientras la editabas. Cada guardado queda en el historial de versiones.</li>
+          <li><b>FACT-CHECK.md</b>: un archivo central nuevo, al lado de <code>FORMAT.md</code>, que le dice a cualquier IA cuándo salir de tu brain a buscar en internet, qué fuentes cuentan, cómo citar, qué veredicto dar y cómo responder. Su bloque de preferencias sigue lo que configurás en la vista Fact check. Los agentes lo tienen señalado y el chat lo recibe cuando lo necesita.</li>
+          <li><b>Una estructura clara del vault</b>: <code>BRAIN.md</code> es la raíz, y de él salen <code>FORMAT.md</code>, <code>FACT-CHECK.md</code>, tu perfil y las carpetas base; cada proyecto tiene sus carpetas y archivos, y los archivos y proyectos se unen por el tag del proyecto. <code>FORMAT.md</code> se lo explica a las IAs, con dónde va cada nota nueva. El grafo lo muestra, aunque las carpetas estén vacías.</li>
+          <li><b>Abrir en Obsidian</b>: un ítem nuevo en el sidebar (lo podés ocultar en Ajustes) abre tu vault en Obsidian con sus carpetas y archivos. brain lo suma a la lista de vaults de Obsidian y deja una configuración mínima para que los links y los colores del grafo coincidan con brain.</li>
+        </ul>
+        <h3>Arreglos</h3>
+        <ul>
+          <li><b>Colores al cambiar solo el tema del sistema</b> entre claro y oscuro: el grafo se quedaba con los colores del tema anterior (nodos negros sobre fondo oscuro). Ahora el grafo, sus filtros y los colores de Ajustes siguen el cambio, y el grafo también sigue el tema del dashboard sin recargarse.</li>
+          <li><b>Las páginas guardadas en el grafo</b> muestran un título corto (el título de la página sin el nombre del sitio, o el final de la URL) en vez de la URL larga.</li>
+          <li>Mover la última nota de una carpeta base ya no borra la carpeta.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.03.1.2 ===================== -->
   <article class="release" id="v0.03.1.2">
-    <div class="when"><div class="ver">v0.03.1.2</div><time class="date" datetime="2026-10-06">2026-10-06</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.03.1.2</div><time class="date" datetime="2026-10-06">2026-10-06</time></div>
     <div>
       <div class="l-en">
         <h2>Automatic backups, a URL that survives sleep, HTML previews and a better /compact</h2>

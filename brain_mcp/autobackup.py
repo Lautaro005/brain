@@ -221,7 +221,9 @@ def signature() -> str:
         last = -1
     files = 0
     try:
-        files = sum(1 for f in vault.VAULT.rglob("*") if f.is_file())
+        # sin las carpetas ocultas (.obsidian/ cambia sola cada vez que se abre Obsidian)
+        files = sum(1 for f in vault.VAULT.rglob("*") if f.is_file()
+                    and not any(x.startswith(".") for x in f.relative_to(vault.VAULT).parts))
     except OSError:
         pass
     mt = []

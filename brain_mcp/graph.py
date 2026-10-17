@@ -2,6 +2,7 @@
 import re
 import unicodedata
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from . import vault
 
@@ -17,9 +18,39 @@ TOP_KINDS = {"projects": "project", "skills": "skill", "knowledge": "source", "m
 PROJECT_KINDS = {"Project": "project", "SubProject": "subproject", "File": "file"}
 
 
+SHORT = 30  # largo máximo de la etiqueta de una fuente en el grafo
+
+
+def short_label(meta: dict, stem: str) -> str:
+    """Etiqueta corta para una fuente (v0.03.2): el título de la página sin el nombre del sitio, o el dominio y la
+    última parte de la URL; nunca el slug largo de la URL. Recortada a ~30 caracteres en una palabra."""
+    title = " ".join(str(meta.get("title") or "").split())
+    if title:
+        for sep in (" | ", " · ", " — ", " – ", " - ", ": "):
+            head = title.split(sep)[0].strip()
+            if sep in title and len(head) >= 8:
+                title = head
+                break
+    else:
+        url = str(meta.get("url") or meta.get("resource") or "")
+        u = urlparse(url)
+        host = u.netloc.lower().removeprefix("www.")
+        seg = next((unquote(x) for x in reversed(u.path.split("/")) if x.strip()), "")
+        seg = re.sub(r"\.(html?|php|aspx?)$", "", seg)
+        seg = " ".join(re.split(r"[-_+]+", seg)).strip()
+        both = f"{host} · {seg}" if host and seg else host or stem
+        title = both if len(both) <= SHORT or not seg else seg  # si no entra, lo que dice la URL vale más que el sitio
+    if len(title) <= SHORT:
+        return title
+    cut = title[:SHORT].rsplit(" ", 1)[0].rstrip(" ·-–—:,")
+    return (cut if len(cut) >= 12 else title[:SHORT - 1]) + "…"
+
+
 def _kind(rel: str, meta: dict | None = None) -> str:
     if rel == "BRAIN.md":
         return "hub"
+    if rel in vault.CORE_FILES:
+        return "core"  # FORMAT.md y FACT-CHECK.md: salen de BRAIN.md y los edita solo el usuario
     if rel == "profile.md":
         return "profile"
     # Project / SubProject / File (v0.03.1.1): por la ubicación en projects/ o el `type` del frontmatter
@@ -46,7 +77,7 @@ def _as_list(v) -> list[str]:
 
 def build_graph() -> dict:
     files = sorted(
-        f for f in VAULT.rglob("*.md") if ".git" not in f.relative_to(VAULT).parts
+        f for f in VAULT.rglob("*.md") if not any(x.startswith(".") for x in f.relative_to(VAULT).parts)
     )
     nodes: dict[str, dict] = {}
     links: set[tuple[str, str, str]] = set()
@@ -56,7 +87,8 @@ def build_graph() -> dict:
     def add_dir(rel_dir: str) -> str:
         nid = f"dir:{rel_dir}"
         if nid not in nodes:
-            nodes[nid] = {"id": nid, "label": rel_dir.split("/")[-1] + "/", "kind": "folder", "path": rel_dir}
+            nodes[nid] = {"id": nid, "label": rel_dir.split("/")[-1] + "/", "kind": "folder", "path": rel_dir,
+                          "core": rel_dir in vault.BASE_DIRS}
             parent = rel_dir.rsplit("/", 1)[0] if "/" in rel_dir else None
             links.add((add_dir(parent) if parent else "BRAIN.md", nid, "folder"))
         return nid
@@ -69,6 +101,11 @@ def build_graph() -> dict:
             meta, body = {}, f.read_text(encoding="utf-8", errors="replace")
         docs[rel] = (meta, body)
         label = str(meta.get("name") or f.stem)
+        kind = _kind(rel, meta)
+        if kind == "core":
+            label = rel
+        elif kind == "source":
+            label = short_label(meta, f.stem)
         if rel == "profile.md":
             label = str(meta.get("display_name") or "profile")
         elif rel.startswith("memory/"):
@@ -76,8 +113,10 @@ def build_graph() -> dict:
         nodes[rel] = {
             "id": rel,
             "label": label,
-            "kind": _kind(rel, meta),
+            "kind": kind,
             "path": rel,
+            "title": str(meta.get("title") or ""),
+            "core": rel in vault.CORE_FILES,
             "description": str(meta.get("description", "")),
             "url": meta.get("url"),
             "words": len(body.split()),
@@ -86,7 +125,16 @@ def build_graph() -> dict:
             by_name.setdefault(key, rel)
 
     if "BRAIN.md" not in nodes:
-        nodes["BRAIN.md"] = {"id": "BRAIN.md", "label": "brain", "kind": "hub", "path": "BRAIN.md"}
+        nodes["BRAIN.md"] = {"id": "BRAIN.md", "label": "brain", "kind": "hub", "path": "BRAIN.md", "core": True}
+
+    # la estructura base siempre se ve (v0.03.2): de BRAIN.md salen FORMAT.md, FACT-CHECK.md, profile.md y las
+    # carpetas base, aunque todavía estén vacías
+    for d in vault.BASE_DIRS:
+        if (VAULT / d).is_dir():
+            add_dir(d)
+    for core in vault.CORE_FILES[1:]:
+        if core in docs:
+            links.add(("BRAIN.md", core, "core"))
 
     for rel in docs:
         if "/" in rel:
@@ -132,13 +180,19 @@ def build_graph() -> dict:
 
     for rel, (meta, body) in docs.items():
         text = body
+        if rel == "BRAIN.md":  # el bloque de brain ya está como enlaces de estructura (core/folder)
+            i, j = text.find(vault.CORE_START), text.find(vault.CORE_END)
+            if i >= 0 and j > i:
+                text = text[:i] + text[j + len(vault.CORE_END):]
         targets = [(m, "link") for m in WIKILINK.findall(text)]
         targets += [(m, "link") for m in MDLINK.findall(text)]
-        if meta.get("managed") != "brain":  # la guía FORMAT.md nombra todas las carpetas: no son menciones reales
+        if meta.get("managed") != "brain" and rel not in vault.CORE_FILES:  # las guías nombran todas las carpetas: no son menciones reales
             targets += [(m, "mention") for m in CODEPATH.findall(text)]
         targets += [(r, "related") for r in _as_list(meta.get("related"))]
         for t, kind in targets:
             dst = resolve(t, rel)
+            if rel == "BRAIN.md" and kind == "mention" and dst and dst.startswith("dir:"):
+                continue  # las carpetas que nombra el índice ya cuelgan de él como estructura
             if dst and dst != rel:
                 links.add((rel, dst, kind))
         for tag in _as_list(meta.get("tags")):
@@ -155,7 +209,7 @@ def build_graph() -> dict:
             links.add((rel, eid, "entity"))
 
     # una sola línea por par de nodos, quedándose con la relación más fuerte
-    rank = {"link": 0, "part": 1, "memory": 1, "related": 2, "entity": 3, "mention": 4, "tag": 5, "folder": 6}
+    rank = {"core": 0, "link": 0, "part": 1, "memory": 1, "related": 2, "entity": 3, "mention": 4, "tag": 5, "folder": 6}
     best: dict[frozenset, tuple[str, str, str]] = {}
     for s, t, k in sorted(links):
         key = frozenset((s, t))

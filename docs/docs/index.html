@@ -238,7 +238,9 @@ ollama pull nomic-embed-text
   <h2>Layout</h2>
   <table>
     <tr><th>Path</th><th>What goes there</th></tr>
-    <tr><td><code>BRAIN.md</code></td><td>A short index agents read first. Not content: just where each thing is.</td></tr>
+    <tr><td><code>BRAIN.md</code></td><td>The root: a short index agents read first. Not content: just where each thing is. brain keeps a block at its top with links to the core files and folders; the rest is yours.</td></tr>
+    <tr><td><code>FORMAT.md</code></td><td>The vault's structure for any AI: what comes out of <code>BRAIN.md</code>, note types, fields, where a new note goes and how to connect it.</td></tr>
+    <tr><td><code>FACT-CHECK.md</code></td><td>What an AI does when the vault isn't enough and it has to search the web (see <a href="#factcheck">Fact check</a>).</td></tr>
     <tr><td><code>profile.md</code></td><td>Your profile (name, headline, about you).</td></tr>
     <tr><td><code>memory/</code></td><td>One file per category ("Work", "Preferences"…), one fact per bullet.</td></tr>
     <tr><td><code>projects/</code></td><td>Notes about your projects.</td></tr>
@@ -289,6 +291,18 @@ Uses the ideas from [pricing that converts](../knowledge/pricing-that-converts.m
   </ul>
   <h2>Frontmatter validation</h2>
   <p>Every write checks the YAML. If an agent writes something that breaks it (usually an unquoted <code>:</code> in a description), brain quotes the value automatically. If it can't be repaired, the write is rejected with a clear error. Use <code>set_frontmatter</code> to change metadata without rewriting the note.</p>
+  <h2>Structure</h2>
+  <pre>BRAIN.md            root (only you edit it)
+├── FORMAT.md       structure and note format (only you)
+├── FACT-CHECK.md   when and how to search outside the vault (only you)
+├── profile.md      who you are
+├── memory/         one file per category
+├── projects/       &lt;project&gt;.md or &lt;project&gt;/index.md, with its files and sub-projects
+├── skills/         reusable instructions
+└── knowledge/sources/   saved pages</pre>
+  <p>Every project has its folders and files, and the project and each of its files carry the project's tag, so they stay connected even if they move. <code>FORMAT.md</code> tells agents where a new note goes (a fact about you → <code>add_memory</code>; a project's file → inside its folder; reusable instructions → <code>skills/</code>; a web page → <code>save_url</code>) and to check whether it already exists first.</p>
+  <h2>Core files</h2>
+  <p><code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code> and the base folders (<code>projects/</code>, <code>skills/</code>, <code>memory/</code>, <code>knowledge/</code>, <code>knowledge/sources/</code>) are yours. No AI can write, move or delete them through the tools (local agents, the chat and remote access alike): they read them and ask you for changes. You edit them from the <a href="#graph">graph</a> (the lock next to the title). They are created on the first start, and an older <code>BRAIN.md</code> gets brain's block added without losing your text. <code>FORMAT.md</code> and <code>FACT-CHECK.md</code> are updated by brain when a new version improves them, until you edit them (they become <code>managed: user</code>).</p>
   <h2>Path safety</h2>
   <p>Tools reject empty and absolute paths, <code>..</code>, hidden files and symlinks that point outside the vault. Agents can't read or write anything else on your disk through brain.</p>
 </div>
@@ -298,7 +312,9 @@ Uses the ideas from [pricing that converts](../knowledge/pricing-that-converts.m
   <h2>Estructura</h2>
   <table>
     <tr><th>Path</th><th>Qué va ahí</th></tr>
-    <tr><td><code>BRAIN.md</code></td><td>Un índice corto que los agentes leen primero. No es contenido: solo dónde está cada cosa.</td></tr>
+    <tr><td><code>BRAIN.md</code></td><td>La raíz: un índice corto que los agentes leen primero. No es contenido: solo dónde está cada cosa. brain mantiene un bloque arriba con los links a los archivos y carpetas centrales; el resto es tuyo.</td></tr>
+    <tr><td><code>FORMAT.md</code></td><td>La estructura del vault para cualquier IA: qué sale de <code>BRAIN.md</code>, tipos de nota, campos, dónde va una nota nueva y cómo conectarla.</td></tr>
+    <tr><td><code>FACT-CHECK.md</code></td><td>Qué hace una IA cuando el vault no alcanza y tiene que buscar en internet (ver <a href="#factcheck">Fact check</a>).</td></tr>
     <tr><td><code>profile.md</code></td><td>Tu perfil (nombre, en una línea, sobre vos).</td></tr>
     <tr><td><code>memory/</code></td><td>Un archivo por categoría ("Trabajo", "Preferencias"…), un hecho por viñeta.</td></tr>
     <tr><td><code>projects/</code></td><td>Notas sobre tus proyectos.</td></tr>
@@ -349,6 +365,18 @@ Usa las ideas de [precios que convierten](../knowledge/precios-que-convierten.md
   </ul>
   <h2>Validación del frontmatter</h2>
   <p>Cada escritura revisa el YAML. Si un agente escribe algo que lo rompe (típicamente un <code>:</code> sin comillas en una description), brain pone el valor entre comillas solo. Si no se puede reparar, la escritura se rechaza con un error claro. Usá <code>set_frontmatter</code> para cambiar metadatos sin reescribir la nota.</p>
+  <h2>Estructura</h2>
+  <pre>BRAIN.md            raíz (lo editás solo vos)
+├── FORMAT.md       estructura y formato de las notas (solo vos)
+├── FACT-CHECK.md   cuándo y cómo buscar afuera del vault (solo vos)
+├── profile.md      quién sos
+├── memory/         un archivo por categoría
+├── projects/       &lt;proyecto&gt;.md o &lt;proyecto&gt;/index.md, con sus archivos y subproyectos
+├── skills/         instrucciones reutilizables
+└── knowledge/sources/   páginas guardadas</pre>
+  <p>Cada proyecto tiene sus carpetas y archivos, y el proyecto y cada uno de sus archivos llevan el tag del proyecto, así siguen unidos aunque se muevan. <code>FORMAT.md</code> les dice a los agentes dónde va una nota nueva (un hecho sobre vos → <code>add_memory</code>; un archivo de un proyecto → dentro de su carpeta; instrucciones reutilizables → <code>skills/</code>; una página web → <code>save_url</code>) y que antes se fijen si ya existe.</p>
+  <h2>Archivos centrales</h2>
+  <p><code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code> y las carpetas base (<code>projects/</code>, <code>skills/</code>, <code>memory/</code>, <code>knowledge/</code>, <code>knowledge/sources/</code>) son tuyos. Ninguna IA los puede escribir, mover ni borrar con las tools (agentes locales, el chat y el acceso remoto): los leen y te piden los cambios. Los editás desde el <a href="#graph">grafo</a> (el candado al lado del título). Se crean en el primer arranque, y a un <code>BRAIN.md</code> viejo se le suma el bloque de brain sin perder tu texto. brain actualiza <code>FORMAT.md</code> y <code>FACT-CHECK.md</code> cuando una versión nueva los mejora, hasta que los edites (pasan a <code>managed: user</code>).</p>
   <h2>Seguridad de paths</h2>
   <p>Las tools rechazan paths vacíos o absolutos, <code>..</code>, archivos ocultos y symlinks que salgan del vault. Los agentes no pueden leer ni escribir nada más de tu disco a través de brain.</p>
 </div>
@@ -509,13 +537,14 @@ entities: [Palermo, Next.js]
   <table>
     <tr><th>Type</th><th>What it is</th></tr>
     <tr><td>Brain</td><td><code>BRAIN.md</code>, the hub</td></tr>
+    <tr><td>brain files</td><td><code>FORMAT.md</code> and <code>FACT-CHECK.md</code>, linked to the hub (<i>structure</i>)</td></tr>
     <tr><td>Profile</td><td><code>profile.md</code>, thick ring, labeled with your name</td></tr>
     <tr><td>Memory</td><td>A memory category (hollow)</td></tr>
     <tr><td>Projects</td><td>A project (solid)</td></tr>
     <tr><td>Sub-projects</td><td>A part of a project (hollow, thick outline), linked to its project</td></tr>
     <tr><td>Files</td><td>Any other note inside a project (small, light), linked to its project or sub-project</td></tr>
     <tr><td>Skills, Notes</td><td>Files in <code>skills/</code> and loose notes</td></tr>
-    <tr><td>Sources</td><td>Saved pages and captures (dashed outline)</td></tr>
+    <tr><td>Sources</td><td>Saved pages and captures (dashed outline), labeled with a short title: the page's title without the site name, or the end of the URL. The side panel shows the full title.</td></tr>
     <tr><td>Folders, Tags</td><td>Folder hierarchy and <code>tags:</code></td></tr>
     <tr><td>Entities</td><td>A person, place, organization or project named in <code>entities</code> (small, dotted ring)</td></tr>
   </table>
@@ -531,6 +560,8 @@ entities: [Palermo, Next.js]
     <li>After applying, <b>Undo</b> puts the notes back (and every change is also in the <a href="#history">history</a>).</li>
     <li>This first version covers <code>related</code> links. Links that come from the text, tags or entities are changed in the note itself.</li>
   </ul>
+  <h2>Editing a note</h2>
+  <p>The <b>pencil</b> (✎) next to a note's title in the side panel opens a floating window with its Markdown, frontmatter included: <i>Edit</i> / <i>Preview</i>, <b>Save</b> (or <code>Ctrl/⌘ + S</code>), <b>Cancel</b> or <code>Esc</code> (it warns you once if there are unsaved changes). If the note changed while you were editing (an agent, the chat or another tab), brain doesn't overwrite it and tells you. Every save goes to the <a href="#history">history</a>. It works for every <code>.md</code> note, not for folders, tags or entities. Core files (<code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code>) show a <b>lock</b> instead of the pencil: AIs can't change them, and this editor is how you do. The structure is always visible: the base folders hang from <code>BRAIN.md</code> even when they're empty.</p>
   <h2>Controls</h2>
   <ul>
     <li>Click a node to see its content and connections in the side panel; <code>[[links]]</code> are clickable.</li>
@@ -546,13 +577,14 @@ entities: [Palermo, Next.js]
   <table>
     <tr><th>Tipo</th><th>Qué es</th></tr>
     <tr><td>Brain</td><td><code>BRAIN.md</code>, el centro</td></tr>
+    <tr><td>Archivos de brain</td><td><code>FORMAT.md</code> y <code>FACT-CHECK.md</code>, unidos al centro (<i>estructura</i>)</td></tr>
     <tr><td>Perfil</td><td><code>profile.md</code>, anillo grueso, con tu nombre</td></tr>
     <tr><td>Memoria</td><td>Una categoría de memoria (hueca)</td></tr>
     <tr><td>Proyectos</td><td>Un proyecto (relleno)</td></tr>
     <tr><td>Subproyectos</td><td>Una parte de un proyecto (hueco, contorno grueso), unida a su proyecto</td></tr>
     <tr><td>Archivos</td><td>Cualquier otra nota dentro de un proyecto (chico, claro), unida a su proyecto o subproyecto</td></tr>
     <tr><td>Skills, Notas</td><td>Archivos de <code>skills/</code> y notas sueltas</td></tr>
-    <tr><td>Fuentes</td><td>Páginas guardadas y capturas (contorno punteado)</td></tr>
+    <tr><td>Fuentes</td><td>Páginas guardadas y capturas (contorno punteado), con un título corto: el título de la página sin el nombre del sitio, o el final de la URL. El panel lateral muestra el título completo.</td></tr>
     <tr><td>Carpetas, Tags</td><td>Jerarquía de carpetas y <code>tags:</code></td></tr>
     <tr><td>Entidades</td><td>Una persona, lugar, organización o proyecto nombrado en <code>entities</code> (chico, anillo de puntos)</td></tr>
   </table>
@@ -568,6 +600,8 @@ entities: [Palermo, Next.js]
     <li>Después de aplicar, <b>Deshacer</b> deja las notas como estaban (y cada cambio queda también en el <a href="#history">historial</a>).</li>
     <li>Esta primera versión cubre las conexiones de <code>related</code>. Las que salen del texto, de tags o de entidades se cambian en la nota.</li>
   </ul>
+  <h2>Editar una nota</h2>
+  <p>El <b>lápiz</b> (✎) al lado del título de una nota en el panel lateral abre una ventana flotante con su Markdown, frontmatter incluido: <i>Editar</i> / <i>Vista previa</i>, <b>Guardar</b> (o <code>Ctrl/⌘ + S</code>), <b>Cancelar</b> o <code>Esc</code> (si hay cambios sin guardar, avisa una vez). Si la nota cambió mientras la editabas (un agente, el chat u otra pestaña), brain no la pisa y te avisa. Cada guardado queda en el <a href="#history">historial</a>. Sirve para cualquier nota <code>.md</code>, no para carpetas, tags ni entidades. Los archivos centrales (<code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code>) muestran un <b>candado</b> en vez del lápiz: las IAs no los pueden cambiar, y este editor es la forma de hacerlo. La estructura se ve siempre: las carpetas base cuelgan de <code>BRAIN.md</code> aunque estén vacías.</p>
   <h2>Controles</h2>
   <ul>
     <li>Click en un nodo para ver su contenido y conexiones en el panel lateral; los <code>[[links]]</code> se pueden clickear.</li>
@@ -626,7 +660,9 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Services</h2>
   <p>Each service has a state: <b>Running</b>, <b>Starting</b>, <b>External</b>, <b>Off</b> or <b>Error</b>. When the dashboard starts it turns on Ollama and Chroma if they're off. If one was already running outside the dashboard (for example the Ollama menu-bar app) it shows as <b>External</b>, its switch is locked and the dashboard never stops it. Ctrl+C stops only what the dashboard started.</p>
   <h2>Sidebar</h2>
-  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language, <b>services</b> (the <b>i</b> button: Chroma, Ollama and the MCP Inspector with their state; it gets a red dot if one fails) and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>).</p>
+  <p>The button next to the logo collapses the sidebar into a narrow rail of icons. At the bottom: theme, language, <b>services</b> (the <b>i</b> button: Chroma, Ollama and the MCP Inspector with their state; it gets a red dot if one fails) and <b>Settings</b> (the gear). Preferences are stored in the browser (<code>localStorage</code>). With the theme on <i>system</i>, the dashboard, the graph and the chat follow your OS when it switches between light and dark.</p>
+  <h2>Open in Obsidian</h2>
+  <p>The last sidebar item opens your vault in <a href="https://obsidian.md">Obsidian</a> with its folders and files. brain adds the vault to Obsidian's vault list (only with Obsidian closed, and keeping a <code>.bak-brain</code> copy of its <code>obsidian.json</code>) and, the first time, leaves a minimal <code>vault/.obsidian/</code> config: links written as standard Markdown (like brain) and the graph colored by folder. If Obsidian isn't installed, it tells you where to download it and which folder to open with <i>Open folder as vault</i>; if it's open and doesn't know the vault yet, it asks you to close it first. Hide the item from <b>Settings → Sidebar</b> like any view. What you change in Obsidian is your edit (the same as editing in the graph).</p>
   <p>Anything that deletes or disconnects asks first in brain's own dialog, and the dropdowns are brain's too (keyboard: arrows, Enter, Esc).</p>
   <h2>Settings</h2>
   <p>A full view (<code>#ajustes</code>) with eight sections:</p>
@@ -659,7 +695,9 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Servicios</h2>
   <p>Cada servicio tiene un estado: <b>Corriendo</b>, <b>Iniciando</b>, <b>Externo</b>, <b>Apagado</b> o <b>Error</b>. Al arrancar, el dashboard prende Ollama y Chroma si están apagados. Si uno ya corría por fuera (por ejemplo la app de Ollama) aparece como <b>Externo</b>, con el switch bloqueado, y el dashboard nunca lo apaga. Ctrl+C apaga solo lo que prendió él.</p>
   <h2>Sidebar</h2>
-  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma, <b>servicios</b> (el botón <b>i</b>: Chroma, Ollama y el Inspector MCP con su estado; lleva un punto rojo si alguno falla) y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>).</p>
+  <p>El botón al lado del logo pliega el sidebar en un riel angosto de íconos. Abajo: tema, idioma, <b>servicios</b> (el botón <b>i</b>: Chroma, Ollama y el Inspector MCP con su estado; lleva un punto rojo si alguno falla) y <b>Ajustes</b> (el engranaje). Las preferencias se guardan en el navegador (<code>localStorage</code>). Con el tema en <i>sistema</i>, el dashboard, el grafo y el chat siguen al sistema cuando cambia entre claro y oscuro.</p>
+  <h2>Abrir en Obsidian</h2>
+  <p>El último ítem del sidebar abre tu vault en <a href="https://obsidian.md">Obsidian</a> con sus carpetas y archivos. brain agrega el vault a la lista de vaults de Obsidian (solo con Obsidian cerrado, y guardando una copia <code>.bak-brain</code> de su <code>obsidian.json</code>) y, la primera vez, deja una configuración mínima en <code>vault/.obsidian/</code>: links en Markdown estándar (como brain) y el grafo con colores por carpeta. Si Obsidian no está instalado, te dice dónde bajarlo y qué carpeta abrir con <i>Open folder as vault</i>; si está abierto y todavía no conoce el vault, te pide cerrarlo primero. Ocultá el ítem desde <b>Ajustes → Sidebar</b> como cualquier vista. Lo que cambiás en Obsidian es una edición tuya (igual que en el grafo).</p>
   <p>Todo lo que borra o desconecta pregunta antes en una ventana propia de brain, y los desplegables también son propios (teclado: flechas, Enter, Esc).</p>
   <h2>Ajustes</h2>
   <p>Una vista completa (<code>#ajustes</code>) con ocho secciones:</p>
@@ -890,6 +928,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <li><b>Verdict by rules,</b> not a percentage: <i>Supported</i>, <i>Likely supported</i>, <i>Mixed</i>, <i>Inconclusive</i>, <i>Likely false</i>, <i>False</i> or <i>Not verifiable</i>. Never "supported" with a single secondary source; conflicting evidence is shown as a conflict, not averaged.</li>
   </ol>
   <p>The report shows each claim, its verdict and why, the sources for and against (type, date, author, quote), what came from brain and what from the web, and the limitations. Actions: copy the report (Markdown), open sources, check again, <b>Save to brain</b> (a separate click; nothing is saved on its own) and <b>Don't use this domain</b>. The last 30 reports are kept in <code>data/factchecks.json</code>.</p>
+  <h2>FACT-CHECK.md</h2>
+  <p>The same method, written for any AI, lives in <code>FACT-CHECK.md</code> at the root of the vault (it hangs from <code>BRAIN.md</code>, next to <code>FORMAT.md</code>): brain first; when to search the web (nothing saved, old, contradictory, or a decision that matters) and never with your personal data in the query; neutral, evidence, counter-evidence and primary-source queries; which sources count and that copies are one line of evidence; a real quote for every claim; the verdict words and their rules; and how to answer without saving anything you didn't ask for. Its <i>Preferences</i> block is rewritten whenever you change them here. Agents are told to read it in the server's instructions, in <code>fact_check</code> and when <code>search_knowledge</code> finds nothing; the chat gets a short reminder in every answer and the whole guide with <code>/factcheck</code> or automatic checking on. Only you can edit it (from the graph).</p>
   <h2>Preferences</h2>
   <p>Set once in the view, applied to every new check (and to the chat). <b>Basic</b>: level (Quick, Standard — recommended —, Thorough, Custom), freshness (by topic, 24 hours, 30 days, a year, no limit or custom dates), require a primary source, search for counter-evidence. <b>Advanced</b>: minimum independent sources and maximum to read, which kinds of claims to check, always checking health, law, finance and safety with extra rigor, countries and languages, foreign sources, how much to trust each source type, search engine, blocked domains, and whether the chat may check facts on its own. <b>Restore recommended values</b> puts the defaults back.</p>
   <h2>Search engine</h2>
@@ -918,6 +958,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <li><b>Veredicto por reglas,</b> no un porcentaje: <i>Respaldada</i>, <i>Probablemente respaldada</i>, <i>Mixta</i>, <i>No concluyente</i>, <i>Probablemente falsa</i>, <i>Falsa</i> o <i>No verificable</i>. Nunca «respaldada» con una sola fuente secundaria; la evidencia en conflicto se muestra como conflicto, no se promedia.</li>
   </ol>
   <p>El informe muestra cada afirmación, su veredicto y por qué, las fuentes a favor y en contra (tipo, fecha, autor, cita), qué vino de brain y qué de internet, y las limitaciones. Acciones: copiar el informe (Markdown), abrir las fuentes, volver a verificar, <b>Guardar en brain</b> (un click aparte; nada se guarda solo) y <b>No usar este dominio</b>. Los últimos 30 informes quedan en <code>data/factchecks.json</code>.</p>
+  <h2>FACT-CHECK.md</h2>
+  <p>El mismo método, escrito para cualquier IA, está en <code>FACT-CHECK.md</code>, en la raíz del vault (cuelga de <code>BRAIN.md</code>, al lado de <code>FORMAT.md</code>): primero brain; cuándo buscar en internet (no hay nada guardado, está viejo, se contradice o es para decidir algo importante) y nunca con tus datos personales en la búsqueda; consultas neutral, de evidencia, de contraevidencia y de fuente primaria; qué fuentes cuentan y que las copias son una sola línea de evidencia; una cita real para cada afirmación; las palabras del veredicto y sus reglas; y cómo responder sin guardar nada que no pediste. Su bloque de <i>Preferencias</i> se reescribe cada vez que las cambiás acá. Los agentes lo tienen señalado en las instrucciones del server, en <code>fact_check</code> y cuando <code>search_knowledge</code> no encuentra nada; el chat recibe un recordatorio corto en cada respuesta y la guía entera con <code>/factcheck</code> o la verificación automática. Lo editás solo vos (desde el grafo).</p>
   <h2>Preferencias</h2>
   <p>Se configuran una vez en la vista y valen para cada verificación nueva (y para el chat). <b>Básico</b>: nivel (Rápida, Estándar —recomendada—, Exhaustiva, Personalizada), actualidad (según el tema, 24 horas, 30 días, un año, sin límite o fechas propias), exigir fuente primaria, buscar evidencia en contra. <b>Avanzado</b>: mínimo de fuentes independientes y máximo a leer, qué tipos de afirmaciones verificar, verificar siempre y con más rigor salud, derecho, finanzas y seguridad, países e idiomas, fuentes de otros países, cuánto confiar en cada tipo de fuente, buscador, dominios bloqueados y si el chat puede verificar solo. <b>Restaurar valores recomendados</b> vuelve a los de fábrica.</p>
   <h2>Buscador</h2>
@@ -1284,6 +1326,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <h2>Agents</h2>
   <ul>
     <li>Tools can't leave the vault (<code>..</code>, absolute paths, hidden files and outbound symlinks are rejected).</li>
+    <li><code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code> and the base folders are read-only for every AI; only you edit them, from the graph.</li>
     <li>Every write is versioned and can be undone.</li>
     <li>Agent configs are never rewritten without a backup, and other entries are never removed.</li>
     <li>Agents can only <i>propose</i> a connection (<code>propose_connection</code>). Nothing runs until you click <i>Add</i> on a card that shows the exact command or URL.</li>
@@ -1320,6 +1363,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <h2>Agentes</h2>
   <ul>
     <li>Las tools no pueden salir del vault (se rechazan <code>..</code>, paths absolutos, archivos ocultos y symlinks hacia afuera).</li>
+    <li><code>BRAIN.md</code>, <code>FORMAT.md</code>, <code>FACT-CHECK.md</code> y las carpetas base son de solo lectura para cualquier IA; los editás solo vos, desde el grafo.</li>
     <li>Cada escritura queda versionada y se puede deshacer.</li>
     <li>Las configs de los agentes nunca se reescriben sin backup, y nunca se borran entradas ajenas.</li>
     <li>Los agentes solo pueden <i>proponer</i> una conexión (<code>propose_connection</code>). No se ejecuta nada hasta que tocás <i>Agregar</i> en una tarjeta que muestra el comando o la URL exactos.</li>

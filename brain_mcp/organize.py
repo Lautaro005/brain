@@ -13,7 +13,7 @@ from .graph import build_graph
 
 SKILL = Path(__file__).resolve().parent / "skills" / "organize.md"
 MANAGED = ("memory/", "knowledge/sources/")  # los escribe brain: no se proponen para mover
-FIXED = {"BRAIN.md", "profile.md"}
+FIXED = {"BRAIN.md", "FORMAT.md", "FACT-CHECK.md", "profile.md"}
 MAX_FILES = 120
 DUP_NAME = 0.85
 

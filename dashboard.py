@@ -26,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, autobackup, backup, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, autobackup, backup, obsidian, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -395,7 +395,14 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(svg.encode())
             elif u.path == "/api/file":
                 meta, content = vault.parse(vault.read_file(q.get("path", [""])[0]))
-                self._json({"meta": meta, "content": content})
+                self._json({"meta": meta, "content": content, "core": vault.is_core(q.get("path", [""])[0])})
+            elif u.path == "/api/vault/raw":  # editor del grafo: el archivo entero, con frontmatter
+                try:
+                    self._json({"ok": True, **vault.raw_file(q.get("path", [""])[0])})
+                except vault.VaultError as e:
+                    self._json({"ok": False, "code": "not_found", "detail": str(e)})
+            elif u.path == "/api/obsidian":
+                self._json({"ok": True, **obsidian.status()})
             elif u.path == "/api/profile":
                 stale = memory.auto_about_enabled() and memory.auto_about_stale()
                 if stale:
@@ -513,6 +520,17 @@ class Handler(BaseHTTPRequestHandler):
                      "score": h["score"], "match": h["match"]} for h in hits]})
             elif u.path == "/api/vault/backfill":
                 self._json({"ok": True, **vault.backfill_metadata()})
+            elif u.path == "/api/vault/save":  # lo que el usuario edita a mano (también BRAIN.md, FORMAT.md, FACT-CHECK.md)
+                try:
+                    self._json({"ok": True, **vault.user_save(str(body.get("path", "")), body.get("content"),
+                                                             str(body.get("sha") or "") or None)})
+                except vault.VaultError as e:
+                    self._json({"ok": False, "code": "stale" if str(e) == "stale" else "invalid", "detail": str(e)})
+            elif u.path == "/api/obsidian/open":
+                try:
+                    self._json({"ok": True, **obsidian.open_vault()})
+                except obsidian.ObsidianError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail, **obsidian.status()})
             elif u.path == "/api/search/reindex":
                 self._json({"ok": True, **mcp_tools.reindex_keyword_core()})
             elif u.path == "/api/reflect":
