@@ -215,7 +215,49 @@ def save_prefs(data: dict) -> dict:
     new["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     with locks.locked(history.DATA / ".factcheck.lock"):
         _write_json(_prefs_path(), new, private=True)
+    try:  # FACT-CHECK.md (vault) lleva un resumen de estas preferencias para las IAs
+        from . import vault
+        vault.sync_factcheck_prefs(new)
+    except Exception as e:
+        log.info("FACT-CHECK.md: %s", e)
     return public(new)
+
+
+_LEVEL_TXT = {"quick": "rápido (1–3 fuentes, sin exigir fuente primaria)", "standard": "estándar (2–6 fuentes, con "
+              "fuente primaria y contraevidencia)", "thorough": "exhaustivo (3–10 fuentes, con fuente primaria y contraevidencia)"}
+_FRESH_TXT = {"topic": "según el tema (noticias 30 días, productos 6 meses, datos 1 año, leyes y finanzas 2 años, "
+              "ciencia y salud 5 años)", "day": "último día", "month": "último mes", "year": "último año",
+              "any": "cualquier fecha", "custom": "rango elegido"}
+_SRC_TXT = {"official": "oficiales", "academic": "académicas", "factchecker": "verificadores", "news": "medios",
+            "reference": "enciclopedias", "social": "redes y foros", "web": "otras webs"}
+_RISK_TXT = {"health": "salud", "law": "derecho", "finance": "finanzas", "safety": "seguridad"}
+_PREF_TXT = {"prefer": "preferir", "corroborate": "usar si las confirma otra", "orient": "solo para orientarse",
+             "lead_only": "solo como pista", "exclude": "excluir"}
+
+
+def prefs_summary(p: dict | None = None) -> str:
+    """Las preferencias en palabras, para FACT-CHECK.md (sin claves ni datos del buscador)."""
+    p = p or prefs()
+    fresh = _FRESH_TXT.get(p["freshness"], p["freshness"])
+    if p["freshness"] == "custom":
+        fresh = f"desde {p.get('fresh_from') or '—'} hasta {p.get('fresh_to') or 'hoy'}"
+    srcs = "; ".join(f"{_SRC_TXT.get(k, k)}: {_PREF_TXT.get(v, v)}" for k, v in (p.get("source_prefs") or {}).items())
+    lines = [
+        f"- Buscar en internet: {'permitido cuando brain no alcanza' if p['enabled'] else '**no** (solo lo que hay en brain)'}.",
+        f"- Verificar solo, sin que lo pida: {'sí, cuando el dato no está en brain' if p['chat_auto'] else 'no; solo cuando el usuario lo pide'}.",
+        f"- Nivel: {_LEVEL_TXT.get(p['level'], p['level'])}. Fuentes: mínimo {p['min_sources']}, máximo {p['max_sources']}; "
+        f"fuente primaria {'obligatoria' if p['require_primary'] else 'si aparece'}; contraevidencia {'sí' if p['counterevidence'] else 'no'}.",
+        f"- Actualidad: {fresh}.",
+        f"- Temas de riesgo con más rigor: {', '.join(_RISK_TXT.get(t, t) for t in p['high_risk_topics']) if p['always_high_risk'] else 'no'}.",
+        f"- Regiones: {', '.join(p['regions']) or 'todas'}; idiomas: {', '.join(p['languages']) or 'todos'}; "
+        f"fuentes de otros países: {'sí' if p['allow_foreign'] else 'no'}{', priorizando las locales' if p['prefer_local'] else ''}.",
+        f"- Tipos de fuente: {srcs}.",
+    ]
+    if p.get("blocked_domains"):
+        lines.append(f"- Dominios bloqueados (no los uses): {', '.join(p['blocked_domains'])}.")
+    if p.get("updated_at"):
+        lines.append(f"- Última actualización: {p['updated_at'][:10]}.")
+    return "\n".join(lines)
 
 
 def block_domain(domain: str) -> dict:

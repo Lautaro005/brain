@@ -630,6 +630,7 @@
     <button class="nav-item" data-view="conocimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="nav.knowledge"></span></button>
     <button class="nav-item" data-view="factcheck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-3z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span data-i18n="nav.factcheck"></span></button>
     <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg><span data-i18n="nav.logs"></span></button>
+    <button class="nav-item nav-action" data-view="obsidian" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 5 7l-1.5 8L9 21.5h6l5.5-6.5L19 7z"/><path d="M12 2.5 9.5 12 9 21.5M12 2.5l2.5 9.5 .5 10M5 7l4.5 5M19 7l-4.5 5"/></svg><span data-i18n="nav.obsidian"></span></button>
     <div class="side-foot">
       <div class="side-tools">
         <button class="icon-btn" id="theme-btn"></button>
@@ -1121,7 +1122,12 @@ Required format:
 };
 const I18N = {
   es: {
-    nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", factcheck: "Fact check", logs: "Logs" },
+    obs: { opening: "Abriendo tu vault en Obsidian…", added: "Lo agregué a la lista de vaults de Obsidian.",
+      missing: p => `No encontré Obsidian en esta compu. Bajalo gratis de obsidian.md, abrilo una vez y volvé a tocar «Abrir en Obsidian». También podés elegir «Open folder as vault» y esta carpeta:\n\n${p}`,
+      download: "Ir a obsidian.md",
+      running: p => `Obsidian está abierto y todavía no conoce este vault: cerralo y volvé a tocar «Abrir en Obsidian» (brain lo agrega a su lista con la app cerrada). O, con Obsidian abierto, elegí «Open folder as vault» y esta carpeta:\n\n${p}`,
+      tryAnyway: "Probar igual", badConfig: "No pude leer la config de Obsidian:" },
+    nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", factcheck: "Fact check", logs: "Logs", obsidian: "Abrir en Obsidian" },
     conn: { proposed: "Propuesta", needsKeys: "pide", propAdd: "Agregar", propDiscard: "Descartar",
       propWarn: "Un agente propuso esta conexión. Se va a ejecutar este comando en tu máquina: agregala solo si confiás en el paquete.",
       needsAuth: "Este servicio pide que inicies sesión para dar acceso a brain.", login: "Iniciar sesión", signedIn: "Sesión iniciada",
@@ -1344,7 +1350,7 @@ const I18N = {
       graphColors: "Colores del grafo",
       graphHint: "Elegí un color para cada tipo de nodo, así se distinguen de un vistazo. Se aplica al instante y queda guardado en este navegador.",
       vivid: "Usar colores distintos", reset: "Volver a blanco y negro", default: "por defecto",
-      kinds: { hub: "Brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", subproject: "Subproyectos", file: "Archivos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
+      kinds: { hub: "Brain", core: "Archivos de brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", subproject: "Subproyectos", file: "Archivos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
       system: "System prompt", systemSub: "cómo querés que te responda el chat",
       systemHint: "Se suma a las instrucciones de brain en cada respuesta del chat: tono, formato, idioma, en qué enfocarse. No cambia lo que pueden hacer las tools. Queda en este navegador.",
       systemPh: "Ej.: Respondeme corto y directo, en viñetas. Tuteame. Si hablo de código, usá Python. Antes de guardar una memoria, preguntame.",
@@ -1446,7 +1452,12 @@ const I18N = {
         busy: "El puerto del MCP por URL está ocupado por otro programa:", other: "Error" } },
   },
   en: {
-    nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", factcheck: "Fact check", logs: "Logs" },
+    obs: { opening: "Opening your vault in Obsidian…", added: "I added it to Obsidian's vault list.",
+      missing: p => `I couldn't find Obsidian on this computer. Get it free at obsidian.md, open it once and click "Open in Obsidian" again. You can also choose "Open folder as vault" and this folder:\n\n${p}`,
+      download: "Go to obsidian.md",
+      running: p => `Obsidian is open and doesn't know this vault yet: close it and click "Open in Obsidian" again (brain adds it to the list while the app is closed). Or, with Obsidian open, choose "Open folder as vault" and this folder:\n\n${p}`,
+      tryAnyway: "Try anyway", badConfig: "I couldn't read Obsidian's settings:" },
+    nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", factcheck: "Fact check", logs: "Logs", obsidian: "Open in Obsidian" },
     conn: { proposed: "Proposed", needsKeys: "needs", propAdd: "Add", propDiscard: "Discard",
       propWarn: "An agent proposed this connection. This command will run on your machine: only add it if you trust the package.",
       needsAuth: "This service asks you to sign in to give brain access.", login: "Sign in", signedIn: "Signed in",
@@ -1669,7 +1680,7 @@ const I18N = {
       graphColors: "Graph colors",
       graphHint: "Pick a color for each node type so they stand apart at a glance. It applies instantly and is saved in this browser.",
       vivid: "Use distinct colors", reset: "Back to black and white", default: "default",
-      kinds: { hub: "Brain", profile: "Profile", memory: "Memory", project: "Projects", subproject: "Sub-projects", file: "Files", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
+      kinds: { hub: "Brain", core: "brain files", profile: "Profile", memory: "Memory", project: "Projects", subproject: "Sub-projects", file: "Files", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
       system: "System prompt", systemSub: "how you want the chat to answer",
       systemHint: "Added to brain's instructions on every chat reply: tone, format, language, what to focus on. It doesn't change what the tools can do. Saved in this browser.",
       systemPh: "E.g.: Keep answers short and direct, in bullet points. If I talk about code, use Python. Ask me before saving a memory.",
@@ -1867,9 +1878,12 @@ $("#collapse-btn").onclick = () => {
 
 // ================= ajustes: colores del grafo =================
 // se guardan en localStorage (mismo origen que el grafo): graph.html los lee y escucha el evento storage
-const GRAPH_KINDS = ["hub", "profile", "memory", "project", "subproject", "file", "skill", "source", "note", "folder", "tag", "entity"];
-const GRAPH_MONO = { hub: "#0a0a0a", profile: "#0a0a0a", memory: "#5e5e5e", project: "#0a0a0a", subproject: "#0a0a0a", file: "#5e5e5e", skill: "#5e5e5e", source: "#5e5e5e", note: "#9a9a95", folder: "#cfcfcc", tag: "#9a9a95", entity: "#0a0a0a" };
-const GRAPH_VIVID = { hub: "#e11d48", profile: "#f59e0b", memory: "#8b5cf6", project: "#2563eb", subproject: "#60a5fa", file: "#94a3b8", skill: "#059669", source: "#0891b2", note: "#64748b", folder: "#a8a29e", tag: "#65a30d", entity: "#db2777" };
+const GRAPH_KINDS = ["hub", "core", "profile", "memory", "project", "subproject", "file", "skill", "source", "note", "folder", "tag", "entity"];
+const GRAPH_MONO = { hub: "#0a0a0a", core: "#5e5e5e", profile: "#0a0a0a", memory: "#5e5e5e", project: "#0a0a0a", subproject: "#0a0a0a", file: "#5e5e5e", skill: "#5e5e5e", source: "#5e5e5e", note: "#9a9a95", folder: "#cfcfcc", tag: "#9a9a95", entity: "#0a0a0a" };
+const GRAPH_MONO_DARK = { hub: "#f2f2f0", core: "#9a9a95", profile: "#f2f2f0", memory: "#9a9a95", project: "#f2f2f0", subproject: "#f2f2f0", file: "#9a9a95", skill: "#9a9a95", source: "#9a9a95", note: "#6b6b67", folder: "#3a3a38", tag: "#6b6b67", entity: "#f2f2f0" };
+const isDark = () => document.documentElement.getAttribute("data-theme") === "dark"
+  || (!document.documentElement.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+const GRAPH_VIVID = { hub: "#e11d48", core: "#be123c", profile: "#f59e0b", memory: "#8b5cf6", project: "#2563eb", subproject: "#60a5fa", file: "#94a3b8", skill: "#059669", source: "#0891b2", note: "#64748b", folder: "#a8a29e", tag: "#65a30d", entity: "#db2777" };
 function graphColors() { try { return JSON.parse(localStorage.getItem("brain-graph-colors") || "{}") || {}; } catch (e) { return {}; } }
 function saveGraphColors(c) {
   try { if (Object.keys(c).length) localStorage.setItem("brain-graph-colors", JSON.stringify(c)); else localStorage.removeItem("brain-graph-colors"); }
@@ -1878,7 +1892,8 @@ function saveGraphColors(c) {
 }
 function renderColorGrid() {
   const c = graphColors();
-  $("#color-grid").innerHTML = GRAPH_KINDS.map(k => `<label class="color-row"><input type="color" data-kind="${k}" value="${c[k] || GRAPH_MONO[k]}">
+  const mono = isDark() ? GRAPH_MONO_DARK : GRAPH_MONO;  // lo que se ve hoy en el grafo con el tema actual
+  $("#color-grid").innerHTML = GRAPH_KINDS.map(k => `<label class="color-row"><input type="color" data-kind="${k}" value="${c[k] || mono[k]}">
     <span>${esc(T.settings.kinds[k])}</span><span class="mono">${c[k] ? esc(c[k]) : esc(T.settings.default)}</span></label>`).join("");
   $("#color-grid").querySelectorAll("input[type=color]").forEach(inp => inp.oninput = () => {
     const cur = graphColors(); cur[inp.dataset.kind] = inp.value; saveGraphColors(cur);
@@ -2261,7 +2276,8 @@ addEventListener("storage", e => { if (e.key === "brain-notify" && view === "aju
 // ================= ajustes: sidebar (orden y visibilidad) =================
 // localStorage "brain-nav" = {order: [vistas], hidden: [vistas]}. Una vista oculta sigue accesible
 // por su #hash; Ajustes no está en la lista (es el engranaje, siempre visible).
-const NAV_DEFAULT = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs"];
+// "obsidian" no es una vista: es una acción (abre el vault en Obsidian), pero se ordena y se oculta como las demás
+const NAV_DEFAULT = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs", "obsidian"];
 function navPrefs() {
   let p = {};
   try { p = JSON.parse(localStorage.getItem("brain-nav") || "{}") || {}; } catch (e) {}
@@ -2304,7 +2320,7 @@ function renderNavOrder() {
   box.querySelectorAll("[data-show]").forEach(cb => cb.onchange = () => {
     const q = navPrefs(), v = cb.dataset.show;
     q.hidden = cb.checked ? q.hidden.filter(x => x !== v) : [...q.hidden, v];
-    if (q.hidden.length >= NAV_DEFAULT.length) { cb.checked = true; return toast(T.settings.lastOne); }
+    if (NAV_DEFAULT.filter(v => VIEWS.includes(v)).every(v => q.hidden.includes(v))) { cb.checked = true; return toast(T.settings.lastOne); }
     saveNav(q);
   });
 }
@@ -2427,7 +2443,7 @@ addEventListener("storage", e => { if (e.key === "brain-update") renderUpdateBad
 $("#theme-btn").onclick = () => {
   theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; applyTheme(theme); renderTools();
   if (stats) renderStats();
-  const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
+  if (view === "ajustes") renderColorGrid();  // el grafo y el chat siguen el tema solos (evento storage)
 };
 $("#lang-btn").onclick = () => setLang(lang === "es" ? "en" : "es");
 function graphSrc() {
@@ -2454,6 +2470,25 @@ function showResult(el, kind, text, spinner = false) {
 }
 const errText = r => T.err[r.code] ? (r.code === "scrape" || r.code === "other" ? `${T.err[r.code]} ${r.detail || ""}`.trim() : T.err[r.code]) : (r.detail || T.err.other);
 
+// ================= abrir el vault en Obsidian (brain_mcp/obsidian.py) =================
+function launchUri(uri) { const a = document.createElement("a"); a.href = uri; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
+async function openObsidian() {
+  let r;
+  try { r = await api("/api/obsidian/open", {}); } catch (e) { return toast(e.message); }
+  if (r.ok) { launchUri(r.uri); return toast(T.obs.opening + (r.added ? ` ${T.obs.added}` : "")); }
+  if (r.code === "not_installed") {
+    if (await ask(T.obs.missing(r.vault_path), { ok: T.obs.download })) window.open(r.download, "_blank", "noopener");
+  } else if (r.code === "running") {
+    if (await ask(T.obs.running(r.vault_path), { ok: T.obs.tryAnyway })) launchUri(r.uri);
+  } else toast(`${T.obs.badConfig} ${r.detail || r.code}`);
+}
+// tema automático: al cambiar el del sistema, lo que se pinta con colores calculados se vuelve a dibujar
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (theme !== "system") return;
+  if (stats) renderStats();
+  if (view === "ajustes") renderColorGrid();
+});
+
 // ================= routing =================
 const VIEWS = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs", "ajustes"];
 let view = "panel";
@@ -2478,7 +2513,7 @@ function go(v) {
   // los SVG se dibujan con el ancho real: si se dibujaron con la pestaña oculta se redibujan
   if (v === "panel" && stats) requestAnimationFrame(renderStats);
 }
-document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => go(b.dataset.view));
+document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => b.dataset.view === "obsidian" ? openObsidian() : go(b.dataset.view));
 window.addEventListener("hashchange", () => go(location.hash.slice(1)));
 
 // ================= servicios =================

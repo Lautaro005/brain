@@ -107,7 +107,13 @@ INSTRUCTIONS = (
     "Para conectar o desconectar notas en el grafo usá propose_graph_change (el usuario ve una imagen y "
     "aprueba); no edites `related` directo. Para verificar un dato, fact_check (busca primero en brain y usa "
     "las preferencias de Fact check del usuario). "
-    "Formato de las notas: leé FORMAT.md. Cada nota lleva type: Project (un proyecto: projects/<nombre>.md o la "
+    "Estructura del vault y formato de las notas: leé FORMAT.md (de BRAIN.md salen FORMAT.md, FACT-CHECK.md, "
+    "profile.md y las carpetas base projects/, skills/, memory/ y knowledge/; cada proyecto tiene sus archivos y "
+    "subcarpetas, y los archivos y proyectos se unen con el tag del proyecto). BRAIN.md, FORMAT.md, FACT-CHECK.md y "
+    "las carpetas base son del usuario: las tools no los pueden escribir, mover ni borrar (si hace falta un cambio, "
+    "pedíselo: los edita desde el grafo). Cuando lo que hay en brain no alcanza y hay que buscar en internet, seguí "
+    "FACT-CHECK.md (read_file 'FACT-CHECK.md'): cuándo salir, qué fuentes cuentan, citas y veredicto. "
+    "Cada nota lleva type: Project (un proyecto: projects/<nombre>.md o la "
     "nota principal de projects/<nombre>/), SubProject (la nota principal de una subcarpeta dentro de un "
     "proyecto), File (cualquier otra nota dentro de un proyecto: documentación, apuntes, entregables), Memory, "
     "Skill, Source, Reference, Profile, Index o Note (nota suelta). brain completa solo type, created y updated."
@@ -166,8 +172,10 @@ def read_file(path: str) -> str:
 
 @mcp.tool()
 def write_file(path: str, content: str) -> str:
-    """Crea o REEMPLAZA ENTERO un archivo del vault. Queda en el historial (file_history)."""
+    """Crea o REEMPLAZA ENTERO un archivo del vault. Queda en el historial (file_history). No puede tocar
+    BRAIN.md, FORMAT.md ni FACT-CHECK.md (los edita el usuario). Antes de crear una nota, leé FORMAT.md."""
     try:
+        vault.agent_guard(path, "escribir")
         return f"OK: escrito {vault.write_file(path, content)}"
     except Exception as e:
         return _err(e)
@@ -177,6 +185,7 @@ def write_file(path: str, content: str) -> str:
 def append_file(path: str, content: str) -> str:
     """Agrega contenido al final de un archivo del vault (lo crea si no existe). Queda en el historial."""
     try:
+        vault.agent_guard(path, "escribir")
         return f"OK: agregado a {vault.append_file(path, content)}"
     except Exception as e:
         return _err(e)
@@ -186,6 +195,7 @@ def append_file(path: str, content: str) -> str:
 def str_replace_file(path: str, old: str, new: str) -> str:
     """Reemplazo puntual: 'old' debe aparecer exactamente una vez en el archivo. Queda en el historial."""
     try:
+        vault.agent_guard(path, "editar")
         return f"OK: editado {vault.str_replace_file(path, old, new)}"
     except Exception as e:
         return _err(e)
@@ -197,6 +207,7 @@ def set_frontmatter(path: str, fields: dict) -> str:
     Ej: set_frontmatter("projects/brain.md", {"description": "App de memoria local"}). null borra el campo.
     Preferila a reescribir el archivo cuando solo cambia un metadato."""
     try:
+        vault.agent_guard(path, "editar")
         return f"OK: frontmatter de {vault.set_frontmatter(path, fields)} actualizado ({', '.join(map(str, fields))})"
     except Exception as e:
         return _err(e)
@@ -206,6 +217,7 @@ def set_frontmatter(path: str, fields: dict) -> str:
 def delete_file(path: str) -> str:
     """Borra un archivo del vault. Recuperable con file_history + restore_file."""
     try:
+        vault.agent_guard(path, "borrar")
         return f"OK: borrado {vault.delete_file(path)}"
     except Exception as e:
         return _err(e)
@@ -214,9 +226,11 @@ def delete_file(path: str) -> str:
 @mcp.tool()
 def move_file(src: str, dst: str) -> str:
     """Mueve o renombra una nota del vault (ej. move_file("idea.md", "projects/idea.md")). Recuperable
-    con file_history + restore_file. No mueve BRAIN.md, profile.md, memory/ ni knowledge/sources/
-    (los maneja brain). Si otras notas la linkean por path, actualizá esos links."""
+    con file_history + restore_file. No mueve BRAIN.md, FORMAT.md, FACT-CHECK.md, profile.md, memory/ ni
+    knowledge/sources/ (los maneja brain), ni carpetas. Si otras notas la linkean por path, actualizá esos links."""
     try:
+        vault.agent_guard(src, "mover")
+        vault.agent_guard(dst, "reemplazar")
         for p in (src, dst):
             q = p.strip().lstrip("./")
             if q in organize.FIXED or q.startswith(organize.MANAGED):
@@ -251,6 +265,7 @@ def restore_file(path: str, version_id: int) -> str:
     """Vuelve un archivo a como quedó en la versión version_id (ver file_history). La restauración
     también queda en el historial, así que se puede deshacer."""
     try:
+        vault.agent_guard(path, "restaurar")
         return f"OK: {vault.restore_version(path, version_id)} restaurado a la versión {version_id}"
     except Exception as e:
         return _err(e)
@@ -346,7 +361,8 @@ async def fact_check(text: str, search_web: bool = True) -> str:
     (respaldada, probablemente respaldada, mixta, no concluyente, probablemente falsa, falsa, no verificable)
     con citas, fechas y limitaciones. No guarda nada en el vault. Tarda: usala cuando el usuario pida
     verificar algo o cuando haga falta comprobar un dato que no está en brain. Usa las preferencias de Fact check
-    del usuario (nivel, actualidad, fuentes, buscador…). search_web=False: solo brain."""
+    del usuario (nivel, actualidad, fuentes, buscador…). search_web=False: solo brain. Las reglas completas (cuándo
+    salir a internet, qué fuentes cuentan, cómo citar y responder) están en FACT-CHECK.md."""
     try:
         from brain_mcp import factcheck
 
@@ -541,7 +557,7 @@ def search_knowledge(query: str, top_k: int = 5) -> list[dict] | str:
         auto = _factcheck_auto()
         if not hits:
             return ("No hay resultados (¿todavía no se guardó ninguna URL con save_url?)." + (f" Nota: {note}" if note else "")
-                    + (" " + FACTCHECK_AUTO if auto else ""))
+                    + " Si hace falta buscar afuera de brain, seguí FACT-CHECK.md." + (" " + FACTCHECK_AUTO if auto else ""))
         extra = [{"note": note}] if note else []
         if auto:
             extra.append({"note": "Si estos resultados no responden la pregunta y es un dato factual: " + FACTCHECK_AUTO})

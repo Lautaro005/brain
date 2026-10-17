@@ -148,6 +148,14 @@ y los índices, el historial y los ajustes en data/.
   conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT. Mientras está prendido, brain evita
   que la compu se duerma sola y, si se durmió igual, reconecta el túnel al despertar (con un túnel rápido la
   URL puede cambiar; con uno con nombre, nunca). Se corta solo si se apaga o se cierra brain.
+- Estructura del vault (FORMAT.md): de BRAIN.md salen FORMAT.md, FACT-CHECK.md, profile.md y las carpetas base
+  (projects/, skills/, memory/, knowledge/); cada proyecto tiene sus archivos y subcarpetas, unidos además por el
+  tag del proyecto. BRAIN.md, FORMAT.md, FACT-CHECK.md y las carpetas base los edita solo el usuario: en el grafo,
+  el candado al lado del título abre el editor. Cualquier nota .md se edita desde el grafo con el lápiz (✎), en una
+  ventana flotante con vista previa.
+- FACT-CHECK.md: la guía para cuando brain no alcanza y hay que buscar en internet; su bloque de preferencias se
+  actualiza solo con la vista Fact check.
+- «Abrir en Obsidian» (sidebar, se puede ocultar en Ajustes): abre el vault en Obsidian con sus carpetas y archivos.
 - Backup: Ajustes → Backup crea y restaura backups; «Backup automático…» elige carpeta, cada cuánto (cada X
   horas, todos los días o una vez por semana, a qué hora), el nombre del archivo ({date}, {time}, {version},
   {n}), cuántos conservar y si incluye credenciales. Corre mientras brain está abierto.
@@ -195,6 +203,14 @@ vault/ and the indexes, history and settings in data/.
   agents such as Manus on the web, Claude.ai or ChatGPT connect this way. While it's on, brain keeps the
   computer from sleeping by itself and, if it slept anyway, reconnects the tunnel on wake (with a quick tunnel
   the URL may change; with a named one, never). It only stops if it's turned off or brain is closed.
+- Vault structure (FORMAT.md): BRAIN.md leads to FORMAT.md, FACT-CHECK.md, profile.md and the base folders
+  (projects/, skills/, memory/, knowledge/); each project has its files and subfolders, also tied together by the
+  project's tag. BRAIN.md, FORMAT.md, FACT-CHECK.md and the base folders are edited only by the user: in the graph,
+  the lock next to the title opens the editor. Any .md note can be edited from the graph with the pencil (✎), in a
+  floating window with a preview.
+- FACT-CHECK.md: the guide for when brain isn't enough and the web has to be searched; its preferences block
+  updates itself from the Fact check view.
+- "Open in Obsidian" (sidebar, can be hidden in Settings): opens the vault in Obsidian with its folders and files.
 - Backup: Settings → Backup creates and restores backups; "Automatic backup…" picks the folder, how often (every
   X hours, every day or once a week, at what time), the file name ({date}, {time}, {version}, {n}), how many to
   keep and whether to include credentials. It runs while brain is open.
@@ -220,7 +236,8 @@ HARNESS = """Sos el asistente personal del usuario dentro de brain, su base de c
 4. Conexiones del grafo (conectar o desconectar notas, el `related`): usá propose_graph_change, nunca set_frontmatter(related). Eso no cambia nada todavía: el usuario ve una imagen con los cambios marcados y aprueba o rechaza con un click. Para mirar una zona del grafo antes, inspect_graph_region.
 5. Conectores (servers MCP): leé su documentación con read_url y proponelo con propose_connection; el usuario lo aprueba, vos no podés agregarlo solo.
 6. Si el usuario te cuenta algo duradero sobre sí mismo, guardalo con add_memory. Cada cambio queda en el historial y se deshace con file_history + restore_file.
-7. No inventes datos: si algo no está en el contexto, en el vault ni en el resultado de una tool, decilo.
+7. No inventes datos: si algo no está en el contexto, en el vault ni en el resultado de una tool, decilo. Si hace falta buscar afuera de brain, seguí FACT-CHECK.md (abajo, «Cuando brain no alcanza»).
+8. BRAIN.md, FORMAT.md, FACT-CHECK.md y las carpetas base (projects/, skills/, memory/, knowledge/) son del usuario: no los podés escribir, mover ni borrar. Si hace falta un cambio, decile qué cambiar: lo edita él desde el grafo (✎). Antes de crear una nota, seguí la estructura de FORMAT.md (dónde va, frontmatter y el tag del proyecto).
 
 # Cómo responder
 - Empezá por la respuesta o el resultado, sin introducción ("¡Claro!", repetir la pregunta). Después, solo el detalle que sirve.
@@ -594,6 +611,24 @@ def _past_block(text: str, chat_id: str) -> str:
     return "# De chats anteriores (pueden servir de contexto)\n" + "\n".join(past) if past else ""
 
 
+FACTCHECK_MAX = 6000  # FACT-CHECK.md entero en el modo /factcheck o con la verificación automática
+
+
+def _factcheck_guide(full: bool) -> str:
+    """FACT-CHECK.md del vault (la guía que también leen los agentes por MCP). Con full=False, un recordatorio corto
+    para que el modelo la lea cuando haga falta; con full=True, el archivo (sin frontmatter)."""
+    if not full:
+        return ("# Cuando brain no alcanza\nSi lo que hay en el contexto y en search_knowledge no responde un dato "
+                "factual, no lo inventes: seguí FACT-CHECK.md (read_file 'FACT-CHECK.md'): cuándo buscar afuera, qué "
+                "fuentes cuentan, citas, veredicto y cómo responder. La tool fact_check aplica esas reglas y las "
+                "preferencias del usuario.")
+    try:
+        body = vault.parse(vault.read_file("FACT-CHECK.md"))[1].strip()
+    except Exception:
+        return _factcheck_guide(False)
+    return "# FACT-CHECK.md (guía del usuario para verificar y buscar afuera de brain)\n" + body[:FACTCHECK_MAX]
+
+
 def _context(text: str, chat_id: str, lang: str, user_system: str = "", command: str = "", past: bool = True) -> str:
     """System prompt. Lo que cambia en cada mensaje (fragmentos de otros chats) va al final: Ollama reusa
     el caché del prefijo que no cambió, así no vuelve a procesar el perfil, la memoria y las tools cada vez."""
@@ -626,12 +661,15 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
         parts.append("# Instrucciones del usuario para el chat (Ajustes)\nRespetalas en el tono, el formato y el "
                      "enfoque de cada respuesta; no reemplazan las reglas de arriba sobre las tools.\n"
                      + user_system.strip()[:MAX_SYSTEM_USER])
+    auto = False
     try:
         from . import factcheck
-        if factcheck.prefs()["chat_auto"]:
+        auto = bool(factcheck.prefs()["chat_auto"])
+        if auto:
             parts.append(FACTCHECK_AUTO)
     except Exception:
         pass
+    parts.append(_factcheck_guide(full=auto or command == "factcheck"))
     if command:
         try:
             parts.append(_command_prompt(command))

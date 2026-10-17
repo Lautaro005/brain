@@ -29,7 +29,7 @@
   .bui-dialog { width: min(420px, 100%); background: var(--surface, var(--bg)); color: var(--text); border: 1px solid var(--line-strong);
     border-radius: var(--bui-radius, 16px); padding: 20px 20px 16px; box-shadow: 0 24px 60px -20px rgba(0,0,0,.45); }
   .bui-dialog h2 { margin: 0 0 6px; font: 800 18px/1.2 "Archivo", sans-serif; letter-spacing: -.01em; }
-  .bui-dialog p { margin: 0; color: var(--text-2); font-size: 14.5px; line-height: 1.5; white-space: pre-line; }
+  .bui-dialog p { margin: 0; color: var(--text-2); font-size: 14.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
   .bui-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
   .bui-actions button { height: 36px; padding: 0 16px; border-radius: var(--bui-btn-radius, 999px); border: 1px solid var(--line-strong);
     background: var(--surface, var(--bg)); color: var(--text); font: 600 13.5px/1 "Archivo", sans-serif; cursor: pointer; }

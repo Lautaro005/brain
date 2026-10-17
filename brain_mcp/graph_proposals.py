@@ -136,6 +136,10 @@ def propose(changes, reason: str = "", origin: str = "agent") -> dict:
         if src.startswith("memory/"):
             errors.append(f"cambio {i}: las conexiones de memory/ las calcula brain solo; no se cambian a mano")
             continue
+        if vault.is_core(src):
+            errors.append(f"cambio {i}: {src} es un archivo central de brain; lo edita solo el usuario. Proponé el "
+                          f"cambio desde la otra nota («{ch.get('target')}» → «{ch.get('source')}»)")
+            continue
         key = (kind, src, dst)
         if key in seen:
             continue
