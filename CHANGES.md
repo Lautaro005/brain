@@ -757,3 +757,7 @@ Pedido del usuario: (1) que la IA no pueda tocar BRAIN.md, las carpetas por defe
 
 **Verificado**
 - `pytest tests/test_v033.py` (validación de URL LM Studio y refs de proveedor).
+
+## 2026-10-18 — CI: servicio lmstudio en test del dashboard
+
+- **`tests/test_dashboard.py`**: el set de servicios en `/api/status` incluye `lmstudio` (v0.03.3); el test seguía esperando solo chroma, ollama, inspector, remote_mcp y tunnel.
