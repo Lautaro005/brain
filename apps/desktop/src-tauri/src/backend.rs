@@ -45,6 +45,63 @@ pub fn find_home() -> Option<PathBuf> {
     candidates.into_iter().find(|d| is_brain(d))
 }
 
+/// Variables the AppImage runtime sets for its own bundled libraries. If the dashboard inherited them,
+/// Python would look for its standard library inside the AppImage (`No module named 'encodings'`) and
+/// every tool it starts (Chroma, Ollama, git) would load the AppImage's libraries.
+const APPIMAGE_VARS: [&str; 22] = [
+    "APPDIR",
+    "APPIMAGE",
+    "ARGV0",
+    "OWD",
+    "APPIMAGE_EXTRACT_AND_RUN",
+    "PYTHONHOME",
+    "PYTHONPATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PERLLIB",
+    "QT_PLUGIN_PATH",
+    "GST_PLUGIN_SYSTEM_PATH",
+    "GST_PLUGIN_SYSTEM_PATH_1_0",
+    "GTK_DATA_PREFIX",
+    "GTK_EXE_PREFIX",
+    "GTK_IM_MODULE_FILE",
+    "GTK_PATH",
+    "GTK_THEME",
+    "GI_TYPELIB_PATH",
+    "GIO_MODULE_DIR",
+    "GSETTINGS_SCHEMA_DIR",
+    "GDK_PIXBUF_MODULE_FILE",
+    "GST_REGISTRY_1_0",
+];
+
+/// `var` without the entries that point inside the AppImage (`None` if nothing is left).
+fn without_appdir(var: &str, appdir: &std::ffi::OsStr) -> Option<std::ffi::OsString> {
+    let value = std::env::var_os(var)?;
+    let kept: Vec<PathBuf> = std::env::split_paths(&value)
+        .filter(|p| !p.starts_with(appdir))
+        .collect();
+    if kept.is_empty() {
+        None
+    } else {
+        std::env::join_paths(kept).ok()
+    }
+}
+
+/// Gives the child the environment the user's shell would have, not the AppImage's.
+fn clean_appimage_env(cmd: &mut Command) {
+    let Some(appdir) = std::env::var_os("APPDIR") else {
+        return;
+    };
+    for v in APPIMAGE_VARS {
+        cmd.env_remove(v);
+    }
+    for v in ["LD_LIBRARY_PATH", "XDG_DATA_DIRS"] {
+        match without_appdir(v, &appdir) {
+            Some(value) => cmd.env(v, value),
+            None => cmd.env_remove(v),
+        };
+    }
+}
+
 /// A GUI app starts with a bare PATH (macOS especially): add where uv, git and ollama usually live.
 fn fixed_path() -> std::ffi::OsString {
     let mut parts: Vec<PathBuf> = Vec::new();
@@ -55,8 +112,10 @@ fn fixed_path() -> std::ffi::OsString {
     for p in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"] {
         parts.push(PathBuf::from(p));
     }
+    let own = std::env::var_os("APPDIR");
+    let from_appimage = |p: &PathBuf| own.as_deref().is_some_and(|d| p.starts_with(d));
     if let Some(cur) = std::env::var_os("PATH") {
-        parts.extend(std::env::split_paths(&cur));
+        parts.extend(std::env::split_paths(&cur).filter(|p| !from_appimage(p)));
     }
     std::env::join_paths(parts).unwrap_or_default()
 }
@@ -142,6 +201,7 @@ impl Backend {
             return Ok(());
         }
         let mut cmd = self.command();
+        clean_appimage_env(&mut cmd);
         cmd.current_dir(&self.home)
             .env("BRAIN_APP", "1")
             .env("PATH", fixed_path())
@@ -264,4 +324,25 @@ fn kill_tree(pid: u32) {
         .args(["/PID", &pid.to_string(), "/T", "/F"])
         .creation_flags(0x0800_0000)
         .status();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn appimage_entries_are_dropped_from_path_like_variables() {
+        std::env::set_var(
+            "BRAIN_TEST_PATHS",
+            "/tmp/.mount_x/usr/lib:/usr/lib:/tmp/.mount_x/usr/bin",
+        );
+        let kept =
+            without_appdir("BRAIN_TEST_PATHS", std::ffi::OsStr::new("/tmp/.mount_x")).unwrap();
+        assert_eq!(kept, std::ffi::OsString::from("/usr/lib"));
+        std::env::set_var("BRAIN_TEST_ONLY", "/tmp/.mount_x/usr/lib");
+        assert!(without_appdir("BRAIN_TEST_ONLY", std::ffi::OsStr::new("/tmp/.mount_x")).is_none());
+        assert!(
+            without_appdir("BRAIN_TEST_MISSING", std::ffi::OsStr::new("/tmp/.mount_x")).is_none()
+        );
+    }
 }
