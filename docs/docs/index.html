@@ -739,6 +739,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>The app checks the vault's history every 5 seconds through the dashboard. When something is created, changed or deleted, whether an agent, the chat or you did it, it shows a system notification and opens a small dark panel at the top center of the screen with the latest changes and four buttons: <b>Dashboard</b>, <b>Graph</b>, <b>Chat</b> and <b>Settings</b>. The panel closes itself after 9 seconds unless the pointer is over it. Choose which changes notify, turn the panel off, or choose whether closing the window keeps brain in the tray in <b>Settings → Notifications</b>; those settings live in <code>data/app_settings.json</code> and travel in backups.</p>
   <h2>Logs</h2>
   <p>While the app runs, <b>Logs</b> has an <b>App</b> tab with its own log (start, tray actions, notifications, errors) and the dashboard's output when the app started it. It's the file <code>~/.brain/data/logs/app.log</code> (rotated at 1 MB).</p>
+  <h2>Moving from the terminal version</h2>
+  <p>In the web dashboard, <b>Settings → Desktop app → Move to the desktop app</b> closes that dashboard (it stops what it started) and opens the app, which starts its own. Your data is the same. If the app isn't installed, the card links to the download.</p>
   <h2>Updating</h2>
   <p><b>Settings → Update and restart</b> updates brain (the dashboard, the vault tools, everything Python) and the app window reloads by itself. The app shell (tray, notifications, notch) changes rarely; to get a new one, run the installer again.</p>
   <h2>Platforms</h2>
@@ -764,6 +766,8 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <p>La app mira el historial del vault cada 5 segundos a través del dashboard. Cuando algo se crea, cambia o se borra, lo haga un agente, el chat o vos, muestra una notificación del sistema y abre un panelcito oscuro arriba al centro de la pantalla con los últimos cambios y cuatro botones: <b>Dashboard</b>, <b>Graph</b>, <b>Chat</b> y <b>Settings</b>. El panel se cierra solo a los 9 segundos si el puntero no está encima. Elegí qué cambios avisan, apagá el panel o decidí si cerrar la ventana deja brain en la bandeja en <b>Ajustes → Notificaciones</b>; esos ajustes viven en <code>data/app_settings.json</code> y van en los backups.</p>
   <h2>Logs</h2>
   <p>Mientras la app corre, <b>Logs</b> tiene una pestaña <b>App</b> con su propio log (arranque, acciones de la bandeja, avisos, errores) y la salida del dashboard cuando lo prendió la app. Es el archivo <code>~/.brain/data/logs/app.log</code> (rota a 1 MB).</p>
+  <h2>Pasar desde la versión de terminal</h2>
+  <p>En el dashboard web, <b>Ajustes → App de escritorio → Pasar a la app de escritorio</b> cierra ese dashboard (apaga lo que prendió) y abre la app, que arranca el suyo. Tus datos son los mismos. Si la app no está instalada, la tarjeta lleva a la descarga.</p>
   <h2>Actualizar</h2>
   <p><b>Ajustes → Actualizar y reiniciar</b> actualiza brain (el dashboard, las tools del vault, todo lo de Python) y la ventana de la app se recarga sola. El shell de la app (bandeja, avisos, notch) cambia poco; para tener uno nuevo, corré el instalador de nuevo.</p>
   <h2>Plataformas</h2>

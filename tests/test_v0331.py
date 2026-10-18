@@ -44,16 +44,16 @@ def test_defaults_and_save_validation():
 
 def test_corrupt_settings_fall_back_to_defaults():
     appmode.SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-    appmode.SETTINGS.write_text("{not json")
+    appmode.SETTINGS.write_text("{not json", encoding="utf-8")
     assert appmode.load()["notch"] is True
-    appmode.SETTINGS.write_text('["lista"]')
+    appmode.SETTINGS.write_text('["lista"]', encoding="utf-8")
     assert appmode.load()["notify"]["on"] is True
 
 
 def test_log_tail_and_service_entry(monkeypatch):
     assert appmode.log_lines() == [] and appmode.service_info() is None  # terminal: sin app, sin pestaña
     appmode.LOG.parent.mkdir(parents=True, exist_ok=True)
-    appmode.LOG.write_text("\n".join(f"línea {i}" for i in range(700)) + "\n")
+    appmode.LOG.write_text("\n".join(f"línea {i}" for i in range(700)) + "\n", encoding="utf-8")
     lines = appmode.log_lines()
     assert len(lines) == 500 and lines[-1] == "línea 699"
     info = appmode.service_info()  # hubo una app antes: la pestaña queda, apagada
@@ -74,7 +74,7 @@ def test_api(dash, monkeypatch):
     assert out["notify"]["on"] is False and out["notch"] is False
     assert _get(dash + "/api/app")["notify"]["on"] is False
     appmode.LOG.parent.mkdir(parents=True, exist_ok=True)
-    appmode.LOG.write_text("2026-10-18 [app] hola\n")
+    appmode.LOG.write_text("2026-10-18 [app] hola\n", encoding="utf-8")
     assert _get(dash + "/api/logs/app")["lines"] == ["2026-10-18 [app] hola"]
 
 
@@ -87,3 +87,21 @@ def test_post_requires_header(dash):
 
 def test_settings_travel_in_backups():
     assert "app_settings.json" in backup.CONFIG_FILES
+
+
+def test_handoff_api(dash, monkeypatch, tmp_path):
+    import dashboard
+
+    assert _get(dash + "/api/app")["installed"] is False
+    assert _post(dash + "/api/app/handoff", {})["code"] == "not_installed"
+    fake = tmp_path / "brain.app"
+    fake.mkdir()
+    monkeypatch.setattr(appmode, "installed_path", lambda: fake)
+    called = []
+    monkeypatch.setattr(appmode, "handoff", lambda port, root: called.append((port, root)))
+    monkeypatch.setattr(dashboard, "_quit_app", lambda: {"ok": True})
+    assert _get(dash + "/api/app")["installed"] is True
+    assert _post(dash + "/api/app/handoff", {}) == {"ok": True}
+    assert called and (called[0][1] / "dashboard.py").exists()  # la raíz de brain, donde está brain.sh
+    monkeypatch.setenv("BRAIN_APP", "1")  # dentro de la app no hay a dónde pasar
+    assert _post(dash + "/api/app/handoff", {})["code"] == "already_app"

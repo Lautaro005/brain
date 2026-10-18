@@ -7,7 +7,10 @@ necesita el shell, que no ve el almacenamiento de la página).
 """
 import json
 import os
+import subprocess
+import sys
 from collections import deque
+from pathlib import Path
 
 from . import history, locks
 
@@ -77,3 +80,50 @@ def service_info() -> dict | None:
     return {"key": "app", "label": "App", "description": "App de escritorio (bandeja, avisos y notch)",
             "group": "app", "port": 0, "status": "running" if active() else "stopped", "managed": active(),
             "uptime": None, "exit_code": None, "link": None}
+
+
+# ---------- pasar de la versión de terminal a la app ----------
+def _home() -> Path:
+    return Path(os.environ.get("HOME") or os.environ.get("USERPROFILE") or "~").expanduser()
+
+
+def installed_path() -> Path | None:
+    """Dónde está la app de escritorio instalada (la deja install.sh / install.ps1), o None."""
+    h = _home()
+    if sys.platform == "darwin":
+        cands = [h / "Applications" / "brain.app", Path("/Applications/brain.app")]
+    elif sys.platform.startswith("win"):
+        local = Path(os.environ.get("LOCALAPPDATA") or h / "AppData" / "Local")
+        cands = [local / "brain" / "brain-app.exe", local / "Programs" / "brain" / "brain-app.exe"]
+    else:
+        cands = [h / ".local" / "opt" / "brain" / "brain.AppImage"]
+    return next((c for c in cands if c.exists()), None)
+
+
+def handoff(port: int, root: Path) -> None:
+    """Deja que el dashboard de terminal se cierre y abre la app cuando el puerto quede libre (la app
+    arranca su propio dashboard: si abriera con el de la terminal todavía vivo, lo usaría y se apagaría
+    con él). Proceso aparte, desligado de este."""
+    code = (
+        "import socket,subprocess,sys,time\n"
+        "port,root=int(sys.argv[1]),sys.argv[2]\n"
+        "def up():\n"
+        "    s=socket.socket(); s.settimeout(0.5)\n"
+        "    try: return s.connect_ex(('127.0.0.1',port))==0\n"
+        "    finally: s.close()\n"
+        "end=time.time()+40\n"
+        "while up() and time.time()<end: time.sleep(0.5)\n"
+        "time.sleep(1)\n"
+        "if sys.platform.startswith('win'):\n"
+        "    cmd=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',root+'\\\\brain.ps1','app']\n"
+        "else:\n"
+        "    cmd=['/bin/bash',root+'/brain.sh','app']\n"
+        "subprocess.Popen(cmd,cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+    )
+    kw: dict = {}
+    if os.name == "nt":
+        kw["creationflags"] = 0x00000008 | 0x08000000  # DETACHED_PROCESS | CREATE_NO_WINDOW
+    else:
+        kw["start_new_session"] = True
+    subprocess.Popen([sys.executable, "-c", code, str(port), str(root)], stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kw)

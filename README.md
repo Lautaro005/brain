@@ -144,6 +144,8 @@ The app (built with Tauri 2, source in [`apps/desktop`](apps/desktop)) is a shel
 - **Updates**: *Settings → Update and restart* updates brain and the window reloads by itself. The shell changes rarely; run the installer again to get a new one.
 - **Not code-signed yet**: macOS may ask you to confirm the first time (right-click → Open; the installer clears the quarantine flag) and Windows SmartScreen shows *More info → Run anyway*. On GNOME, the tray icon needs the AppIndicator extension.
 
+**Moving from the terminal version to the app:** in the web dashboard, *Settings → Desktop app → Move to the desktop app* closes that dashboard (it stops what it started) and opens the app, which starts its own. Same data. If the app isn't installed, the card links to the download.
+
 Prefer the browser? Everything works without the app: `brain` opens the dashboard and `Ctrl+C` stops what it started.
 
 ## Connecting agents

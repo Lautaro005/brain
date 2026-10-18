@@ -135,7 +135,7 @@ y los índices, el historial y los ajustes en data/.
 - App de escritorio (macOS, Linux y Windows; `brain app`): el mismo dashboard en su ventana, con un ícono en la barra
   de menú o la bandeja que queda al cerrarla (Open, Notifications, Settings, Updates, Notch…, Close). Si hay cambios
   en el vault manda una notificación del sistema y abre un panel oscuro arriba al centro con accesos al panel, el
-  grafo y el chat; Logs suma una pestaña App. Sin la app, `brain` abre el dashboard en el navegador (versión de terminal).
+  grafo y el chat; Logs suma una pestaña App. Desde el dashboard web, Ajustes → App de escritorio pasa a la app. Sin la app, `brain` abre el dashboard en el navegador (versión de terminal).
 - Grafo: para conectar o desconectar notas, propose_graph_change muestra una imagen con los cambios marcados
   (verde = nueva, rojo = se saca) y el usuario aprueba, rechaza o deshace. También se ven en la vista Grafo.
 - Formato de las notas (detalle en FORMAT.md del vault): Markdown con frontmatter compatible con OKF (type, name,
@@ -196,7 +196,7 @@ vault/ and the indexes, history and settings in data/.
 - Desktop app (macOS, Linux and Windows; `brain app`): the same dashboard in its own window, with a menu-bar or
   tray icon that stays when it's closed (Open, Notifications, Settings, Updates, Notch…, Close). Vault changes show
   a system notification and open a dark panel at the top center with shortcuts to the dashboard, graph and chat;
-  Logs gets an App tab. Without the app, `brain` opens the dashboard in the browser (terminal version).
+  Logs gets an App tab. From the web dashboard, Settings → Desktop app moves to the app. Without the app, `brain` opens the dashboard in the browser (terminal version).
 - Graph: to link or unlink notes, propose_graph_change shows an image with the changes marked (green = new,
   red = removed) and the user approves, rejects or undoes it. They also show in the Graph view.
 - Note format (details in the vault's FORMAT.md): Markdown with OKF-compatible frontmatter (type, name, title,
