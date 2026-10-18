@@ -332,17 +332,20 @@ mod tests {
 
     #[test]
     fn appimage_entries_are_dropped_from_path_like_variables() {
+        let app = PathBuf::from("appdir_x");
+        let join = |parts: &[PathBuf]| std::env::join_paths(parts).unwrap();
         std::env::set_var(
             "BRAIN_TEST_PATHS",
-            "/tmp/.mount_x/usr/lib:/usr/lib:/tmp/.mount_x/usr/bin",
+            join(&[
+                app.join("usr").join("lib"),
+                PathBuf::from("keep_me"),
+                app.join("usr").join("bin"),
+            ]),
         );
-        let kept =
-            without_appdir("BRAIN_TEST_PATHS", std::ffi::OsStr::new("/tmp/.mount_x")).unwrap();
-        assert_eq!(kept, std::ffi::OsString::from("/usr/lib"));
-        std::env::set_var("BRAIN_TEST_ONLY", "/tmp/.mount_x/usr/lib");
-        assert!(without_appdir("BRAIN_TEST_ONLY", std::ffi::OsStr::new("/tmp/.mount_x")).is_none());
-        assert!(
-            without_appdir("BRAIN_TEST_MISSING", std::ffi::OsStr::new("/tmp/.mount_x")).is_none()
-        );
+        let kept = without_appdir("BRAIN_TEST_PATHS", app.as_os_str()).unwrap();
+        assert_eq!(kept, join(&[PathBuf::from("keep_me")]));
+        std::env::set_var("BRAIN_TEST_ONLY", join(&[app.join("usr")]));
+        assert!(without_appdir("BRAIN_TEST_ONLY", app.as_os_str()).is_none());
+        assert!(without_appdir("BRAIN_TEST_MISSING", app.as_os_str()).is_none());
     }
 }
