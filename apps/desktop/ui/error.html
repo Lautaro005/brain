@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>brain</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+  <h1 id="title">brain could not start</h1>
+  <p id="msg"></p>
+  <div class="cmd" id="cmds">
+    <span id="how">If brain is not installed yet, run this in a terminal:</span>
+    <code>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</code>
+    <code>irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex</code>
+  </div>
+  <p id="logs">Details are in <code>~/.brain/data/logs/app.log</code>.</p>
+  <button id="retry">Try again</button>
+</main>
+<script src="error.js"></script></body></html>

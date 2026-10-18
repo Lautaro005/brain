@@ -51,9 +51,50 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.03.3.1 ===================== -->
+  <article class="release" id="v0.03.3.1">
+    <div class="when"><div class="ver">v0.03.3.1</div><time class="date" datetime="2026-10-18">2026-10-18</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>brain is now an app too: menu bar, tray, notifications and notch that actually show up</h2>
+        <p>The v0.03.3 menu-bar icon and notch alert never appeared for many installs: they came from a helper process that depended on optional macOS libraries (an update or a plain <code>uv sync</code> removed them) and failed silently. They are now part of a real desktop app, on macOS, Linux and Windows.</p>
+        <h3>New</h3>
+        <ul>
+          <li><b>Desktop app</b> (Tauri, in <code>apps/desktop</code>): brain in its own window, with an icon that stays in the menu bar or tray when you close it. Menu: version, divider, Open, Notifications, Settings, Updates, Notch… and Close (Close stops what the app started). The terminal version (<code>brain</code> + web dashboard) stays exactly as it was.</li>
+          <li><b>System notifications and notch panel</b>: when something changes in the vault the app shows a system notification, turns the icon into <code>●</code> and opens a dark panel at the top center with the latest changes and shortcuts to the dashboard, graph, chat and settings. It works with the window closed.</li>
+          <li><b>Logs → App</b>: the app's own log (start, tray, notifications, errors, plus the dashboard's output) in <code>data/logs/app.log</code>.</li>
+          <li><b>Settings → Notifications</b> in the app: choose which changes notify, turn the notch panel off, and decide whether closing the window keeps brain in the tray. Saved in <code>data/app_settings.json</code> (and in backups).</li>
+          <li><b>One command installs both</b>: <code>install.sh</code> / <code>install.ps1</code> now also download the app from the latest release (<code>--no-app</code> skips it); <code>brain app</code> opens it. Each release attaches a <code>.dmg</code>, an <code>.AppImage</code>, a <code>.deb</code> and a Windows <code>setup.exe</code>.</li>
+          <li><b>Website</b>: the home page detects your system and shows the right download first, with the terminal version below it.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li>The macOS-only helper (<code>menubar_mac.py</code>, <code>uv sync --group macos</code>, <code>BRAIN_NO_MENUBAR</code>) is gone; the desktop app replaces it.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>brain ahora también es una app: barra de menú, bandeja, avisos y notch que sí aparecen</h2>
+        <p>El ícono de la barra de menú y el aviso del notch de la v0.03.3 no aparecían en muchas instalaciones: venían de un proceso auxiliar que dependía de librerías opcionales de macOS (una actualización o un <code>uv sync</code> común las sacaba) y fallaba sin avisar. Ahora son parte de una app de escritorio de verdad, en macOS, Linux y Windows.</p>
+        <h3>Novedades</h3>
+        <ul>
+          <li><b>App de escritorio</b> (Tauri, en <code>apps/desktop</code>): brain en su propia ventana, con un ícono que queda en la barra de menú o la bandeja cuando la cerrás. Menú: versión, divisor, Open, Notifications, Settings, Updates, Notch… y Close (Close apaga lo que prendió la app). La versión de terminal (<code>brain</code> + dashboard web) sigue exactamente igual.</li>
+          <li><b>Notificaciones del sistema y panel del notch</b>: cuando cambia algo en el vault la app muestra una notificación del sistema, convierte el ícono en <code>●</code> y abre un panel oscuro arriba al centro con los últimos cambios y accesos al dashboard, el grafo, el chat y los ajustes. Funciona con la ventana cerrada.</li>
+          <li><b>Logs → App</b>: el log propio de la app (arranque, bandeja, avisos, errores y la salida del dashboard) en <code>data/logs/app.log</code>.</li>
+          <li><b>Ajustes → Notificaciones</b> en la app: elegí qué cambios avisan, apagá el panel del notch y decidí si cerrar la ventana deja brain en la bandeja. Se guarda en <code>data/app_settings.json</code> (y en los backups).</li>
+          <li><b>Un comando instala las dos</b>: <code>install.sh</code> / <code>install.ps1</code> ahora también bajan la app del último release (<code>--no-app</code> la saltea); <code>brain app</code> la abre. Cada release trae un <code>.dmg</code>, un <code>.AppImage</code>, un <code>.deb</code> y un <code>setup.exe</code> de Windows.</li>
+          <li><b>Sitio</b>: la home detecta tu sistema y muestra primero la descarga que corresponde, con la versión de terminal debajo.</li>
+        </ul>
+        <h3>Cambios</h3>
+        <ul>
+          <li>Se fue el auxiliar solo de macOS (<code>menubar_mac.py</code>, <code>uv sync --group macos</code>, <code>BRAIN_NO_MENUBAR</code>); lo reemplaza la app de escritorio.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.03.3 ===================== -->
   <article class="release" id="v0.03.3">
-    <div class="when"><div class="ver">v0.03.3</div><time class="date" datetime="2026-10-18">2026-10-18</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.03.3</div><time class="date" datetime="2026-10-18">2026-10-18</time></div>
     <div>
       <div class="l-en">
         <h2>macOS menu bar, notch alerts and LM Studio in chat</h2>

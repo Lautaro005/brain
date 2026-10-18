@@ -65,6 +65,14 @@ def main() -> int:
     first = re.search(r'<article class="release" id="([^"]+)"', changelog)
     if not first or first.group(1) != version:
         errors.append(f"changelog: la primera versión es {first.group(1) if first else '?'} y VERSION dice {version}")
+    # la app de escritorio lleva la misma versión (v0.03.3.1 -> 0.3.3-1: semver sin ceros a la izquierda)
+    nums = version.lstrip("v").split(".")
+    semver = f"{int(nums[0])}.{int(nums[1])}.{int(nums[2])}" + (f"-{int(nums[3])}" if len(nums) > 3 else "")
+    tauri = ROOT / "apps" / "desktop" / "src-tauri"
+    if f'"version": "{semver}"' not in (tauri / "tauri.conf.json").read_text(encoding="utf-8"):
+        errors.append(f"apps/desktop/src-tauri/tauri.conf.json: la versión debería ser {semver} (VERSION dice {version})")
+    if f'\nversion = "{semver}"' not in (tauri / "Cargo.toml").read_text(encoding="utf-8"):
+        errors.append(f"apps/desktop/src-tauri/Cargo.toml: la versión debería ser {semver} (VERSION dice {version})")
     if f"`{version}`" not in (ROOT / "SECURITY.md").read_text(encoding="utf-8"):
         errors.append(f"SECURITY.md no menciona la versión actual ({version})")
 

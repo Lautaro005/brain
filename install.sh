@@ -5,9 +5,16 @@
 #
 # Deja la app en ~/.brain (tus datos quedan ahí, en vault/ y data/) y el comando `brain` en
 # ~/.local/bin. Correrlo de nuevo actualiza la instalación. No pide nada por teclado.
-# Variables opcionales: BRAIN_HOME (carpeta), BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN,
+# Instala dos cosas: brain (el comando `brain`, dashboard en el navegador) y la app de escritorio
+# (ícono en la barra de menú o la bandeja, avisos del sistema y panel del notch), que se baja del
+# último release de GitHub. Sin la app (o si el release todavía no la trae): `--no-app` o BRAIN_NO_APP=1.
+# Variables opcionales: BRAIN_HOME (carpeta), BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN, BRAIN_NO_APP=1,
 # BRAIN_SKIP_OLLAMA=1 y BRAIN_SKIP_CHROMIUM=1 (para CI o si los instalás vos).
 set -euo pipefail
+
+for arg in "$@"; do
+  case "$arg" in --no-app) BRAIN_NO_APP=1 ;; esac
+done
 
 REPO="${BRAIN_REPO:-https://github.com/Lautaro005/brain}"
 BRANCH="${BRAIN_BRANCH:-main}"
@@ -54,11 +61,7 @@ fi
 cd "$DIR"
 
 say "Instalando dependencias (la primera vez tarda un par de minutos)…"
-if [ "$OS" = Darwin ]; then
-  "$UV" sync --quiet --group macos
-else
-  "$UV" sync --quiet
-fi
+"$UV" sync --quiet
 
 if [ -z "${BRAIN_SKIP_CHROMIUM:-}" ]; then
   say "Instalando Chromium para scrapear sitios con JavaScript…"
@@ -109,6 +112,61 @@ if [ -z "${BRAIN_SKIP_OLLAMA:-}" ]; then
   fi
 fi
 
+# ---------- app de escritorio (barra de menú / bandeja) ----------
+# Best-effort: si algo falla se avisa y brain sigue funcionando en la terminal. Los datos no se tocan.
+APP_REPO="${BRAIN_APP_REPO:-Lautaro005/brain}"
+app_installed=0
+install_app() {
+  local json urls url tmp app_dir app tag
+  if [ "$OS" = Linux ]; then
+    case "$(uname -m)" in x86_64|amd64) ;; *) warn "No hay app de escritorio para $(uname -m) todavía; brain sigue andando en la terminal."; return 0 ;; esac
+  fi
+  json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$APP_REPO/releases/latest")" \
+    || { warn "No pude consultar el último release; sin app de escritorio (volvé a correr este instalador más tarde)."; return 0; }
+  tag="$(printf '%s' "$json" | grep -o '"tag_name": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
+  urls="$(printf '%s' "$json" | grep -o '"browser_download_url": *"[^"]*"' | sed 's/.*"\(https[^"]*\)"$/\1/')"
+  if [ "$OS" = Darwin ]; then
+    url="$(printf '%s\n' "$urls" | grep -i '\.dmg$' | head -n1)"
+  else
+    url="$(printf '%s\n' "$urls" | grep -i 'amd64\.AppImage$' | head -n1)"
+  fi
+  [ -n "$url" ] || { warn "El release $tag todavía no trae la app para $OS; brain sigue andando en la terminal."; return 0; }
+  tmp="$(mktemp -d)"
+  say "Descargando la app de escritorio ($tag)…"
+  if ! curl -fL --progress-bar "$url" -o "$tmp/download"; then warn "No se pudo bajar la app."; rm -rf "$tmp"; return 0; fi
+  if [ "$OS" = Darwin ]; then
+    app_dir="$HOME/Applications"; app="$app_dir/brain.app"
+    mkdir -p "$app_dir" "$tmp/mnt"
+    if hdiutil attach -nobrowse -readonly -quiet -mountpoint "$tmp/mnt" "$tmp/download" >/dev/null 2>&1 && [ -d "$tmp/mnt/brain.app" ]; then
+      rm -rf "$app"; cp -R "$tmp/mnt/brain.app" "$app"
+      xattr -dr com.apple.quarantine "$app" 2>/dev/null || true
+      app_installed=1
+    else
+      warn "No pude abrir el .dmg; instalalo a mano desde https://github.com/$APP_REPO/releases/latest"
+    fi
+    hdiutil detach -quiet "$tmp/mnt" >/dev/null 2>&1 || true
+  else
+    app_dir="$HOME/.local/opt/brain"; app="$app_dir/brain.AppImage"
+    mkdir -p "$app_dir" "$HOME/.local/share/applications" "$HOME/.local/share/icons/hicolor/128x128/apps"
+    mv "$tmp/download" "$app"; chmod +x "$app"
+    cp "$DIR/apps/desktop/src-tauri/icons/128x128.png" "$HOME/.local/share/icons/hicolor/128x128/apps/brain.png" 2>/dev/null || true
+    cat > "$HOME/.local/share/applications/brain.desktop" <<ENTRY
+[Desktop Entry]
+Type=Application
+Name=brain
+Comment=Tu base de conocimiento local para agentes de IA
+Exec=$BIN/brain app
+Icon=brain
+Categories=Office;Utility;
+Terminal=false
+StartupWMClass=brain-app
+ENTRY
+    app_installed=1
+  fi
+  rm -rf "$tmp"
+}
+if [ -z "${BRAIN_NO_APP:-}" ]; then install_app; fi
+
 # ---------- comando `brain` ----------
 mkdir -p "$BIN"
 cat > "$BIN/brain" <<EOF
@@ -136,7 +194,10 @@ if [ "$on_path" = 0 ]; then
 else
   printf "  Escribí:\n\n"
 fi
-printf "    %sbrain%s            abre el dashboard\n" "$bold" "$reset"
+printf "    %sbrain%s            abre el dashboard en el navegador (versión de terminal)\n" "$bold" "$reset"
+if [ "$app_installed" = 1 ]; then
+  printf "    %sbrain app%s        abre la app de escritorio (queda en la barra de menú / bandeja)\n" "$bold" "$reset"
+fi
 printf "    %sbrain update%s     actualiza a la última versión\n" "$bold" "$reset"
 printf "    %sbrain help%s       todos los comandos\n\n" "$bold" "$reset"
 printf "  Primer paso: en el dashboard, andá a %sConectar agente%s y conectá Claude o ChatGPT.\n\n" "$bold" "$reset"

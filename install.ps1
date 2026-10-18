@@ -4,7 +4,10 @@
 #
 # Deja la app en %USERPROFILE%\.brain (tus datos quedan ahí, en vault\ y data\) y el comando `brain`
 # en %USERPROFILE%\.local\bin, que se agrega al PATH del usuario. Correrlo de nuevo actualiza.
-# Variables opcionales: BRAIN_HOME, BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN, BRAIN_SKIP_OLLAMA=1, BRAIN_SKIP_CHROMIUM=1.
+# Instala brain (el comando `brain`, dashboard en el navegador) y la app de escritorio (ícono en la
+# bandeja, avisos del sistema y panel del notch), que se baja del último release de GitHub.
+# Sin la app (o si el release todavía no la trae): BRAIN_NO_APP=1.
+# Variables opcionales: BRAIN_HOME, BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN, BRAIN_NO_APP=1, BRAIN_SKIP_OLLAMA=1, BRAIN_SKIP_CHROMIUM=1.
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
@@ -95,6 +98,27 @@ if (-not $env:BRAIN_SKIP_OLLAMA) {
   }
 }
 
+# ---------- app de escritorio (bandeja) ----------
+# Best-effort: si algo falla se avisa y brain sigue funcionando en la terminal. Los datos no se tocan.
+$appInstalled = $false
+if (-not $env:BRAIN_NO_APP) {
+  try {
+    $appRepo = Or $env:BRAIN_APP_REPO "Lautaro005/brain"
+    $release = Invoke-RestMethod "https://api.github.com/repos/$appRepo/releases/latest" -Headers @{ Accept = "application/vnd.github+json" }
+    $asset = $release.assets | Where-Object { $_.name -like "*x64-setup.exe" } | Select-Object -First 1
+    if (-not $asset) { Warn "El release $($release.tag_name) todavía no trae la app para Windows; brain sigue andando en la terminal." }
+    else {
+      $setup = Join-Path $env:TEMP $asset.name
+      Say "Descargando la app de escritorio ($($release.tag_name))…"
+      Invoke-WebRequest $asset.browser_download_url -OutFile $setup -UseBasicParsing
+      Say "Instalando la app…"
+      Start-Process $setup -ArgumentList "/S" -Wait
+      Remove-Item $setup -ErrorAction SilentlyContinue
+      $appInstalled = $true
+    }
+  } catch { Warn "No se pudo instalar la app de escritorio ($($_.Exception.Message)); brain sigue andando en la terminal." }
+}
+
 # ---------- comando `brain` ----------
 New-Item -ItemType Directory -Force -Path $Bin | Out-Null
 $shim = Join-Path $Bin "brain.cmd"
@@ -113,7 +137,8 @@ Write-Host "OK brain instalado en $Dir" -ForegroundColor Green
 Write-Host ""
 if (-not $onPath) { Write-Host "  Abrí una terminal nueva y escribí:" } else { Write-Host "  Escribí:" }
 Write-Host ""
-Write-Host "    brain            abre el dashboard"
+Write-Host "    brain            abre el dashboard en el navegador (versión de terminal)"
+if ($appInstalled) { Write-Host "    brain app        abre la app de escritorio (queda en la bandeja)" }
 Write-Host "    brain update     actualiza a la última versión"
 Write-Host "    brain help       todos los comandos"
 Write-Host ""

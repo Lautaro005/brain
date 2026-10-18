@@ -1,0 +1,12 @@
+:root { color-scheme: light dark; --bg: #fafaf7; --fg: #0a0a0a; --mute: #6b6b66; --line: #d9d9d3; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0a0a0a; --fg: #f4f4f0; --mute: #9a9a94; --line: #2a2a28; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif; }
+main { min-height: 100%; display: grid; place-content: center; gap: 14px; padding: 32px; text-align: center; justify-items: center; }
+h1 { margin: 0; font-size: 20px; letter-spacing: .02em; }
+p { margin: 0; color: var(--mute); max-width: 46ch; }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; background: color-mix(in srgb, var(--fg) 8%, transparent); padding: 2px 6px; border-radius: 3px; user-select: all; }
+.cmd { display: grid; gap: 6px; text-align: left; }
+.spin { width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--fg); border-radius: 50%; animation: s 0.9s linear infinite; }
+@keyframes s { to { transform: rotate(360deg); } }
+button { font: inherit; padding: 7px 16px; border: 1px solid var(--fg); background: var(--fg); color: var(--bg); border-radius: 3px; cursor: pointer; }

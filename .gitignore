@@ -19,3 +19,7 @@ __pycache__/
 build/
 dist/
 *.spec
+
+# app de escritorio (Tauri)
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/

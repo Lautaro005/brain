@@ -13,7 +13,7 @@ curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | 
 irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex               # Windows (PowerShell)
 ```
 
-Then type `brain` and the dashboard opens.
+brain comes in **two versions that share the same install, vault and data**: the **terminal version** (type `brain` and the web dashboard opens in your browser) and the **desktop app** (`brain app`, or the brain icon in your apps: the same dashboard in its own window, with an icon that stays in the **menu bar or tray** when you close it, plus **system notifications** and a **notch panel** when your vault changes). The installer sets up both.
 
 **Website:** https://lautaro005.github.io/brain/ · **Docs:** https://lautaro005.github.io/brain/docs/ · **Changelog:** https://lautaro005.github.io/brain/changelog/
 
@@ -25,6 +25,7 @@ Then type `brain` and the dashboard opens.
 - [Installation](#installation)
 - [Getting started](#getting-started)
 - [The dashboard](#the-dashboard)
+- [The desktop app](#the-desktop-app)
 - [Connecting agents](#connecting-agents)
 - [How it works](#how-it-works)
 - [Connections](#connections)
@@ -64,7 +65,7 @@ Then type `brain` and the dashboard opens.
 
 Missing git? macOS: `xcode-select --install`. Linux: your distro's package manager (`sudo apt install git`). Windows: the installer tries `winget`, or get it from [git-scm.com](https://git-scm.com/download/win). `brain-setup.exe` isn't code-signed yet, so Windows SmartScreen may ask you to confirm (*More info → Run anyway*).
 
-Every commit to `main` runs the tests and both installers on macOS, Linux and Windows in GitHub Actions, and every release attaches the Windows `.exe` and the Linux installer.
+Every commit to `main` runs the tests, the desktop app's checks and both installers on macOS, Linux and Windows in GitHub Actions, and every release attaches the desktop app (`.dmg` for macOS, `.AppImage` and `.deb` for Linux, `setup.exe` for Windows), the Windows installer `.exe` and the Linux installer.
 
 The installer:
 
@@ -72,7 +73,8 @@ The installer:
 2. Downloads brain into `~/.brain`.
 3. Installs the dependencies and the headless Chromium used to scrape JavaScript sites.
 4. Installs [Ollama](https://ollama.com) if needed (Homebrew on macOS, `winget` on Windows, the official script on Linux when `sudo` doesn't ask for a password; otherwise it tells you the command), and pulls the `nomic-embed-text` embedding model (~270 MB). Without Homebrew, it tells you where to download Ollama. The chat model (`llama3.2`, ~2 GB) is **optional** and not pulled automatically: it powers the Chat tab, source summaries (`abstract`) and entity extraction for the graph. Get it with `ollama pull llama3.2` or the *Download llama3.2* button in the Chat tab; without it those three features are skipped and everything else works. Use another model with `BRAIN_SUMMARY_MODEL=<model>`, or turn summaries and entities off with `BRAIN_SUMMARY_MODEL=off`.
-5. Creates the `brain` command in `~/.local/bin` (`%USERPROFILE%\.local\bin\brain.cmd` on Windows) and adds it to your `PATH` if it wasn't there.
+5. Downloads the [desktop app](#the-desktop-app) from the latest release (`~/Applications/brain.app` on macOS, an AppImage with an app-menu entry on Linux x86_64, the user installer on Windows). If the release doesn't have it yet it says so and brain keeps working in the terminal; skip it on purpose with `--no-app` (`bash -s -- --no-app`) or `BRAIN_NO_APP=1`.
+6. Creates the `brain` command in `~/.local/bin` (`%USERPROFILE%\.local\bin\brain.cmd` on Windows) and adds it to your `PATH` if it wasn't there.
 
 On Linux, Chromium needs some system libraries; if they're missing the installer prints the one command to add them (`sudo uv run playwright install-deps chromium`).
 
@@ -130,7 +132,19 @@ The button next to the logo collapses the sidebar into a narrow rail of icons.
 
 When you close the dashboard, it only stops what it started. If Ollama was already running (for example the menu-bar app), it shows up as **External** and is left alone.
 
-On **macOS**, while `brain` is open you also get a **menu-bar icon** (app name and version, then Open, Notifications, Settings, Updates, Close). Vault changes can trigger a **notch-area alert** that opens a small dark quick panel to the dashboard, graph and chat. Install menu-bar support with `uv sync --group macos` in your brain folder (the installer can do this on macOS). Set `BRAIN_NO_MENUBAR=1` to disable it.
+The **desktop app** adds a menu-bar / tray icon, system notifications and a notch panel: see [The desktop app](#the-desktop-app).
+
+## The desktop app
+
+The app (built with Tauri 2, source in [`apps/desktop`](apps/desktop)) is a shell around the same dashboard. It starts it (`~/.brain/brain.sh`) if none is running, shows it in a window and, when you close the window, **stays in the menu bar (macOS) or tray (Linux, Windows)**. Open it with `brain app` or from your apps menu; or download it from the [latest release](https://github.com/Lautaro005/brain/releases/latest): `.dmg` (macOS, Apple Silicon and Intel), `.AppImage` / `.deb` (Linux x86_64), `setup.exe` (Windows). It needs brain installed (`~/.brain`); without it the window shows the install command.
+
+- **Menu** (click the icon): brain's version, a divider, then **Open**, **Notifications**, **Settings**, **Updates**, **Notch…** and **Close**. *Close* asks the dashboard to shut down (it stops what it started) and quits the app; if you had `brain` open in a terminal, the app uses that dashboard and leaves it running.
+- **System notifications and notch panel**: every 5 seconds the app reads the vault's history through the dashboard (`/api/activity`). When something is created, changed or deleted (by an agent, the chat or you) it shows a system notification, turns the icon into `●` for a few seconds and opens a small dark panel at the top center with the latest changes and shortcuts to the **Dashboard, Graph, Chat and Settings**. It works with the window closed. In **Settings → Notifications** (inside the app) choose which changes notify, turn the panel off, and decide whether closing the window keeps brain in the tray; it's saved in `data/app_settings.json` and travels in backups.
+- **Logs → App**: the app's own log (start, tray actions, notifications, errors, plus the dashboard's output) in `data/logs/app.log`.
+- **Updates**: *Settings → Update and restart* updates brain and the window reloads by itself. The shell changes rarely; run the installer again to get a new one.
+- **Not code-signed yet**: macOS may ask you to confirm the first time (right-click → Open; the installer clears the quarantine flag) and Windows SmartScreen shows *More info → Run anyway*. On GNOME, the tray icon needs the AppIndicator extension.
+
+Prefer the browser? Everything works without the app: `brain` opens the dashboard and `Ctrl+C` stops what it started.
 
 ## Connecting agents
 
@@ -312,9 +326,10 @@ brain                 opens the dashboard and starts Ollama and Chroma
 brain --port 8766     dashboard on another port
 brain --no-autostart  don't start Ollama/Chroma automatically
 brain --no-browser    don't open the browser
+brain app             opens the desktop app (menu bar / tray, notifications, notch)
 brain update          updates to the latest version (Settings → Update and restart does it from the dashboard)
 brain path            shows where it's installed
-brain uninstall       removes the command (keeps your data)
+brain uninstall       removes the command and the desktop app (keeps your data)
 brain help            help
 ```
 
@@ -337,6 +352,9 @@ To start from scratch: close the dashboard and your agents, and delete `~/.brain
 
 | Problem | Fix |
 |---|---|
+| The app window says "brain could not start" | brain isn't installed where the app looks (`~/.brain`, or `BRAIN_HOME`): run the installer. Otherwise open **Logs → App** from the tray menu or read `~/.brain/data/logs/app.log`; `brain` in a terminal shows the same errors. |
+| No icon in the tray on Linux | GNOME needs the *AppIndicator* extension (`gnome-shell-extension-appindicator`); KDE, XFCE and others show it as is. |
+| Notifications don't appear (app) | Allow notifications for *brain* in your system settings (macOS: Settings → Notifications), and check **Settings → Notifications** inside the app. |
 | "Ollama isn't running" | Turn on the Ollama switch in the Dashboard, or open the Ollama app. |
 | Search finds nothing for a name you know is saved | Sources saved before v0.02.5 aren't in the keyword index yet: click *Rebuild keyword index* in the Knowledge tab (or ask an agent to run `reindex_keyword_search`). |
 | Sources have no `abstract` / the graph has no entities | Those need a chat model in Ollama: `ollama pull llama3.2`. Then run **Reflect** in the Profile tab to see which notes are missing entities. |
@@ -354,7 +372,7 @@ To start from scratch: close the dashboard and your agents, and delete `~/.brain
 ## Uninstalling
 
 1. In the dashboard, **Connect agent** → disconnect your agents (or remove the `brain` entry from their config).
-2. `brain uninstall` removes the command.
+2. `brain uninstall` removes the command and the desktop app (on Windows, uninstall the app from Settings → Apps).
 3. `rm -rf ~/.brain` deletes the app **and your data**.
 
 ## Development

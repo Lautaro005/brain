@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent.parent
 COLLECTIONS = ("sources", "chats")
-CONFIG_FILES = ("chat_settings.json", "connections.json", "connections_tools.json", "clients.json")
+CONFIG_FILES = ("chat_settings.json", "connections.json", "connections_tools.json", "clients.json", "app_settings.json")
 SECRET_FILES = {"secrets/.env": lambda: ROOT / ".env",
                 "secrets/oauth.json": lambda: history.DATA / "oauth.json",
                 "secrets/connection_proposals.json": lambda: history.DATA / "connection_proposals.json",
