@@ -26,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, autobackup, backup, obsidian, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, appmode, autobackup, backup, obsidian, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -74,7 +74,7 @@ def _can_self_update() -> bool:
 
 
 def _quit_app() -> dict:
-    """Cierra el dashboard (menú de la barra en macOS → Close)."""
+    """Cierra el dashboard (lo usa la app de escritorio al elegir Close en el menú de la bandeja)."""
     threading.Timer(0.3, lambda: _SERVER["srv"] and _SERVER["srv"].shutdown()).start()
     return {"ok": True}
 
@@ -166,8 +166,9 @@ def _remote_post(action: str, body: dict) -> dict:
 def _status() -> dict:
     services = [s.info() for s in SERVICES.values()]
     st = {s["key"]: s["status"] for s in services}
+    app = appmode.service_info()  # el log propio de la app de escritorio, solo en Logs (no cuenta para la salud)
     return {
-        "services": services,
+        "services": services + ([app] if app else []),
         "health": stats.health(st),
         "chunks": _chunks(st.get("chroma") in ("running", "external")),
     }
@@ -459,7 +460,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._json(dict(_REFRESH))
             elif u.path == "/api/version":
                 self._json({"current": updates.current(), "releases": updates.RELEASES_URL,
-                            "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") or None})
+                            "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") or None,
+                            "app": appmode.active()})
+            elif u.path == "/api/app":  # ajustes que lee la app de escritorio (avisos, notch, cerrar a la bandeja)
+                self._json({"ok": True, **appmode.load(), "active": appmode.active()})
             elif u.path == "/api/lmstudio":
                 from brain_mcp import lmstudio
 
@@ -470,6 +474,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(_remote_info())
             elif u.path == "/api/history":
                 self._json({"changes": history.list_changes(path=q.get("path", [None])[0], limit=int(q.get("limit", ["50"])[0]))})
+            elif u.path == "/api/logs/app":
+                self._json({"lines": appmode.log_lines()})
             elif u.path.startswith("/api/logs/"):
                 s = SERVICES.get(u.path.rsplit("/", 1)[-1])
                 self._json({"lines": list(s.logs)} if s else {"error": "servicio desconocido"}, 200 if s else 404)
@@ -552,6 +558,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(_remote_post(parts[2], body))
             elif u.path == "/api/quit":
                 self._json(_quit_app())
+            elif u.path == "/api/app":
+                self._json({"ok": True, **appmode.save(body), "active": appmode.active()})
             elif u.path == "/api/update/apply":
                 self._json(_update_apply())
             elif u.path == "/api/lmstudio":
@@ -768,13 +776,8 @@ def main() -> None:
 
     autobackup.start_scheduler()  # backup automático (Ajustes → Backup), si está prendido
 
-    try:
-        from brain_mcp.menubar_mac import start as _menubar_start
-
-        _menubar_start(args.port, os.getpid())
-    except Exception as e:
-        log.warning("Barra de menú de macOS no disponible: %s", e)
-
+    if appmode.active():
+        log.info("Dashboard iniciado por la app de escritorio (bandeja, avisos del sistema y notch)")
     url = f"http://127.0.0.1:{args.port}"
     log.info("Dashboard en %s  (Ctrl+C apaga todo lo que prendió)", url)
     if not args.no_browser:

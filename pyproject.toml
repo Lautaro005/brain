@@ -17,4 +17,3 @@ package = false
 
 [dependency-groups]
 dev = ["pytest"]
-macos = ["rumps>=0.4.0", "pyobjc-framework-Cocoa>=10.0"]

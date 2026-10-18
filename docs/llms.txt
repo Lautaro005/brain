@@ -4,13 +4,14 @@
 
 - Install (macOS, Linux): `curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash`
 - Install (Windows, PowerShell): `irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex`, or `brain-setup.exe` from the latest release
-- Then run `brain` to open the local dashboard at http://127.0.0.1:8765 and connect your agents in one click.
+- The installer also adds the desktop app (menu-bar / tray icon, system notifications, notch panel): open it with `brain app`; downloads for macOS, Windows and Linux are in the latest release.
+- Then run `brain` to open the local dashboard at http://127.0.0.1:8765 (terminal version) and connect your agents in one click.
 - Source code: https://github.com/Lautaro005/brain
 
 ## Getting started
 
 - [Introduction](https://lautaro005.github.io/brain/docs/#introduction): brain is a local MCP server that gives Claude, ChatGPT, Cursor and any other AI agent the same memory about you. It runs on your computer (macOS, Linux or Windows); nothing goes to anyone's cloud.
-- [Installation](https://lautaro005.github.io/brain/docs/#installation): One command on macOS, Linux or Windows. You need git; the installer handles the rest.
+- [Installation](https://lautaro005.github.io/brain/docs/#installation): One command on macOS, Linux or Windows. You need git; the installer handles the rest. It installs brain two ways: the brain command (dashboard in your browser, from a terminal) and the desktop app (menu-bar or tray icon, system notifications and notch panel).
 - [Quickstart](https://lautaro005.github.io/brain/docs/#quickstart): From install to an agent that knows you, in four steps.
 
 ## Core concepts
@@ -24,6 +25,7 @@
 ## Using brain
 
 - [Dashboard](https://lautaro005.github.io/brain/docs/#dashboard): The local web app at http://127.0.0.1:8765, opened with brain. English or Spanish, light, dark or system theme.
+- [Desktop app](https://lautaro005.github.io/brain/docs/#desktop): brain comes in two versions that share the same install, vault and data: the terminal version (the brain command opens the web dashboard in your browser) and the desktop app (the same dashboard in its own window, with an icon that stays in the menu bar or tray when you close it).
 - [Chat](https://lautaro005.github.io/brain/docs/#chat): Talk to a local Ollama model that already knows your profile and memory, and can look things up and edit your vault with the same tools your agents have.
 - [Connecting agents](https://lautaro005.github.io/brain/docs/#agents): Each agent keeps its list of MCP servers in its own file. Connect adds brain's entry without touching anything else, after saving a backup (<file>.bak-brain).
 - [Remote access by URL](https://lautaro005.github.io/brain/docs/#remote): Publishes brain's MCP server at an internet URL through a Cloudflare tunnel, so agents in the cloud or on another computer can use your memory. Off by default.

@@ -1,0 +1,13 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0a0a; color: #f4f4f0; font: 13px/1.4 -apple-system, "Segoe UI", system-ui, sans-serif; user-select: none; cursor: default; }
+body { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #2a2a28; }
+header { display: flex; align-items: baseline; gap: 8px; }
+header b { letter-spacing: .04em; }
+header span { color: #9a9a94; font-size: 12px; flex: 1; }
+header button { background: none; border: 0; color: #9a9a94; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+ul { list-style: none; margin: 0; padding: 0; flex: 1; overflow: hidden; display: grid; align-content: start; gap: 3px; }
+li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #d6d6d0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+li.empty { color: #9a9a94; font-family: inherit; }
+nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+nav button { font: inherit; font-size: 12px; padding: 6px 4px; background: #1a1a18; color: #f4f4f0; border: 1px solid #3a3a37; border-radius: 4px; cursor: pointer; }
+nav button:hover { background: #f4f4f0; color: #0a0a0a; }

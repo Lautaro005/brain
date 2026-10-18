@@ -1011,12 +1011,17 @@
             </div></div>
           <div class="card" id="notify-card"><div class="card-h"><h2 data-i18n="settings.notify"></h2><span class="sub" data-i18n="settings.notifySub"></span></div>
             <div class="card-b">
-              <p class="form-hint" style="margin-top:0" data-i18n="settings.notifyHint"></p>
+              <p class="form-hint" style="margin-top:0" id="notify-hint" data-i18n="settings.notifyHint"></p>
               <label class="check"><input type="checkbox" id="notify-on"> <span data-i18n="settings.notifyOn"></span></label>
               <div class="notify-kinds" id="notify-kinds">
                 <label class="check"><input type="checkbox" data-notify="create"> <span data-i18n="settings.notifyCreate"></span></label>
                 <label class="check"><input type="checkbox" data-notify="update"> <span data-i18n="settings.notifyUpdate"></span></label>
                 <label class="check"><input type="checkbox" data-notify="delete"> <span data-i18n="settings.notifyDelete"></span></label>
+              </div>
+              <div class="notify-kinds" id="app-extra" hidden style="margin-left:0;margin-top:14px">
+                <p class="form-hint" style="margin:0" data-i18n="settings.appHint"></p>
+                <label class="check"><input type="checkbox" data-app="notch"> <span data-i18n="settings.appNotch"></span></label>
+                <label class="check"><input type="checkbox" data-app="close_to_tray"> <span data-i18n="settings.appTray"></span></label>
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
                 <button class="btn" type="button" id="notify-test" data-i18n="settings.notifyTest"></button>
@@ -1228,6 +1233,7 @@ const I18N = {
       inspector: ["Inspector MCP", "Probar las tools a mano en el navegador"],
       remote_mcp: ["MCP por URL", "El server MCP por HTTP, solo en esta máquina"],
       tunnel: ["Túnel de Cloudflare", "Publica el MCP por URL en internet"],
+      app: ["App", "App de escritorio: arranque, bandeja, avisos del sistema y notch"],
     },
     st: { running: "Corriendo", external: "Externo", starting: "Iniciando", stopped: "Apagado", error: "Error" },
     port: p => `puerto ${p}`, since: u => `hace ${u}`, externalMeta: "manejado por fuera", exitCode: c => `salió con código ${c}`,
@@ -1436,7 +1442,10 @@ const I18N = {
       notifyUnsupported: "Este navegador no soporta notificaciones del sistema.", notifyOk: "Notificaciones activadas.", notifyOff: "Notificaciones apagadas.",
       notifyOs: "Si no aparecen, revisá que el sistema permita notificaciones de tu navegador (macOS: Ajustes → Notificaciones).",
       nCreate: p => `Nuevo: ${p}`, nUpdate: p => `Modificado: ${p}`, nDelete: p => `Eliminado: ${p}`, nMove: p => `Movido: ${p}`,
-      nMany: n => `${n} cambios en tu vault`, nTitle: "brain · vault" },
+      nMany: n => `${n} cambios en tu vault`, nTitle: "brain · vault",
+      appHint: "Estás en la app de escritorio. Te avisa con una notificación del sistema cuando cambia algo en tu vault, lo haga un agente, el chat o vos. Los avisos los manda la app aunque cierres la ventana (queda el ícono en la barra de menú o la bandeja) y estos ajustes se guardan en tu computadora, no en el navegador.",
+      appNotch: "Panel del notch: una ventana oscura arriba al centro con accesos al panel, el grafo y el chat cuando hay cambios",
+      appTray: "Al cerrar la ventana, dejar brain en la barra de menú o la bandeja" },
     dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
     remote: { title: "Acceso remoto por URL", sub: "túnel de Cloudflare",
@@ -1563,6 +1572,7 @@ const I18N = {
       inspector: ["MCP Inspector", "Try the tools by hand in the browser"],
       remote_mcp: ["MCP by URL", "The MCP server over HTTP, on this computer only"],
       tunnel: ["Cloudflare tunnel", "Publishes the MCP URL on the internet"],
+      app: ["App", "Desktop app: startup, tray, system notifications and notch"],
     },
     st: { running: "Running", external: "External", starting: "Starting", stopped: "Stopped", error: "Error" },
     port: p => `port ${p}`, since: u => `up ${u}`, externalMeta: "managed elsewhere", exitCode: c => `exited with code ${c}`,
@@ -1771,7 +1781,10 @@ const I18N = {
       notifyUnsupported: "This browser doesn't support system notifications.", notifyOk: "Notifications on.", notifyOff: "Notifications off.",
       notifyOs: "If they don't show up, check that your system allows notifications from your browser (macOS: Settings → Notifications).",
       nCreate: p => `New: ${p}`, nUpdate: p => `Changed: ${p}`, nDelete: p => `Deleted: ${p}`, nMove: p => `Moved: ${p}`,
-      nMany: n => `${n} changes in your vault`, nTitle: "brain · vault" },
+      nMany: n => `${n} changes in your vault`, nTitle: "brain · vault",
+      appHint: "You're in the desktop app. It shows a system notification when something changes in your vault, whether an agent, the chat or you did it. The app sends them even when you close the window (the icon stays in the menu bar or tray), and these settings are saved on your computer, not in the browser.",
+      appNotch: "Notch panel: a dark window at the top center with shortcuts to the dashboard, graph and chat when something changes",
+      appTray: "When the window is closed, keep brain in the menu bar or tray" },
     dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
     remote: { title: "Remote access by URL", sub: "Cloudflare tunnel",
@@ -2241,13 +2254,33 @@ async function loadAppCtx() {
 // ================= notificaciones del sistema =================
 // localStorage "brain-notify" = {on, create, update, delete}. El dashboard consulta el historial del vault
 // (/api/activity) cada 5 s y avisa con la Notification API: los cambios de agentes, del chat o del usuario.
-const NOTIFY_DEFAULT = { on: false, create: true, update: true, delete: true };
-const canNotify = () => "Notification" in window && Notification.permission === "granted";
+// En la app de escritorio (apps/desktop inyecta window.__BRAIN_APP__) los avisos los manda la app, también con la
+// ventana cerrada: las preferencias viven en el server (data/app_settings.json, GET/POST /api/app) y esta
+// página no consulta nada ni usa la Notification API.
+const IN_APP = !!window.__BRAIN_APP__;
+let appCfg = null;
+const NOTIFY_DEFAULT = { on: IN_APP, create: true, update: true, delete: true };
+const canNotify = () => IN_APP || ("Notification" in window && Notification.permission === "granted");
 function notifyPrefs() {
+  if (IN_APP) return { ...NOTIFY_DEFAULT, ...(appCfg ? appCfg.notify : {}) };
   try { return { ...NOTIFY_DEFAULT, ...JSON.parse(localStorage.getItem("brain-notify") || "{}") }; } catch (e) { return { ...NOTIFY_DEFAULT }; }
 }
-function saveNotify(p) { try { localStorage.setItem("brain-notify", JSON.stringify(p)); } catch (e) {} }
+function saveNotify(p) {
+  if (IN_APP) { appCfg = { ...(appCfg || {}), notify: p }; api("/api/app", { notify: p }).catch(() => {}); return; }
+  try { localStorage.setItem("brain-notify", JSON.stringify(p)); } catch (e) {}
+}
+async function loadAppCfg() {
+  if (!IN_APP) return;
+  try { appCfg = await api("/api/app"); } catch (e) { return; }
+  renderNotify();
+}
+document.querySelectorAll("[data-app]").forEach(cb => cb.onchange = () => {
+  const k = cb.dataset.app; appCfg = { ...(appCfg || {}), [k]: cb.checked }; api("/api/app", { [k]: cb.checked }).catch(() => {});
+});
 function renderNotify() {
+  $("#app-extra").hidden = !IN_APP;
+  $("#notify-hint").hidden = IN_APP;
+  if (IN_APP && appCfg) document.querySelectorAll("[data-app]").forEach(cb => { cb.checked = !!appCfg[cb.dataset.app]; });
   const p = notifyPrefs(), on = p.on && canNotify();
   $("#notify-on").checked = on;
   $("#notify-kinds").classList.toggle("off", !on);
@@ -2257,6 +2290,7 @@ function renderNotify() {
 $("#notify-on").onchange = async e => {
   const p = notifyPrefs(), out = $("#notify-result");
   if (!e.target.checked) { p.on = false; saveNotify(p); renderNotify(); return showResult(out, "ok", T.settings.notifyOff); }
+  if (IN_APP) { p.on = true; saveNotify(p); renderNotify(); return showResult(out, "ok", T.settings.notifyOk); }
   if (!("Notification" in window)) { e.target.checked = false; return showResult(out, "err", T.settings.notifyUnsupported); }
   let perm = Notification.permission;
   if (perm === "default") { try { perm = await Notification.requestPermission(); } catch (err) { perm = "denied"; } }
@@ -2265,7 +2299,10 @@ $("#notify-on").onchange = async e => {
   showResult(out, "ok", `${T.settings.notifyOk} ${T.settings.notifyOs}`);
 };
 document.querySelectorAll("[data-notify]").forEach(cb => cb.onchange = () => { const p = notifyPrefs(); p[cb.dataset.notify] = cb.checked; saveNotify(p); });
-$("#notify-test").onclick = () => { if (canNotify()) new Notification(T.settings.notifyTestT, { body: T.settings.notifyTestB, tag: "brain-test" }); };
+$("#notify-test").onclick = () => {
+  if (IN_APP) { try { window.__TAURI__.core.invoke("test_notification"); } catch (e) {} return; }
+  if (canNotify()) new Notification(T.settings.notifyTestT, { body: T.settings.notifyTestB, tag: "brain-test" });
+};
 let activityLast = null;
 const changeKind = c => c.op === "delete" ? "delete" : c.op === "create" ? "create" : "update";
 function changeText(c) {
@@ -2273,6 +2310,7 @@ function changeText(c) {
   return c.op === "move" ? S.nMove(c.path) : ({ create: S.nCreate, update: S.nUpdate, delete: S.nDelete })[changeKind(c)](c.path);
 }
 async function pollActivity() {
+  if (IN_APP) return;  // lo hace la app
   const p = notifyPrefs();
   if (!p.on || !canNotify()) { activityLast = null; return; }
   let r; try { r = await api(`/api/activity?after=${activityLast ?? -1}`); } catch (e) { return; }
@@ -2293,6 +2331,7 @@ async function pollActivity() {
 }
 setInterval(pollActivity, 5000);
 pollActivity();
+loadAppCfg();
 addEventListener("storage", e => { if (e.key === "brain-notify" && view === "ajustes") renderNotify(); });
 
 // ================= ajustes: sidebar (orden y visibilidad) =================
@@ -2550,7 +2589,7 @@ function uptime(s) {
   return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
 }
 // los del acceso remoto (MCP por URL y túnel) se manejan desde Conectar agente, no desde el Panel
-const coreSvcs = () => (status ? status.services : []).filter(s => s.group !== "remote");
+const coreSvcs = () => (status ? status.services : []).filter(s => s.group !== "remote" && s.group !== "app");
 function renderServices() {
   const box = $("#services");
   box.innerHTML = coreSvcs().map(s => {

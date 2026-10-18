@@ -42,7 +42,9 @@ def llms_txt() -> str:
         "- Install (macOS, Linux): `curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash`",
         "- Install (Windows, PowerShell): `irm https://raw.githubusercontent.com/Lautaro005/brain/main/install.ps1 | iex`, "
         "or `brain-setup.exe` from the latest release",
-        "- Then run `brain` to open the local dashboard at http://127.0.0.1:8765 and connect your agents in one click.",
+        "- The installer also adds the desktop app (menu-bar / tray icon, system notifications, notch panel): open it with `brain app`; "
+        "downloads for macOS, Windows and Linux are in the latest release.",
+        "- Then run `brain` to open the local dashboard at http://127.0.0.1:8765 (terminal version) and connect your agents in one click.",
         "- Source code: https://github.com/Lautaro005/brain",
     ]
     group = None

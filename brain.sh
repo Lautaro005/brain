@@ -16,9 +16,32 @@ case "${1:-}" in
     "$UV" sync --quiet
     echo "Listo. Si el dashboard o Claude estaban abiertos, reinicialos para usar la versión nueva."
     ;;
+  app)
+    # la app de escritorio (la instala install.sh): ícono en la barra de menú o la bandeja, avisos del sistema y notch
+    if [ "$(uname -s)" = Darwin ]; then
+      APP="$HOME/Applications/brain.app"; [ -d "$APP" ] || APP="/Applications/brain.app"
+      if [ -d "$APP" ]; then exec open --env BRAIN_HOME="$DIR" "$APP"; fi
+    else
+      APP="$HOME/.local/opt/brain/brain.AppImage"
+      if [ -x "$APP" ]; then
+        export BRAIN_HOME="$DIR"
+        # los AppImage necesitan FUSE 2; sin él se corre desde una extracción temporal
+        if ! { [ -e /dev/fuse ] && { ldconfig -p 2>/dev/null | grep -q 'libfuse\.so\.2'; }; }; then export APPIMAGE_EXTRACT_AND_RUN=1; fi
+        nohup "$APP" >/dev/null 2>&1 &
+        exit 0
+      fi
+    fi
+    echo "La app de escritorio no está instalada."
+    echo "Instalala (o actualizala) con: curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash"
+    echo "O bajala del release: https://github.com/Lautaro005/brain/releases/latest"
+    exit 1
+    ;;
   uninstall)
     CMD="$(command -v brain || echo "$HOME/.local/bin/brain")"
     if grep -qs "generado por install.sh" "$CMD"; then rm -f "$CMD"; echo "Saqué el comando brain ($CMD)."; else echo "No encontré el comando brain instalado."; fi
+    for APP in "$HOME/Applications/brain.app" "$HOME/.local/opt/brain" "$HOME/.local/share/applications/brain.desktop" "$HOME/.local/share/icons/hicolor/128x128/apps/brain.png"; do
+      if [ -e "$APP" ]; then rm -rf "$APP"; echo "Saqué la app de escritorio ($APP)."; fi
+    done
     echo "La app y TUS DATOS (vault/ y data/) siguen en: $DIR"
     echo "Si querés borrar todo: rm -rf \"$DIR\""
     echo "Acordate de desconectar los agentes antes (dashboard → Conectar agente), o sacá 'brain' de su config."
@@ -34,6 +57,7 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
   brain --port 8766     dashboard en otro puerto
   brain --no-autostart  no prender Ollama/Chroma solos
   brain --no-browser    no abrir el navegador
+  brain app             abre la app de escritorio (barra de menú / bandeja, avisos y notch)
   brain update          actualiza a la última versión
   brain path            muestra dónde está instalado (ahí viven vault/ y data/)
   brain uninstall       saca el comando (no borra tus datos)

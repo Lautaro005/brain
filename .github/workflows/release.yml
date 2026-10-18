@@ -2,6 +2,8 @@
 # - brain-setup.exe: instalador de Windows (corre install.ps1; ver installers/windows/brain_setup.py).
 # - brain-install-linux.sh: el instalador de Linux/macOS, para bajar y correr con `bash`.
 # - brain-<versión>-src.tar.gz: el código de ese release.
+# - La app de escritorio (apps/desktop, Tauri): .dmg (macOS universal), .AppImage y .deb (Linux), setup.exe (Windows).
+#   Los instaladores (install.sh / install.ps1) la bajan de acá.
 name: Release
 
 on:
@@ -17,6 +19,57 @@ permissions:
   contents: write
 
 jobs:
+  desktop:
+    name: App de escritorio (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-22.04
+            args: --bundles appimage,deb
+          - name: windows-x64
+            os: windows-latest
+            args: --bundles nsis
+          - name: macos-universal
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+    runs-on: ${{ matrix.os }}
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Dependencias de Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf build-essential
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Instalar la CLI de Tauri
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Armar los instaladores
+        working-directory: apps/desktop/src-tauri
+        run: cargo tauri build ${{ matrix.args }}
+      - name: Subir al release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          B=apps/desktop/src-tauri/target
+          files=($B/release/bundle/dmg/*.dmg $B/universal-apple-darwin/release/bundle/dmg/*.dmg \
+                 $B/release/bundle/appimage/*.AppImage $B/release/bundle/deb/*.deb \
+                 $B/release/bundle/nsis/*-setup.exe)
+          [ ${#files[@]} -gt 0 ] || { echo "no se armó ningún instalador"; exit 1; }
+          gh release upload "$TAG" "${files[@]}" --clobber
+
   windows:
     name: brain-setup.exe
     runs-on: windows-latest
