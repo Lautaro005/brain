@@ -123,12 +123,13 @@ install_app() {
   fi
   json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$APP_REPO/releases/latest")" \
     || { warn "No pude consultar el último release; sin app de escritorio (volvé a correr este instalador más tarde)."; return 0; }
-  tag="$(printf '%s' "$json" | grep -o '"tag_name": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
-  urls="$(printf '%s' "$json" | grep -o '"browser_download_url": *"[^"]*"' | sed 's/.*"\(https[^"]*\)"$/\1/')"
+  # con `set -e` y `pipefail`, un grep sin resultados (release sin archivos) mataría el instalador en silencio: de ahí los `|| true`
+  tag="$(printf '%s' "$json" | grep -o '"tag_name": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/' || true)"
+  urls="$(printf '%s' "$json" | grep -o '"browser_download_url": *"[^"]*"' | sed 's/.*"\(https[^"]*\)"$/\1/' || true)"
   if [ "$OS" = Darwin ]; then
-    url="$(printf '%s\n' "$urls" | grep -i '\.dmg$' | head -n1)"
+    url="$(printf '%s\n' "$urls" | grep -i '\.dmg$' | head -n1 || true)"
   else
-    url="$(printf '%s\n' "$urls" | grep -i 'amd64\.AppImage$' | head -n1)"
+    url="$(printf '%s\n' "$urls" | grep -i 'amd64\.AppImage$' | head -n1 || true)"
   fi
   [ -n "$url" ] || { warn "El release $tag todavía no trae la app para $OS; brain sigue andando en la terminal."; return 0; }
   tmp="$(mktemp -d)"
