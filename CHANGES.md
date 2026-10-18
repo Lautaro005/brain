@@ -815,3 +815,9 @@ Pedido del usuario: el CI de `main` falló tras el merge (Tests y App de escrito
 - `GET /api/app` suma `installed`; `POST /api/app/handoff` (con `X-Brain`): si la app está instalada (`appmode.installed_path()`), lanza un proceso aparte (`appmode.handoff`) que espera a que el puerto del dashboard quede libre y recién ahí corre `brain.sh app` (`brain.ps1 app`), y cierra el dashboard (`/api/quit`). Así la app arranca su propio dashboard y no usa el de la terminal justo cuando se apaga. `already_app` dentro de la app, `not_installed` si falta.
 - La tarjeta pide confirmación; si la app no está instalada muestra el enlace al release. Textos es/en; README, docs del sitio y `chat.APP_GUIDE` lo mencionan.
 - Verificado: pytest 95/95; Chromium (tarjeta y diálogo, sin errores de JS); traspaso real con una «app» falsa en `~/.local/opt/brain`: el dashboard se cerró y la app se lanzó. No probado con la app real ni en macOS/Windows.
+
+## 2026-10-18 — v0.03.3.1: el instalador moría en silencio si el release no trae la app
+
+Reporte del usuario (Mac): después de actualizar, `brain app` decía que la app no estaba instalada y el instalador terminaba sin avisar nada (sin «brain instalado» ni aviso de la app).
+- **Causa**: en `install_app` (`install.sh`), cuando el último release existe pero no tiene archivos (la v0.03.3 de Cursor), `grep -o` no encuentra nada y devuelve 1; con `set -euo pipefail` eso termina el script. Se agregó `|| true` a los cuatro pipelines de `tag`, `urls` y `url`. Verificado ejecutando la función con un release sin archivos: avisa «el release todavía no trae la app» y el instalador llega al final. `install.ps1` no tenía el problema (usa `try/catch`).
+- **Lo que falta para que la app se instale**: publicar el release v0.03.3.1 en GitHub; `release.yml` arma y sube los instaladores al publicarlo. Hasta entonces el instalador avisa y sigue.
