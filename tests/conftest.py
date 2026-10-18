@@ -14,7 +14,7 @@ os.environ.setdefault("BRAIN_AUTO_ABOUT", "off")  # el resumen del perfil en seg
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
-    from brain_mcp import backup, chat, connectors, graph, history, keyword_store, oauth, remote, vault
+    from brain_mcp import backup, chat, connectors, graph, history, keyword_store, lmstudio, oauth, remote, vault
 
     data = tmp_path / "data"
     v = (tmp_path / "vault")
@@ -34,6 +34,9 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(remote, "DATA", data)
     monkeypatch.setattr(remote, "CONFIG", data / "remote.json")
     monkeypatch.setattr(remote, "BIN", data / "bin")
+    monkeypatch.setattr(lmstudio, "DATA", data)
+    monkeypatch.setattr(lmstudio, "CONFIG", data / "lmstudio.json")
+    lmstudio._CACHE["key"] = None
     monkeypatch.setattr(backup, "ROOT", tmp_path)
     monkeypatch.setattr(chat, "OLLAMA", "http://127.0.0.1:59998")  # Ollama "apagado"
     chat._MAX.clear()

@@ -513,15 +513,16 @@ async function loadModels() {
   // orden: el modelo por defecto de Ajustes (brain-chat-default), el último elegido, uno conocido, el primero
   const has = n => n && models.some(m => m.name === n);
   const def = store.get("brain-chat-default"), saved = store.get("brain-chat-model");
-  const pick = has(def) ? def : has(saved) ? saved : (models.find(m => /^(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
-  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""} data-sub="${esc([m.params, kTok(m.ctx)].filter(Boolean).join(" · "))}">${esc(shortName(m.name))}</option>`).join("");
+  const pick = has(def) ? def : has(saved) ? saved : (models.find(m => /^(ollama:)?(llama3|qwen|mistral|gemma)/.test(m.name)) || models[0]).name;
+  const label = m => m.label || shortName(m.name);
+  sel.innerHTML = models.map(m => `<option value="${esc(m.name)}" ${m.name === pick ? "selected" : ""} data-sub="${esc([m.params, kTok(m.ctx)].filter(Boolean).join(" · "))}">${esc(label(m))}</option>`).join("");
   BrainUI.sync(sel);
   banner(historyOk ? "" : T.noHistory);
   renderModelBox(); renderCtx();
 }
 const shortName = n => String(n || "").replace(/:latest$/, "").replace(/^hf\.co\/[^/]+\//, "");
 const kTok = n => !n ? "" : n >= 1024 ? `${Math.round(n / 1024)}k` : String(n);
-const modelInfo = n => models.find(m => m.name === n);
+const modelInfo = n => models.find(m => m.name === n) || (n && !String(n).includes(":") ? models.find(m => m.name === `ollama:${n}`) : null);
 $("#model").onchange = () => { store.set("brain-chat-model", $("#model").value); renderCtx(); };
 BrainUI.select($("#model"));
 
@@ -535,8 +536,9 @@ function renderModelBox() {
   sel.hidden = lock;
   tag.hidden = !lock;
   if (lock) {
-    tag.innerHTML = `${ICON.lock}<span>${esc(shortName(chatModel))}</span>`;
-    tag.title = T.modelLocked(shortName(chatModel));
+    const lab = (modelInfo(chatModel) || {}).label || shortName(chatModel);
+    tag.innerHTML = `${ICON.lock}<span>${esc(lab)}</span>`;
+    tag.title = T.modelLocked(lab);
   } else if ((current || messages.length) && chatModel && !modelInfo(chatModel)) {
     sel.title = T.modelMissing(shortName(chatModel));
   } else sel.title = T.model;

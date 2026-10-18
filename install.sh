@@ -54,7 +54,11 @@ fi
 cd "$DIR"
 
 say "Instalando dependencias (la primera vez tarda un par de minutos)…"
-"$UV" sync --quiet
+if [ "$OS" = Darwin ]; then
+  "$UV" sync --quiet --group macos
+else
+  "$UV" sync --quiet
+fi
 
 if [ -z "${BRAIN_SKIP_CHROMIUM:-}" ]; then
   say "Instalando Chromium para scrapear sitios con JavaScript…"

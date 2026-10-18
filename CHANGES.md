@@ -743,3 +743,17 @@ Pedido del usuario: (1) que la IA no pueda tocar BRAIN.md, las carpetas por defe
 - pytest 86/86 (13 nuevos en `tests/test_v032.py`: archivos centrales y bloque de BRAIN.md idempotentes, migración que conserva el texto del usuario, las 7 tools rechazan los centrales y carpetas, mover la última nota no borra la carpeta base, propuestas del grafo, editor (`stale`, `managed: user`, solo .md) y su API, sincronización de preferencias en FACT-CHECK.md (y sin marcas no se toca), chat y server señalan FACT-CHECK.md, estructura del grafo con carpetas vacías, títulos cortos, Obsidian (no instalado, registro sin tocar otros vaults + backup + `.obsidian/` una sola vez, app abierta, JSON inválido) y su API). `scripts/smoke_mcp.py` y `check_site.py` OK; ruff F/E9 sin errores nuevos.
 - Chromium contra el dashboard real: cambio del tema del sistema claro → oscuro → claro con el grafo abierto (antes nodos negros sobre fondo oscuro; ahora repinta), editor de BRAIN.md y FORMAT.md (guardar, vista previa, `managed: user`, Esc), candado y nota en los centrales, títulos cortos de fuentes, Obsidian sin instalar (diálogo con la carpeta), ocultar el ítem desde Ajustes, colores de Ajustes en oscuro, 390 px sin scroll horizontal, sin errores de JS.
 - No probado con Obsidian real (no está en el sandbox): el registro se probó con un `obsidian.json` falso.
+
+## 2026-10-18 — v0.03.3: barra de menú macOS, notch y LM Studio
+
+**Qué cambió**
+- **Barra de menú (macOS)** (`brain_mcp/menubar_mac.py`, `dashboard.py`): proceso aparte al arrancar el dashboard; menú con nombre + versión, Open (panel web), Notifications, Settings, Updates y Close (`POST /api/quit` con `X-Brain: 1`). Dependencias opcionales `uv sync --group macos` (`rumps`, `pyobjc-framework-Cocoa`). `BRAIN_NO_MENUBAR=1` lo apaga.
+- **Notch**: el mismo proceso consulta `/api/activity`, avisa con `NSUserNotification` y abre un panel oscuro centrado arriba (AppKit) con accesos al panel, grafo y chat.
+- **LM Studio** (`brain_mcp/lmstudio.py`, `brain_mcp/llm_providers.py`, `services.LmStudio`, Ajustes → LM Studio): URL en `data/lmstudio.json` (solo localhost / `*.local`), servicio en el Panel y popover de servicios; modelos vía `/v1/models` y chat por `/v1/chat/completions`. En el selector del chat y en Ajustes → Contexto se muestran como `Ollama · …` / `LM Studio · …` (`name` interno `proveedor:id`). Embeddings y `nomic-embed-text` siguen en Ollama.
+- Docs: README, changelog v0.03.3, SECURITY.md (LM Studio URL, menubar), `chat.APP_GUIDE`, `VERSION` v0.03.3, `tests/test_v033.py`.
+
+**Por qué**
+- Pedido del usuario: app más nativa en macOS y modelos locales sin depender solo de Ollama para el chat.
+
+**Verificado**
+- `pytest tests/test_v033.py` (validación de URL LM Studio y refs de proveedor).

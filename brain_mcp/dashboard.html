@@ -1071,6 +1071,18 @@
               <div class="result" id="backup-result"></div>
               <ul class="backup-list" id="backup-list"></ul>
             </div></div>
+          <div class="card" id="lmstudio-card"><div class="card-h"><h2 data-i18n="settings.lmTitle"></h2><span class="sub" data-i18n="settings.lmSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.lmHint"></p>
+              <label class="check"><input type="checkbox" id="lm-enabled"> <span data-i18n="settings.lmOn"></span></label>
+              <label class="code-label" for="lm-url" data-i18n="settings.lmUrl"></label>
+              <input class="input full mono" id="lm-url" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:1234" style="margin-top:6px">
+              <p class="form-hint" id="lm-status"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="lm-save" data-i18n="settings.lmSave"></button>
+              </div>
+              <div class="result" id="lm-result"></div>
+            </div></div>
           <div class="card" id="format-card"><div class="card-h"><h2 data-i18n="settings.format"></h2><span class="sub" data-i18n="settings.formatSub"></span></div>
             <div class="card-b">
               <p class="form-hint" style="margin-top:0" data-i18n="settings.formatHint"></p>
@@ -1212,6 +1224,7 @@ const I18N = {
     svc: {
       chroma: ["Chroma", "Base vectorial compartida por todos los clientes MCP"],
       ollama: ["Ollama", "Embeddings con nomic-embed-text"],
+      lmstudio: ["LM Studio", "Modelos de chat vía API local (URL en Ajustes)"],
       inspector: ["Inspector MCP", "Probar las tools a mano en el navegador"],
       remote_mcp: ["MCP por URL", "El server MCP por HTTP, solo en esta máquina"],
       tunnel: ["Túnel de Cloudflare", "Publica el MCP por URL en internet"],
@@ -1332,6 +1345,10 @@ const I18N = {
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
     settings: { title: "Ajustes", sub: "Versión, sidebar, chat, notificaciones, backup, formato de las notas y colores del grafo.",
+      lmTitle: "LM Studio", lmSub: "modelos de chat alternativos o complementarios a Ollama",
+      lmHint: "Prendé el server local en LM Studio (Developer → Local Server) y pegá la URL. Los modelos cargados aparecen en el chat con el prefijo «LM Studio ·».",
+      lmOn: "Usar LM Studio en el chat", lmUrl: "URL del server", lmSave: "Guardar",
+      lmOk: "Server respondiendo — los modelos aparecen en el selector del chat.", lmOff: "Apagado en Ajustes.", lmDown: "No responde en esa URL (¿LM Studio abierto con el server local?).",
       format: "Formato de las notas", formatSub: "compatible con OKF",
       formatHint: "Cada nota lleva type (Project, Memory, Skill, Source…), created (cuándo se creó) y updated (último cambio), así cualquier IA entiende qué es y qué tan vigente está. brain los completa solo al escribir; este botón los agrega a las notas viejas, sin tocar nada más (queda en el historial).",
       formatMissing: n => n ? `${n} nota(s) sin tipo o sin fechas.` : "Todas las notas tienen tipo y fechas.", formatRun: "Completar tipo y fechas",
@@ -1542,6 +1559,7 @@ const I18N = {
     svc: {
       chroma: ["Chroma", "Vector database shared by every MCP client"],
       ollama: ["Ollama", "Embeddings with nomic-embed-text"],
+      lmstudio: ["LM Studio", "Chat models via local OpenAI-compatible API (URL in Settings)"],
       inspector: ["MCP Inspector", "Try the tools by hand in the browser"],
       remote_mcp: ["MCP by URL", "The MCP server over HTTP, on this computer only"],
       tunnel: ["Cloudflare tunnel", "Publishes the MCP URL on the internet"],
@@ -1662,6 +1680,10 @@ const I18N = {
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
     settings: { title: "Settings", sub: "Version, sidebar, chat, notifications, backup, note format and graph colors.",
+      lmTitle: "LM Studio", lmSub: "alternative or complementary chat models alongside Ollama",
+      lmHint: "Turn on the local server in LM Studio (Developer → Local Server) and paste the URL. Loaded models show up in chat as «LM Studio · …».",
+      lmOn: "Use LM Studio in chat", lmUrl: "Server URL", lmSave: "Save",
+      lmOk: "Server is up — models appear in the chat picker.", lmOff: "Turned off in Settings.", lmDown: "No response at that URL (is LM Studio running with the local server on?).",
       format: "Note format", formatSub: "OKF-compatible",
       formatHint: "Every note carries type (Project, Memory, Skill, Source…), created (when it was created) and updated (last change), so any AI can tell what it is and how current it is. brain fills them in on every write; this button adds them to older notes without touching anything else (it's kept in history).",
       formatMissing: n => n ? `${n} note(s) without a type or dates.` : "Every note has a type and dates.", formatRun: "Fill in type and dates",
@@ -1812,7 +1834,7 @@ function setLang(l) {
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
   renderMemSource(); renderProfileView(); renderMemory(); renderAutoAbout(); renderAgents(); renderConnections();
-  fcStatic(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") loadFormat();
+  fcStatic(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") { loadLmStudio(); loadFormat(); }
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
   if (view === "logs") { logSig = ""; loadLogs(); }
@@ -1938,7 +1960,7 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAutoBackup(); loadAppCtx(); renderNotify(); loadFormat(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAutoBackup(); loadAppCtx(); renderNotify(); loadLmStudio(); loadFormat(); }
 
 // ================= ajustes: backup y restauración (brain_mcp/backup.py) =================
 const fmtSize = n => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -2147,7 +2169,7 @@ function renderContext() {
   const cap = $("#ctx-cap"); cap.value = st.cap; cap.min = ctxData.min; cap.max = ctxData.max;
   cap.setAttribute("aria-label", S.ctxCap);
   $("#ctx-table").innerHTML = ctxData.models.length ? `<tr><th>${esc(S.ctxModel)}</th><th>${esc(S.ctxModelMax)}</th><th>${esc(S.ctxUses)}</th><th>${esc(S.ctxOwn)}</th></tr>` +
-    ctxData.models.map(m => `<tr><td class="mono">${esc(m.name.replace(/:latest$/, ""))}</td><td class="mono">${esc(kTok(m.ctx_max))}</td>
+    ctxData.models.map(m => `<tr><td class="mono">${esc(m.label || m.name.replace(/:latest$/, ""))}</td><td class="mono">${esc(kTok(m.ctx_max))}</td>
       <td class="eff" data-eff="${esc(m.name)}"></td>
       <td><input class="input ctx-own" type="number" step="1024" min="${ctxData.min}" max="${ctxData.max}" data-model="${esc(m.name)}"
         value="${st.models[m.name] || ""}" placeholder="${esc(S.ctxOwnPh)}" aria-label="${esc(S.ctxOwn)} · ${esc(m.name)}"></td></tr>`).join("") : "";
@@ -2335,8 +2357,10 @@ async function loadDefaultModel() {
   const models = r.ok ? r.models : [];
   const names = models.map(m => m.name);
   if (cur && !names.includes(cur)) names.unshift(cur);  // configurado pero no instalado (u Ollama apagado)
-  sel.innerHTML = `<option value="">${esc(T.settings.lastUsed)}</option>` + names.map(n =>
-    `<option value="${esc(n)}" ${n === cur ? "selected" : ""}>${esc(n.replace(/:latest$/, ""))}</option>`).join("");
+  const label = m => m.label || m.name.replace(/:latest$/, "");
+  sel.innerHTML = `<option value="">${esc(T.settings.lastUsed)}</option>` + models.map(m =>
+    `<option value="${esc(m.name)}" ${m.name === cur ? "selected" : ""}>${esc(label(m))}</option>`).join("")
+    + (cur && !models.some(m => m.name === cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : "");
   hint.textContent = !r.ok ? T.settings.noOllama : !models.length ? T.settings.noModels
     : cur && !models.some(m => m.name === cur) ? T.settings.notInstalled : T.settings.defaultHint;
 }
@@ -3380,6 +3404,27 @@ async function loadGraphProposals() {
     loadGraphProposals();
   });
 }
+
+// ================= ajustes: LM Studio =================
+async function loadLmStudio() {
+  const st = $("#lm-status");
+  try {
+    const r = await api("/api/lmstudio");
+    $("#lm-enabled").checked = !!r.enabled;
+    $("#lm-url").value = r.url || "http://127.0.0.1:1234";
+    st.textContent = !r.enabled ? T.settings.lmOff : r.healthy ? T.settings.lmOk : T.settings.lmDown;
+  } catch (e) { st.textContent = ""; }
+}
+$("#lm-save").onclick = async () => {
+  const out = $("#lm-result");
+  try {
+    const r = await api("/api/lmstudio", { enabled: $("#lm-enabled").checked, url: $("#lm-url").value.trim() });
+    if (!r.ok) return showResult(out, "err", r.detail || r.code);
+    showResult(out, "ok", T.settings.saved);
+    loadLmStudio(); loadDefaultModel(); loadContext();
+    await loadStatus();
+  } catch (e) { showResult(out, "err", e.message); }
+};
 
 // ================= ajustes: formato de las notas =================
 async function loadFormat() {

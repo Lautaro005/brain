@@ -172,6 +172,43 @@ class Ollama(Service):
         return _http_ok("http://127.0.0.1:11434/api/version")
 
 
+class LmStudio(Service):
+    """LM Studio corre por fuera (app de escritorio); el dashboard solo comprueba la URL configurada."""
+
+    def __init__(self):
+        super().__init__(
+            "lmstudio", "LM Studio", "Modelos de chat vía API OpenAI-compatible (URL en Ajustes)",
+            1234, [],  # puerto por defecto; la URL real está en data/lmstudio.json
+        )
+
+    def start(self) -> None:
+        from . import lmstudio
+
+        cfg = lmstudio.load()
+        lmstudio.save({**cfg, "enabled": True})
+
+    def stop(self) -> None:
+        from . import lmstudio
+
+        cfg = lmstudio.load()
+        lmstudio.save({**cfg, "enabled": False})
+
+    def healthy(self) -> bool:
+        from . import lmstudio
+
+        return lmstudio.healthy()
+
+    def status(self) -> str:
+        from . import lmstudio
+
+        cfg = lmstudio.load()
+        if not cfg["enabled"]:
+            return "stopped"
+        if self.healthy():
+            return "external"
+        return "stopped"
+
+
 class Inspector(Service):
     def link(self) -> str | None:
         for line in reversed(self.logs):
@@ -295,6 +332,7 @@ SERVICES: dict[str, Service] = {
                 "--host", CHROMA_HOST, "--port", str(CHROMA_PORT)],
                env={"RUST_LOG": "warn"}),  # sin esto loguea una línea INFO por cada request
         Ollama("ollama", "Ollama", "Embeddings con nomic-embed-text", 11434, _ollama_cmd),
+        LmStudio(),
         Inspector("inspector", "Inspector MCP", "Probar las tools a mano en el navegador", 6274,
                   ["npx", "-y", "@modelcontextprotocol/inspector", "uv", "run", "python", "server.py"],
                   env={"MCP_AUTO_OPEN_ENABLED": "false"}),

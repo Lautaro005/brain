@@ -119,7 +119,7 @@ y los índices, el historial y los ajustes en data/.
   projects/, skills/ (skills reutilizables) y knowledge/sources/ (páginas web guardadas con save_url).
 - Cada escritura queda en el historial: file_history + restore_file deshacen cualquier cambio.
 - Búsqueda híbrida (search_knowledge): semántica con Ollama + Chroma, y por palabra (SQLite FTS5).
-- Vistas del dashboard (http://127.0.0.1:8765): Panel (servicios Chroma, Ollama e Inspector, métricas y salud),
+- Vistas del dashboard (http://127.0.0.1:8765): Panel (servicios Chroma, Ollama, LM Studio e Inspector, métricas y salud),
   Chat (este chat), Perfil (datos del usuario, importar memoria de otro chatbot, Reflect), Conectar agente
   (Claude, ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, DeepSeek Harness, Manus Studio
   (con su formulario «Run a command», valores en la tarjeta), y el acceso
@@ -129,8 +129,11 @@ y los índices, el historial y los ajustes en data/.
   —nivel, actualidad, fuentes primarias, evidencia en contra, regiones, idiomas, buscador— están en esa vista)
   y Logs. El engranaje abre Ajustes.
 - Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
-  menú, modelo y contexto del chat, instrucciones propias para el chat, notificaciones del sistema, backup y
-  restauración, formato de las notas (completar type/created/updated en notas viejas) y colores del grafo.
+  menú, modelo y contexto del chat (Ollama y, si está configurado, LM Studio con su URL local; en el selector
+  del chat cada modelo muestra «Proveedor · nombre»), instrucciones propias para el chat, notificaciones del
+  sistema, backup y restauración, formato de las notas (completar type/created/updated en notas viejas) y colores del grafo.
+- macOS: con el dashboard abierto aparece un ícono en la barra de menú (Open, Notifications, Settings, Updates, Close);
+  si hay cambios en el vault, un aviso en el notch abre un panel oscuro con accesos al panel, grafo y chat.
 - Grafo: para conectar o desconectar notas, propose_graph_change muestra una imagen con los cambios marcados
   (verde = nueva, rojo = se saca) y el usuario aprueba, rechaza o deshace. También se ven en la vista Grafo.
 - Formato de las notas (detalle en FORMAT.md del vault): Markdown con frontmatter compatible con OKF (type, name,
@@ -175,7 +178,7 @@ vault/ and the indexes, history and settings in data/.
   skills/ (reusable skills) and knowledge/sources/ (web pages saved with save_url).
 - Every write is kept in history: file_history + restore_file undo any change.
 - Hybrid search (search_knowledge): semantic with Ollama + Chroma, and keyword (SQLite FTS5).
-- Dashboard views (http://127.0.0.1:8765): Dashboard (Chroma, Ollama and Inspector services, metrics, health),
+- Dashboard views (http://127.0.0.1:8765): Dashboard (Chroma, Ollama, LM Studio and Inspector services, metrics, health),
   Chat (this chat), Profile (user details, import memory from another chatbot, Reflect), Connect agent (Claude,
   ChatGPT, Codex, Cursor, VS Code, Windsurf, Gemini CLI, OpenMausBot, DeepSeek Harness, Manus Studio (through its
   "Run a command" form, values on its card), and remote access by URL),
@@ -185,8 +188,11 @@ vault/ and the indexes, history and settings in data/.
   sources, counter-evidence, regions, languages, search engine— live in that view) and Logs. The gear opens
   Settings.
 - Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
-  and context, custom chat instructions, system notifications, backup and restore, note format (fill in
-  type/created/updated on older notes) and graph colors.
+  and context (Ollama and, when configured, LM Studio with its local server URL; the chat picker shows
+  "Provider · name" for each model), custom chat instructions, system notifications, backup and restore, note
+  format (fill in type/created/updated on older notes) and graph colors.
+- macOS: while the dashboard runs, a menu-bar icon (Open, Notifications, Settings, Updates, Close); vault
+  changes can show a notch alert that opens a dark quick panel to the dashboard, graph and chat.
 - Graph: to link or unlink notes, propose_graph_change shows an image with the changes marked (green = new,
   red = removed) and the user approves, rejects or undoes it. They also show in the Graph view.
 - Note format (details in the vault's FORMAT.md): Markdown with OKF-compatible frontmatter (type, name, title,
@@ -272,22 +278,15 @@ def _is_embedding(m: dict) -> bool:
 
 
 def models() -> list[dict]:
-    """Modelos de chat instalados en Ollama (sin los de embeddings)."""
-    try:
-        r = requests.get(f"{OLLAMA}/api/tags", timeout=5)
-        r.raise_for_status()
-    except requests.ConnectionError as e:
-        raise ChatError("ollama") from e
-    except requests.RequestException as e:
-        raise ChatError("ollama", str(e)) from e
-    out, s = [], ctx_settings()
-    for m in r.json().get("models", []):
-        if _is_embedding(m):
-            continue
-        ctx = context_window(m["name"], m.get("digest", ""), s)
-        out.append({"name": m["name"], "size": m.get("size", 0), "params": (m.get("details") or {}).get("parameter_size", ""),
-                    "ctx": ctx["ctx"], "ctx_max": ctx["max"], "ctx_source": ctx["source"]})
-    return sorted(out, key=lambda m: m["name"])
+    """Modelos de chat: Ollama y LM Studio (si está configurado). `name` = proveedor:id; `label` para la UI."""
+    from . import llm_providers
+
+    from . import lmstudio as _lm
+
+    out = llm_providers.list_chat_models()
+    if not out and not llm_providers.ollama_healthy() and not _lm.healthy():
+        raise ChatError("ollama")
+    return out
 
 
 _MAX: dict[str, int] = {}  # "modelo@digest" → context_length que reporta Ollama
@@ -372,9 +371,12 @@ def save_ctx_settings(data: dict) -> dict:
 
 def context_window(model: str, digest: str = "", settings: dict | None = None) -> dict:
     """{"max": lo que soporta el modelo, "ctx": lo que usa brain (num_ctx), "source": model | max | cap}."""
+    from . import llm_providers
+
     s = settings or ctx_settings()
-    mx = _model_max(model, digest)
-    own = s["models"].get(model)
+    prov, mid = llm_providers.parse_ref(model)
+    mx = llm_providers.model_max(prov, mid, digest)
+    own = s["models"].get(model) or s["models"].get(mid)
     if own:
         ctx, src = (min(own, mx) if mx else own), "model"
     elif s["mode"] == "max":
@@ -385,9 +387,14 @@ def context_window(model: str, digest: str = "", settings: dict | None = None) -
 
 
 def pull(model: str) -> None:
-    """Descarga un modelo (puede tardar varios minutos)."""
+    """Descarga un modelo en Ollama (puede tardar varios minutos). LM Studio no tiene pull por API."""
+    from . import llm_providers
+
+    prov, mid = llm_providers.parse_ref(model)
+    if prov == llm_providers.PROVIDER_LMSTUDIO:
+        raise ChatError("lmstudio_no_pull")
     try:
-        r = requests.post(f"{OLLAMA}/api/pull", json={"model": model, "stream": False}, timeout=None)
+        r = requests.post(f"{OLLAMA}/api/pull", json={"model": mid, "stream": False}, timeout=None)
     except requests.ConnectionError as e:
         raise ChatError("ollama") from e
     if r.status_code != 200 or (r.json() or {}).get("error"):
@@ -789,31 +796,10 @@ def _run_tool(name: str, args: dict, valid: set[str]) -> tuple[str, bool]:
 # ---------- conversación ----------
 
 def _stream(model: str, messages: list[dict], tools: list[dict] | None, num_ctx: int = 0, options: dict | None = None):
-    """Llama a /api/chat con stream. Devuelve un iterador de chunks (dicts)."""
-    body = {"model": model, "messages": messages, "stream": True, "keep_alive": KEEP_ALIVE}
-    opts = {**({"num_ctx": num_ctx} if num_ctx else {}), **(options or {})}
-    if opts:
-        body["options"] = opts
-    if tools:
-        body["tools"] = tools
-    try:
-        r = requests.post(f"{OLLAMA}/api/chat", json=body, stream=True, timeout=(5, 600))
-    except requests.ConnectionError as e:
-        raise ChatError("ollama") from e
-    if r.status_code != 200:
-        text = r.text[:600]
-        low = text.lower()
-        if tools and any(w in low for w in ("tool", "template", "schema", "parser", "properties")):
-            raise ChatError("no_tools", text)
-        if r.status_code == 404 or "not found" in low:
-            raise ChatError("no_model", model)
-        raise ChatError("ollama_http", f"HTTP {r.status_code}: {text}")
-    for line in r.iter_lines():
-        if line:
-            chunk = json.loads(line)
-            if chunk.get("error"):
-                raise ChatError("ollama_http", chunk["error"])
-            yield chunk
+    """Stream del proveedor del modelo (Ollama o LM Studio). Devuelve chunks al estilo Ollama."""
+    from . import llm_providers
+
+    yield from llm_providers.stream_chat(model, messages, tools, num_ctx, options)
 
 
 def _new_id() -> str:

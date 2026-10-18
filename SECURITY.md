@@ -8,7 +8,7 @@ Only the latest release gets security fixes, on macOS, Linux and Windows. Update
 
 | Version | Supported |
 |---|---|
-| Latest release (currently `v0.03.2`) | ✅ |
+| Latest release (currently `v0.03.3`) | ✅ |
 | Older releases | ❌ |
 
 ## Reporting a vulnerability
@@ -42,6 +42,8 @@ brain's own code in this repository, in particular:
 - **The installers** (`install.sh`, `install.ps1`, `brain-setup.exe`) and the release workflow that builds the `.exe`.
 - **Content rendering**: scraped pages, notes and chat answers are rendered in the dashboard, graph and chat through DOMPurify, and brain's own dialogs and dropdowns (`brain_mcp/ui.js`) escape their text; script execution from vault content or model output is a vulnerability. Chat answers may contain HTML: forms, iframes, `<style>`, images from other origins and styles with `url()` or `position: fixed` are removed, so a model steered by a saved page can't exfiltrate data through an image URL or cover the interface; a way around that is in scope. HTML code blocks are shown as a live preview inside a sandboxed iframe without `allow-same-origin` and with its own Content Security Policy: no scripts and nothing loaded from the internet until the user clicks *Run scripts* (and even then no `fetch`/XHR and no access to the chat, the dashboard or its API). A way for a preview to reach brain's origin, or to load or send anything before that click, is in scope.
 - **Chat settings stored locally**: the chat system prompt, context settings and notification settings stay on your machine (browser storage and `data/`); a way to read or change them from a website is a vulnerability. The chat's fixed app context and the skills you run with `/` come from brain itself and from your own vault.
+- **LM Studio URL** (`brain_mcp/lmstudio.py`, `data/lmstudio.json`, `600`): only `http`/`https` on `127.0.0.1`, `localhost`, `::1` or `*.local` are accepted; brain never sends your vault to that URL except the normal chat API calls you trigger. A way to point chat at an arbitrary remote host through the dashboard is a vulnerability.
+- **macOS menu bar** (`brain_mcp/menubar_mac.py`): a separate process that only talks to `http://127.0.0.1:<dashboard port>` (GET `/api/version`, `/api/activity`; POST `/api/quit` with `X-Brain: 1`). It must not expose the vault or run commands from the network. Disable with `BRAIN_NO_MENUBAR=1`.
 
 ## Out of scope
 

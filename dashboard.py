@@ -73,6 +73,12 @@ def _can_self_update() -> bool:
     return os.environ.get("BRAIN_LAUNCHER") == "1" and (Path(__file__).resolve().parent / ".git").exists()
 
 
+def _quit_app() -> dict:
+    """Cierra el dashboard (menú de la barra en macOS → Close)."""
+    threading.Timer(0.3, lambda: _SERVER["srv"] and _SERVER["srv"].shutdown()).start()
+    return {"ok": True}
+
+
 def _update_apply() -> dict:
     """Cierra el dashboard para que el lanzador actualice y lo vuelva a abrir (la página se recarga sola)."""
     if not _can_self_update():
@@ -191,13 +197,16 @@ def _chat_get(path: str, q: dict) -> dict:
 
 def _chat_context() -> dict:
     """Ajustes → Contexto: la regla guardada y cada modelo con su máximo y lo que usa."""
+    from brain_mcp import lmstudio
+
     settings = chat.ctx_settings()
     try:
         models, ollama = chat.models(), True
     except chat.ChatError:
         models, ollama = [], False
-    return {"ok": True, "settings": settings, "models": models, "ollama": ollama, "default_cap": chat.CHAT_CTX,
-            "min": chat.MIN_CTX, "max": chat.MAX_CTX_SETTING}
+    lm_on = lmstudio.load()["enabled"] and lmstudio.healthy()
+    return {"ok": True, "settings": settings, "models": models, "ollama": ollama, "lmstudio": lm_on,
+            "default_cap": chat.CHAT_CTX, "min": chat.MIN_CTX, "max": chat.MAX_CTX_SETTING}
 
 
 def _backup_post(action: str, body: dict) -> dict:
@@ -451,6 +460,10 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/version":
                 self._json({"current": updates.current(), "releases": updates.RELEASES_URL,
                             "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") or None})
+            elif u.path == "/api/lmstudio":
+                from brain_mcp import lmstudio
+
+                self._json({"ok": True, **lmstudio.public(), "healthy": lmstudio.healthy()})
             elif u.path == "/api/activity":  # para las notificaciones del sistema (Ajustes → Notificaciones)
                 self._json(history.since(int(q.get("after", ["-1"])[0])))
             elif u.path == "/api/remote":
@@ -537,8 +550,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, **reflect.run()})
             elif parts[:2] == ["api", "remote"] and len(parts) == 3:
                 self._json(_remote_post(parts[2], body))
+            elif u.path == "/api/quit":
+                self._json(_quit_app())
             elif u.path == "/api/update/apply":
                 self._json(_update_apply())
+            elif u.path == "/api/lmstudio":
+                from brain_mcp import lmstudio
+
+                try:
+                    self._json({"ok": True, **lmstudio.save(body), "healthy": lmstudio.healthy()})
+                except lmstudio.LmStudioError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/version/check":
                 try:
                     self._json({"ok": True, **updates.check()})
@@ -745,6 +767,13 @@ def main() -> None:
                 log.warning("No se pudo prender el acceso remoto: %s", e)
 
     autobackup.start_scheduler()  # backup automático (Ajustes → Backup), si está prendido
+
+    try:
+        from brain_mcp.menubar_mac import start as _menubar_start
+
+        _menubar_start(args.port, os.getpid())
+    except Exception as e:
+        log.warning("Barra de menú de macOS no disponible: %s", e)
 
     url = f"http://127.0.0.1:{args.port}"
     log.info("Dashboard en %s  (Ctrl+C apaga todo lo que prendió)", url)
