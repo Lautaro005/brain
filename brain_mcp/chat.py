@@ -136,7 +136,8 @@ y los índices, el historial y los ajustes en data/.
   de menú o la bandeja que queda al cerrarla. Un clic abre el notch con el grafo del vault; el clic derecho abre el menú
   (Open, Notifications, Settings, Updates, Close). Los cambios del vault salen en un solo lugar, a elección en Ajustes:
   una notificación del sistema, o un aviso chico que crece desde el notch. Logs suma una pestaña App. Desde el dashboard
-  web, Ajustes → App de escritorio pasa a la app. Sin la app, `brain` abre el dashboard en el navegador (versión de terminal).
+  web, Ajustes → App de escritorio pasa a la app. La app se actualiza sola cuando su versión queda atrás de la de brain
+  (`brain app-update` lo hace a mano). Sin la app, `brain` abre el dashboard en el navegador (versión de terminal).
 - Grafo: para conectar o desconectar notas, propose_graph_change muestra una imagen con los cambios marcados
   (verde = nueva, rojo = se saca) y el usuario aprueba, rechaza o deshace. También se ven en la vista Grafo.
 - Formato de las notas (detalle en FORMAT.md del vault): Markdown con frontmatter compatible con OKF (type, name,
@@ -198,7 +199,8 @@ vault/ and the indexes, history and settings in data/.
   tray icon that stays when it's closed. A click opens the notch with the vault graph; a right click opens the menu
   (Open, Notifications, Settings, Updates, Close). Vault changes show up in one place, chosen in Settings: a system
   notification, or a short alert that grows out of the notch. Logs gets an App tab. From the web dashboard, Settings →
-  Desktop app moves to the app. Without the app, `brain` opens the dashboard in the browser (terminal version).
+  Desktop app moves to the app. The app updates itself when its version falls behind brain's (`brain app-update`
+  does it by hand). Without the app, `brain` opens the dashboard in the browser (terminal version).
 - Graph: to link or unlink notes, propose_graph_change shows an image with the changes marked (green = new,
   red = removed) and the user approves, rejects or undoes it. They also show in the Graph view.
 - Note format (details in the vault's FORMAT.md): Markdown with OKF-compatible frontmatter (type, name, title,

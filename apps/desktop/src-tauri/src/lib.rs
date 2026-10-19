@@ -6,6 +6,7 @@
 mod applog;
 mod backend;
 mod notch;
+mod selfupdate;
 mod watch;
 
 use backend::Backend;
@@ -35,6 +36,8 @@ pub struct AppState {
     pub ready: AtomicBool,
     pub close_to_tray: AtomicBool,
     recent: Mutex<Vec<String>>,
+    /// The brain version the dashboard last reported (what the menu title shows).
+    dash_version: Mutex<String>,
     title: Mutex<Option<MenuItem<tauri::Wry>>>,
 }
 
@@ -118,13 +121,38 @@ fn start_dashboard(app: AppHandle) {
         state.ready.store(true, Ordering::SeqCst);
         let version = be.version();
         applog::line(format!("dashboard ready at {} (brain {version})", be.url()));
-        if let Some(item) = state.title.lock().unwrap().as_ref() {
-            let _ = item.set_text(format!("brain {version}"));
-        }
+        sync_version(&app, &version);
         if let Some(w) = main_window(&app) {
             let _ = w.eval(format!("location.replace('{}/')", be.url()));
         }
     });
+}
+
+/// The dashboard reports its version on every poll. The menu title follows it (after "Update and restart"
+/// the code is new but this icon was left on the old version), and if the code is newer than this app
+/// the app updates itself and restarts (see `selfupdate`).
+pub fn sync_version(app: &AppHandle, version: &str) {
+    if version.is_empty() {
+        return;
+    }
+    let state = app.state::<AppState>();
+    {
+        let mut cur = state.dash_version.lock().unwrap();
+        if *cur == version {
+            return;
+        }
+        if !cur.is_empty() {
+            applog::line(format!("brain is now {version}"));
+        }
+        *cur = version.to_string();
+    }
+    if let Some(item) = state.title.lock().unwrap().as_ref() {
+        let _ = item.set_text(format!("brain {version}"));
+    }
+    if selfupdate::check(&state.backend, version) {
+        watch::show(app, "brain", &watch::updating_body(version));
+        quit(app);
+    }
 }
 
 fn is_local(url: &Url) -> bool {
@@ -193,19 +221,18 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
     let settings = MenuItem::with_id(app, "settings", "Settings", true, Some("CmdOrCtrl+,"))?;
     let updates = MenuItem::with_id(app, "updates", "Updates", true, None::<&str>)?;
     let close = MenuItem::with_id(app, "close", "Close", true, Some("CmdOrCtrl+Q"))?;
-    let menu = Menu::with_items(
-        app,
-        &[
-            &title,
-            &PredefinedMenuItem::separator(app)?,
-            &open,
-            &notifications,
-            &settings,
-            &updates,
-            &PredefinedMenuItem::separator(app)?,
-            &close,
-        ],
-    )?;
+    // Linux trays (AppIndicator) don't report clicks: the menu is the only way in, so it also opens the notch.
+    let graph = MenuItem::with_id(app, "graph", "Notch…", true, None::<&str>)?;
+    let sep1 = PredefinedMenuItem::separator(app)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> =
+        vec![&title, &sep1, &open, &notifications, &settings, &updates];
+    if cfg!(target_os = "linux") {
+        items.push(&graph);
+    }
+    items.push(&sep2);
+    items.push(&close);
+    let menu = Menu::with_items(app, &items)?;
     *app.state::<AppState>().title.lock().unwrap() = Some(title);
     TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().cloned().expect("bundle icon"))
@@ -234,6 +261,7 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
                     Some("var c=document.querySelector('#notify-card'); if(c) c.scrollIntoView({block:'center'});"),
                 ),
                 "settings" => show_main(app, Some("ajustes"), None),
+                "graph" => notch::present(app, "graph", true),
                 "updates" => show_main(
                     app,
                     Some("ajustes"),
@@ -265,7 +293,7 @@ fn test_notification(app: AppHandle) {
         .unwrap_or_else(|| "system".to_string());
     if channel == "notch" {
         app.state::<AppState>().remember(&[body.to_string()]);
-        notch::present(&app, "alert");
+        notch::present(&app, "alert", false);
     } else {
         watch::show(&app, "brain", body);
     }
@@ -287,8 +315,8 @@ fn notch_lines(state: tauri::State<AppState>) -> Vec<String> {
 }
 
 #[tauri::command]
-fn notch_state(state: tauri::State<AppState>) -> serde_json::Value {
-    notch::state_json(state.recent())
+fn notch_state(app: AppHandle, state: tauri::State<AppState>) -> serde_json::Value {
+    notch::state_json(&app, state.recent())
 }
 
 #[tauri::command]
@@ -296,7 +324,7 @@ fn notch_open(app: AppHandle, mode: String) {
     if mode == "hide" {
         notch::dismiss(&app);
     } else {
-        notch::present(&app, &mode);
+        notch::present(&app, &mode, false);
     }
 }
 
@@ -352,6 +380,7 @@ pub fn run() {
             create_main(&handle)?;
             let version = std::fs::read_to_string(backend.home.join("VERSION")).unwrap_or_default();
             build_tray(&handle, version.trim())?;
+            notch::prepare(&handle);
             start_dashboard(handle.clone());
             watch::spawn(handle.clone());
             quit_on_signals(handle);
@@ -419,6 +448,7 @@ fn state_for(backend: Arc<Backend>) -> AppState {
         ready: AtomicBool::new(false),
         close_to_tray: AtomicBool::new(true),
         recent: Mutex::new(Vec::new()),
+        dash_version: Mutex::new(String::new()),
         title: Mutex::new(None),
     }
 }

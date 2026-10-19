@@ -260,6 +260,39 @@ impl Backend {
         c
     }
 
+    /// Starts `brain app-update` on its own, so it outlives this process: it waits for the app to quit,
+    /// installs the latest release's app and opens it again (see `selfupdate`).
+    #[cfg(unix)]
+    pub fn spawn_app_update(&self) -> Result<(), String> {
+        use std::os::unix::process::CommandExt;
+        let mut c = Command::new("/bin/bash");
+        clean_appimage_env(&mut c);
+        c.arg(self.home.join("brain.sh"))
+            .args(["app-update", &std::process::id().to_string()])
+            .current_dir(&self.home)
+            .env("PATH", fixed_path())
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .process_group(0);
+        c.spawn().map(|_| ()).map_err(|e| e.to_string())
+    }
+
+    #[cfg(windows)]
+    pub fn spawn_app_update(&self) -> Result<(), String> {
+        use std::os::windows::process::CommandExt;
+        let mut c = Command::new("powershell.exe");
+        c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(self.home.join("brain.ps1"))
+            .args(["app-update", &std::process::id().to_string()])
+            .current_dir(&self.home)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .creation_flags(0x0000_0008 | 0x0800_0000); // DETACHED_PROCESS | CREATE_NO_WINDOW
+        c.spawn().map(|_| ()).map_err(|e| e.to_string())
+    }
+
     /// Waits until the dashboard answers; false if it dies or `limit` passes.
     pub fn wait_ready(&self, limit: Duration) -> bool {
         let start = Instant::now();

@@ -36,6 +36,19 @@ case "${1:-}" in
     echo "O bajala del release: https://github.com/Lautaro005/brain/releases/latest"
     exit 1
     ;;
+  app-update)
+    # lo lanza la app de escritorio cuando su versión no es la del código (la actualización de brain trae el
+    # Python nuevo pero no el binario de la app): espera a que la app se cierre (pid), baja la app del último
+    # release, la instala y la vuelve a abrir. Si el release todavía no la trae, vuelve a abrir la que había.
+    pid="${2:-}"
+    LOG="$DIR/data/logs/app.log"; mkdir -p "$DIR/data/logs"
+    log() { printf '%s [app-update] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"; }
+    if [ -n "$pid" ]; then for _ in $(seq 1 80); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+    elif pkill -TERM -x brain-app 2>/dev/null; then sleep 4; fi  # a mano: cierra la app que esté abierta (apaga su dashboard)
+    log "actualizando la app de escritorio"
+    if BRAIN_APP_ONLY=1 BRAIN_HOME="$DIR" bash "$DIR/install.sh" >> "$LOG" 2>&1; then log "listo, abriendo la app"; else log "no se pudo actualizar la app; abro la que estaba"; fi
+    exec "$0" app
+    ;;
   uninstall)
     CMD="$(command -v brain || echo "$HOME/.local/bin/brain")"
     if grep -qs "generado por install.sh" "$CMD"; then rm -f "$CMD"; echo "Saqué el comando brain ($CMD)."; else echo "No encontré el comando brain instalado."; fi
@@ -58,6 +71,7 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
   brain --no-autostart  no prender Ollama/Chroma solos
   brain --no-browser    no abrir el navegador
   brain app             abre la app de escritorio (barra de menú / bandeja, avisos y notch)
+  brain app-update      baja la app del último release y la vuelve a abrir
   brain update          actualiza a la última versión
   brain path            muestra dónde está instalado (ahí viven vault/ y data/)
   brain uninstall       saca el comando (no borra tus datos)

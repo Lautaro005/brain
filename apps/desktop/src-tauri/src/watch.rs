@@ -42,6 +42,13 @@ impl Lang {
             format!("{n} changes in your vault")
         }
     }
+    fn updating(self, version: &str) -> String {
+        if self.0 {
+            format!("Actualizando la app de brain a {version}…")
+        } else {
+            format!("Updating the brain app to {version}…")
+        }
+    }
     pub fn test_body(self) -> &'static str {
         if self.0 {
             "Así se ven las notificaciones de brain."
@@ -49,6 +56,10 @@ impl Lang {
             "This is what brain's notifications look like."
         }
     }
+}
+
+pub fn updating_body(version: &str) -> String {
+    Lang::detect().updating(version)
 }
 
 pub fn test_body() -> &'static str {
@@ -140,6 +151,9 @@ pub fn spawn(app: AppHandle) {
                 }
             };
             was_up = true;
+            if let Some(v) = cfg["version"].as_str() {
+                crate::sync_version(&app, v);
+            }
             state.close_to_tray.store(
                 cfg["close_to_tray"].as_bool().unwrap_or(true),
                 Ordering::SeqCst,
@@ -174,7 +188,7 @@ pub fn spawn(app: AppHandle) {
             state.remember(&lines);
             // One place for the alert: the system notification, or the small notch. Not both.
             if cfg["channel"].as_str() == Some("notch") {
-                notch::present(&app, "alert");
+                notch::present(&app, "alert", false);
             } else {
                 for body in &lines {
                     show(&app, lang.title(), body);

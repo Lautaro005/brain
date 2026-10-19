@@ -3,86 +3,144 @@ html, body {
   margin: 0; height: 100%; overflow: hidden;
   background: transparent; color: #f4f4f0;
   font: 13px/1.35 Archivo, "Helvetica Neue", Arial, sans-serif;
-  user-select: none; cursor: default;
+  user-select: none; -webkit-user-select: none; cursor: default;
 }
 body.preview { background: #c9b59a; }
-body.preview-graph { width: 460px; height: 312px; }
-body.preview-alert { width: 308px; height: 76px; }
 
+/* The island is centered at the top of a transparent window that leaves a little room around it,
+   so the spring can overshoot. Its size comes from the page script (--w / --h); it grows by CSS. */
 .island {
-  height: 100%;
+  --spring: cubic-bezier(.25, 1.18, .4, 1);
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --seed-w: 150px; --seed-h: 0px;
+  position: absolute; top: 0; left: 50%;
+  width: var(--w, 0px); height: var(--h, 0px);
+  transform: translateX(-50%);
   background: #000;
+  border-radius: 0 0 26px 26px;
   display: flex; flex-direction: column;
-  overflow: hidden;
-  border-radius: 20px;
+  will-change: width, height;
+  transition:
+    width .62s var(--spring), height .62s var(--spring),
+    border-radius .62s var(--ease), opacity .3s var(--ease), transform .62s var(--ease);
 }
-html[data-os="macos"] .island { border-radius: 0 0 22px 22px; }
+.island.no-anim, .island.no-anim * { transition: none !important; animation: none !important; }
+/* closed: back to the notch (or, without one, up and out) */
+.island.seed {
+  width: var(--seed-w); height: var(--seed-h);
+  border-radius: 0 0 14px 14px;
+}
+html[data-os="macos"][data-notch="0"] .island.seed { opacity: 0; }
+html:not([data-os="macos"]) .island { border-radius: 22px; top: 6px; }
+html:not([data-os="macos"]) .island.seed { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(.9); border-radius: 22px; }
 
+/* the concave shoulders where the island meets the top edge, like the notch's own */
+html[data-os="macos"] .island::before,
+html[data-os="macos"] .island::after {
+  content: ""; position: absolute; top: 0; width: 12px; height: 12px; pointer-events: none;
+  transition: opacity .3s var(--ease);
+}
+html[data-os="macos"] .island::before { left: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, #000 12px); }
+html[data-os="macos"] .island::after { right: -12px; background: radial-gradient(circle at 100% 100%, transparent 11.5px, #000 12px); }
+html[data-os="macos"] .island.seed::before, html[data-os="macos"] .island.seed::after { opacity: 0; }
+
+/* ---------- header: where the menu bar is (on a notched Mac the hardware notch sits in .gap) ---------- */
 header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px 0 16px; flex: none;
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  height: var(--header, 34px); padding: 0 12px 0 18px;
+  opacity: 0; transform: translateY(-4px);
+  transition: opacity .25s var(--ease), transform .4s var(--ease);
 }
-header b { letter-spacing: .08em; font-weight: 650; font-size: 12px; }
-header span { color: #9a9a94; font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#bell {
-  position: relative; width: 28px; height: 28px; border: 0; border-radius: 50%;
-  background: #161616; color: #f4f4f0; padding: 0; cursor: pointer;
-  display: grid; place-items: center;
+.island:not(.seed)[data-mode] header { opacity: 1; transform: none; transition-delay: .16s; }
+.who { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.who b { letter-spacing: .1em; font-weight: 650; font-size: 12px; }
+.who em { font-style: normal; color: #8f8f89; font-size: 11.5px; white-space: nowrap; }
+.gap { flex: 1; }
+html[data-notch="1"] .gap { flex: 0 0 var(--notch-w, 190px); }
+.live {
+  width: 7px; height: 7px; border-radius: 50%; background: #f4f4f0; flex: none;
+  animation: breathe 2.6s ease-in-out infinite;
 }
-#bell svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
-#bell:hover { background: #f4f4f0; color: #000; }
-#dot {
-  position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%;
-  background: #f4f4f0; box-shadow: 0 0 0 2px #161616;
+@keyframes breathe {
+  0%, 100% { opacity: .35; transform: scale(.85); }
+  50% { opacity: 1; transform: scale(1); }
 }
-#bell:hover #dot { background: #000; box-shadow: 0 0 0 2px #f4f4f0; }
-
-.alert {
-  flex: 1; display: flex; align-items: center; gap: 10px;
-  padding: 4px 16px 10px; min-height: 0; cursor: pointer;
-}
-.pulse {
-  width: 8px; height: 8px; border-radius: 50%; background: #f4f4f0; flex: none;
-  box-shadow: 0 0 0 0 rgba(244, 244, 240, .7);
-  animation: ping 1.4s ease-out infinite;
-}
+.island[data-mode="alert"] .live { animation: ping 1.3s ease-out infinite; opacity: 1; }
 @keyframes ping {
-  0% { box-shadow: 0 0 0 0 rgba(244, 244, 240, .55); }
-  70% { box-shadow: 0 0 0 8px rgba(244, 244, 240, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(244, 244, 240, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(244, 244, 240, .6); }
+  75%, 100% { box-shadow: 0 0 0 9px rgba(244, 244, 240, 0); }
 }
+
+#bell {
+  position: relative; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  background: #17171a; color: #f4f4f0; padding: 0; cursor: pointer;
+  display: grid; place-items: center; transition: background .2s, color .2s, transform .2s var(--ease);
+}
+#bell svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+#bell:hover { background: #f4f4f0; color: #000; transform: scale(1.08); }
+#bell:active { transform: scale(.94); }
+#bell.ring svg { animation: ring .7s ease; transform-origin: 50% 10%; }
+@keyframes ring {
+  0% { transform: rotate(0); } 18% { transform: rotate(18deg); } 36% { transform: rotate(-14deg); }
+  54% { transform: rotate(9deg); } 72% { transform: rotate(-5deg); } 100% { transform: rotate(0); }
+}
+#count {
+  position: absolute; top: -3px; right: -4px; min-width: 15px; height: 15px; padding: 0 4px;
+  border-radius: 8px; background: #f4f4f0; color: #000; box-shadow: 0 0 0 2px #000;
+  font: 650 9.5px/15px Archivo, "Helvetica Neue", Arial, sans-serif; font-style: normal; text-align: center;
+}
+#count[hidden] { display: none; }
+
+/* ---------- body ---------- */
+.body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.alert, .stage {
+  position: absolute; inset: 0;
+  opacity: 0; transform: translateY(-6px); pointer-events: none;
+  transition: opacity .22s var(--ease), transform .45s var(--ease);
+}
+.island:not(.seed)[data-mode="alert"] .alert,
+.island:not(.seed)[data-mode="graph"] .stage { opacity: 1; transform: none; pointer-events: auto; transition-delay: .24s; }
+
+.alert { display: flex; align-items: flex-start; gap: 10px; padding: 2px 14px 12px 18px; cursor: pointer; }
+.alert:hover .go { transform: translateX(3px); opacity: 1; }
+.alert:focus-visible { outline: 1px solid #f4f4f0; outline-offset: -4px; border-radius: 12px; }
 ul { list-style: none; margin: 0; padding: 0; min-width: 0; flex: 1; }
 li {
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  color: #e8e8e2;
-  font-family: "Courier Prime", "Courier New", monospace;
-  font-size: 12px;
+  display: flex; gap: 8px; align-items: baseline; min-width: 0;
+  white-space: nowrap; overflow: hidden; color: #e8e8e2;
+  animation: slide .5s var(--ease) both;
 }
-li + li { margin-top: 2px; }
-li.empty { color: #9a9a94; font-family: Archivo, "Helvetica Neue", Arial, sans-serif; }
+li:nth-child(2) { animation-delay: .07s; }
+@keyframes slide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+li + li { margin-top: 4px; }
+li .v {
+  flex: none; font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: #8f8f89;
+  min-width: 56px;
+}
+li .p {
+  overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  font-family: "Courier Prime", "Courier New", monospace; font-size: 12px;
+}
+li.empty { color: #8f8f89; }
+.go { width: 14px; height: 14px; flex: none; margin-top: 2px; fill: none; stroke: #f4f4f0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; transition: transform .25s var(--ease), opacity .25s; }
 
-.stage { position: relative; flex: 1; min-height: 0; }
-svg { width: 100%; height: 100%; display: block; }
+.stage { padding: 0; }
+svg#svg { width: 100%; height: 100%; display: block; }
 #tip {
-  position: absolute; left: 12px; right: 12px; bottom: 8px; margin: 0;
+  position: absolute; left: 16px; right: 16px; bottom: 9px; margin: 0;
   font-size: 11px; color: #c8c8c2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  pointer-events: none; opacity: 0; transition: opacity .15s;
+  pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity .18s, transform .25s var(--ease);
 }
-#tip.on { opacity: 1; }
-
-.mode-alert header, .mode-alert .stage { display: none; }
-.mode-graph .alert { display: none; }
-.mode-alert #bell { animation: ring .6s ease; }
-@keyframes ring {
-  0% { transform: rotate(0); }
-  25% { transform: rotate(16deg); }
-  50% { transform: rotate(-12deg); }
-  75% { transform: rotate(6deg); }
-  100% { transform: rotate(0); }
-}
+#tip.on { opacity: 1; transform: none; }
 
 .node { cursor: pointer; }
-.node circle { transition: r .15s; }
-.node:hover circle { stroke: #fff; }
-.link { stroke: rgba(244, 244, 240, .38); stroke-width: 1; fill: none; }
+.node:hover .core { stroke: #fff; stroke-width: 2; }
+.link { stroke: rgba(244, 244, 240, .34); stroke-width: 1; fill: none; }
 .label { font: 10px/1 Archivo, "Helvetica Neue", Arial, sans-serif; fill: #bdbdb6; pointer-events: none; }
+.halo { fill: none; stroke: #f4f4f0; stroke-width: 1; pointer-events: none; }
+.spark { fill: #fff; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .island, header, .alert, .stage { transition-duration: .01s; }
+  .live, li, #bell.ring svg { animation: none; }
+}

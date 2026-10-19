@@ -4,6 +4,7 @@ import sys
 import threading
 import urllib.request
 from http.server import ThreadingHTTPServer
+from pathlib import Path
 
 import pytest
 
@@ -81,6 +82,7 @@ def test_api(dash, monkeypatch):
     assert _get(dash + "/api/version")["app"] is True
     assert "app" in {s["key"] for s in _get(dash + "/api/status")["services"]}
     assert _get(dash + "/api/app")["active"] is True
+    assert _get(dash + "/api/app")["version"] == _get(dash + "/api/version")["current"]  # el shell compara esta versión con la suya
     out = _post(dash + "/api/app", {"notify": {"on": False}, "channel": "system"})
     assert out["notify"]["on"] is False and out["channel"] == "system"
     assert _get(dash + "/api/app")["notify"]["on"] is False
@@ -116,3 +118,12 @@ def test_handoff_api(dash, monkeypatch, tmp_path):
     assert called and (called[0][1] / "dashboard.py").exists()  # la raíz de brain, donde está brain.sh
     monkeypatch.setenv("BRAIN_APP", "1")  # dentro de la app no hay a dónde pasar
     assert _post(dash + "/api/app/handoff", {})["code"] == "already_app"
+
+
+def test_app_update_command_and_app_only_installer():
+    """`brain app-update` y `BRAIN_APP_ONLY=1` existen en los dos lanzadores/instaladores (los usa el shell al actualizarse)."""
+    root = Path(__file__).resolve().parent.parent
+    for name in ("brain.sh", "brain.ps1"):
+        assert "app-update" in (root / name).read_text(encoding="utf-8")
+    assert "BRAIN_APP_ONLY" in (root / "install.sh").read_text(encoding="utf-8")
+    assert "BRAIN_APP_ONLY" in (root / "install.ps1").read_text(encoding="utf-8")
