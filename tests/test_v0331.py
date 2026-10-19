@@ -1,5 +1,6 @@
 """v0.03.3.1: modo app de escritorio (ajustes del shell, log propio) y backup de esos ajustes. Sin red."""
 import json
+import sys
 import threading
 import urllib.request
 from http.server import ThreadingHTTPServer
@@ -35,17 +36,27 @@ def _post(url, body):
 
 def test_defaults_and_save_validation():
     cfg = appmode.load()
-    assert cfg == {"notify": {"on": True, "create": True, "update": True, "delete": True}, "notch": True, "close_to_tray": True}
-    out = appmode.save({"notify": {"delete": False, "create": "no", "bogus": False}, "notch": False, "close_to_tray": "x", "evil": 1})
+    assert cfg["notify"] == {"on": True, "create": True, "update": True, "delete": True}
+    assert cfg["close_to_tray"] is True
+    assert cfg["channel"] == ("notch" if sys.platform == "darwin" else "system")
+    out = appmode.save({"notify": {"delete": False, "create": "no", "bogus": False}, "channel": "nope",
+                        "notch": False, "close_to_tray": "x", "evil": 1})
     assert out["notify"] == {"on": True, "create": True, "update": True, "delete": False}  # "no" no es booleano: se ignora
-    assert out["notch"] is False and out["close_to_tray"] is True
+    assert out["channel"] == "system" and out["close_to_tray"] is True  # "nope" se ignora; el booleano viejo sí cuenta
     assert appmode.load() == out and "evil" not in json.loads(appmode.SETTINGS.read_text())
+    assert appmode.save({"channel": "notch"})["channel"] == "notch"
+
+
+def test_old_notch_flag_becomes_the_channel(tmp_path, monkeypatch):
+    monkeypatch.setattr(appmode, "SETTINGS", tmp_path / "app_settings.json")
+    appmode.SETTINGS.write_text('{"notch": false, "close_to_tray": true}', encoding="utf-8")
+    assert appmode.load()["channel"] == "system"
 
 
 def test_corrupt_settings_fall_back_to_defaults():
     appmode.SETTINGS.parent.mkdir(parents=True, exist_ok=True)
     appmode.SETTINGS.write_text("{not json", encoding="utf-8")
-    assert appmode.load()["notch"] is True
+    assert appmode.load()["channel"] == ("notch" if sys.platform == "darwin" else "system")
     appmode.SETTINGS.write_text('["lista"]', encoding="utf-8")
     assert appmode.load()["notify"]["on"] is True
 
@@ -70,8 +81,8 @@ def test_api(dash, monkeypatch):
     assert _get(dash + "/api/version")["app"] is True
     assert "app" in {s["key"] for s in _get(dash + "/api/status")["services"]}
     assert _get(dash + "/api/app")["active"] is True
-    out = _post(dash + "/api/app", {"notify": {"on": False}, "notch": False})
-    assert out["notify"]["on"] is False and out["notch"] is False
+    out = _post(dash + "/api/app", {"notify": {"on": False}, "channel": "system"})
+    assert out["notify"]["on"] is False and out["channel"] == "system"
     assert _get(dash + "/api/app")["notify"]["on"] is False
     appmode.LOG.parent.mkdir(parents=True, exist_ok=True)
     appmode.LOG.write_text("2026-10-18 [app] hola\n", encoding="utf-8")

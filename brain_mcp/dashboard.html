@@ -370,6 +370,11 @@
   .switch input:checked + .track::after { box-shadow: none; }
 
   .btn { border-radius: 3px; border-color: var(--line-strong); color: var(--text); font-weight: 600; text-decoration: none; }
+  .channel { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 3px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; background: transparent; color: var(--text); border: 0; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line-strong); }
+  .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
   .btn:hover { border-color: var(--text); }
   .btn.primary { background: var(--text); color: var(--surface); border-color: var(--text); }
   .btn.primary:hover { opacity: 1; background: var(--text-2); border-color: var(--text-2); }
@@ -1029,7 +1034,13 @@
               </div>
               <div class="notify-kinds" id="app-extra" hidden style="margin-left:0;margin-top:14px">
                 <p class="form-hint" style="margin:0" data-i18n="settings.appHint"></p>
-                <label class="check"><input type="checkbox" data-app="notch"> <span data-i18n="settings.appNotch"></span></label>
+                <div class="channel">
+                  <span data-i18n="settings.appChannel"></span>
+                  <div class="seg" id="alert-channel" role="group">
+                    <button type="button" data-channel="system" data-i18n="settings.appSystem"></button>
+                    <button type="button" data-channel="notch" data-i18n="settings.appNotch"></button>
+                  </div>
+                </div>
                 <label class="check"><input type="checkbox" data-app="close_to_tray"> <span data-i18n="settings.appTray"></span></label>
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -1457,8 +1468,8 @@ const I18N = {
       hoOff: "La app de escritorio no está instalada. Instalala con el mismo comando de instalación (o bajala del último release) y después pasá desde acá.",
       hoGo: "Pasar a la app de escritorio", hoGet: "Bajar la app", hoDone: "Abriendo la app… este dashboard se cierra.",
       hoAsk: "Se cierra este dashboard y se abre la app de escritorio. ¿Seguimos?", hoNotInstalled: "La app no está instalada.",
-      appHint: "Estás en la app de escritorio. Te avisa con una notificación del sistema cuando cambia algo en tu vault, lo haga un agente, el chat o vos. Los avisos los manda la app aunque cierres la ventana (queda el ícono en la barra de menú o la bandeja) y estos ajustes se guardan en tu computadora, no en el navegador.",
-      appNotch: "Panel del notch: una ventana oscura arriba al centro con accesos al panel, el grafo y el chat cuando hay cambios",
+      appHint: "Estás en la app de escritorio. Los cambios del vault salen en un solo lugar: una notificación del sistema, o un aviso chico que crece desde el notch. Un clic en el ícono abre el notch con el grafo; el clic derecho abre el menú. La app avisa aunque cierres la ventana (queda el ícono) y estos ajustes se guardan en tu computadora, no en el navegador.",
+      appChannel: "Avisos en", appSystem: "Sistema", appNotch: "Notch",
       appTray: "Al cerrar la ventana, dejar brain en la barra de menú o la bandeja" },
     dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
@@ -1801,8 +1812,8 @@ const I18N = {
       hoOff: "The desktop app isn't installed. Install it with the same install command (or download it from the latest release), then switch from here.",
       hoGo: "Move to the desktop app", hoGet: "Get the app", hoDone: "Opening the app… this dashboard is closing.",
       hoAsk: "This dashboard will close and the desktop app will open. Continue?", hoNotInstalled: "The app isn't installed.",
-      appHint: "You're in the desktop app. It shows a system notification when something changes in your vault, whether an agent, the chat or you did it. The app sends them even when you close the window (the icon stays in the menu bar or tray), and these settings are saved on your computer, not in the browser.",
-      appNotch: "Notch panel: a dark window at the top center with shortcuts to the dashboard, graph and chat when something changes",
+      appHint: "You're in the desktop app. Vault changes show up in one place: a system notification, or a short alert that grows out of the notch. A click on the icon opens the notch with the graph; a right click opens the menu. The app still alerts you after you close the window (the icon stays), and these settings are saved on your computer, not in the browser.",
+      appChannel: "Alerts in", appSystem: "System", appNotch: "Notch",
       appTray: "When the window is closed, keep brain in the menu bar or tray" },
     dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
@@ -2310,10 +2321,19 @@ $("#ho-go").onclick = async () => {
 document.querySelectorAll("[data-app]").forEach(cb => cb.onchange = () => {
   const k = cb.dataset.app; appCfg = { ...(appCfg || {}), [k]: cb.checked }; api("/api/app", { [k]: cb.checked }).catch(() => {});
 });
+document.querySelectorAll("[data-channel]").forEach(b => b.onclick = () => {
+  appCfg = { ...(appCfg || {}), channel: b.dataset.channel };
+  api("/api/app", { channel: b.dataset.channel }).catch(() => {});
+  renderNotify();
+});
 function renderNotify() {
   $("#app-extra").hidden = !IN_APP;
   $("#notify-hint").hidden = IN_APP;
-  if (IN_APP && appCfg) document.querySelectorAll("[data-app]").forEach(cb => { cb.checked = !!appCfg[cb.dataset.app]; });
+  if (IN_APP && appCfg) {
+    document.querySelectorAll("[data-app]").forEach(cb => { cb.checked = !!appCfg[cb.dataset.app]; });
+    const ch = appCfg.channel === "notch" ? "notch" : "system";
+    document.querySelectorAll("[data-channel]").forEach(b => b.setAttribute("aria-pressed", b.dataset.channel === ch ? "true" : "false"));
+  }
   const p = notifyPrefs(), on = p.on && canNotify();
   $("#notify-on").checked = on;
   $("#notify-kinds").classList.toggle("off", !on);

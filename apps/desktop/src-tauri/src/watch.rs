@@ -170,13 +170,15 @@ pub fn spawn(app: AppHandle) {
                 "{} change(s) in the vault",
                 total.max(changes.len() as u64)
             ));
-            for body in &lines {
-                show(&app, lang.title(), body);
-            }
             flash_tray(&app);
             state.remember(&lines);
-            if cfg["notch"].as_bool().unwrap_or(true) {
-                notch::show(&app);
+            // One place for the alert: the system notification, or the small notch. Not both.
+            if cfg["channel"].as_str() == Some("notch") {
+                notch::present(&app, "alert");
+            } else {
+                for body in &lines {
+                    show(&app, lang.title(), body);
+                }
             }
         }
     });

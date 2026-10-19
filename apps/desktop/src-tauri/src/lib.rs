@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
@@ -192,7 +192,6 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
         MenuItem::with_id(app, "notifications", "Notifications", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings", true, Some("CmdOrCtrl+,"))?;
     let updates = MenuItem::with_id(app, "updates", "Updates", true, None::<&str>)?;
-    let notch = MenuItem::with_id(app, "notch", "Notch…", true, None::<&str>)?;
     let close = MenuItem::with_id(app, "close", "Close", true, Some("CmdOrCtrl+Q"))?;
     let menu = Menu::with_items(
         app,
@@ -203,7 +202,6 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
             &notifications,
             &settings,
             &updates,
-            &notch,
             &PredefinedMenuItem::separator(app)?,
             &close,
         ],
@@ -213,7 +211,19 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
         .icon(app.default_window_icon().cloned().expect("bundle icon"))
         .tooltip("brain")
         .menu(&menu)
-        .show_menu_on_left_click(true)
+        // Left click grows the notch (the graph). Right click is the menu above — macOS shows it
+        // on right click by default; Linux always uses the left click for the menu.
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                notch::toggle_graph(tray.app_handle());
+            }
+        })
         .on_menu_event(|app, event| {
             applog::line(format!("tray: {}", event.id.as_ref()));
             match event.id.as_ref() {
@@ -229,7 +239,6 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
                     Some("ajustes"),
                     Some("var b=document.querySelector('#update-btn'); if(b) b.click();"),
                 ),
-                "notch" => notch::show(app),
                 "close" => quit(app),
                 _ => {}
             }
@@ -242,7 +251,20 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
 
 #[tauri::command]
 fn test_notification(app: AppHandle) {
-    watch::show(&app, "brain", watch::test_body());
+    let body = watch::test_body();
+    let channel = app
+        .state::<AppState>()
+        .backend
+        .get_json("/api/app")
+        .ok()
+        .and_then(|c| c.get("channel").and_then(|v| v.as_str()).map(str::to_string))
+        .unwrap_or_else(|| "system".to_string());
+    if channel == "notch" {
+        app.state::<AppState>().remember(&[body.to_string()]);
+        notch::present(&app, "alert");
+    } else {
+        watch::show(&app, "brain", body);
+    }
 }
 
 #[tauri::command]
@@ -252,12 +274,32 @@ fn open_view(app: AppHandle, view: String) {
 
 #[tauri::command]
 fn hide_notch(app: AppHandle) {
-    notch::hide(&app);
+    notch::dismiss(&app);
 }
 
 #[tauri::command]
 fn notch_lines(state: tauri::State<AppState>) -> Vec<String> {
     state.recent()
+}
+
+#[tauri::command]
+fn notch_state(state: tauri::State<AppState>) -> serde_json::Value {
+    notch::state_json(state.recent())
+}
+
+#[tauri::command]
+fn notch_open(app: AppHandle, mode: String) {
+    if mode == "hide" {
+        notch::dismiss(&app);
+    } else {
+        notch::present(&app, &mode);
+    }
+}
+
+#[tauri::command]
+fn notch_graph(state: tauri::State<AppState>) -> Result<serde_json::Value, String> {
+    let graph = state.backend.get_json("/api/graph")?;
+    Ok(notch::slim_graph(&graph))
 }
 
 #[tauri::command]
@@ -332,6 +374,9 @@ pub fn run() {
             open_view,
             hide_notch,
             notch_lines,
+            notch_state,
+            notch_open,
+            notch_graph,
             retry_start
         ])
         .build(tauri::generate_context!())

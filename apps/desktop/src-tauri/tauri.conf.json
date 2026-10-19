@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "brain",
   "mainBinaryName": "brain-app",
-  "version": "0.3.3-1",
+  "version": "0.3.3-2",
   "identifier": "app.brain.desktop",
   "build": {
     "frontendDist": "../ui"
@@ -19,7 +19,7 @@
     "targets": ["appimage", "deb", "nsis", "app", "dmg"],
     "category": "Productivity",
     "shortDescription": "Your local knowledge base for AI agents, with a tray icon",
-    "longDescription": "brain keeps your notes, profile and memory in one local place for Claude, ChatGPT and other agents. The app opens the brain dashboard in its own window and stays in the menu bar or tray, with system notifications and a notch panel when your vault changes.",
+    "longDescription": "brain keeps your notes, profile and memory in one local place for Claude, ChatGPT and other agents. The app opens the brain dashboard in its own window and stays in the menu bar or tray. A click on the icon opens a notch with your graph; vault changes can show up there or as a system notification.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

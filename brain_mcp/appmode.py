@@ -21,9 +21,18 @@ LOG_LINES = 500
 
 DEFAULTS = {
     "notify": {"on": True, "create": True, "update": True, "delete": True},
-    "notch": True,
+    "channel": "notch",  # "notch" | "system" — un solo lugar para el aviso
     "close_to_tray": True,
 }
+
+
+def _channel(raw: dict) -> str:
+    """`channel` manda. Un `notch` booleano viejo (v0.03.3.1) se lee una vez. Sin nada: notch en macOS."""
+    if raw.get("channel") in ("notch", "system"):
+        return raw["channel"]
+    if "notch" in raw:
+        return "notch" if raw.get("notch") else "system"
+    return "notch" if sys.platform == "darwin" else "system"
 
 
 def active() -> bool:
@@ -41,7 +50,7 @@ def load() -> dict:
     notify = raw.get("notify") if isinstance(raw.get("notify"), dict) else {}
     return {
         "notify": {k: bool(notify.get(k, v)) for k, v in DEFAULTS["notify"].items()},
-        "notch": bool(raw.get("notch", DEFAULTS["notch"])),
+        "channel": _channel(raw),
         "close_to_tray": bool(raw.get("close_to_tray", DEFAULTS["close_to_tray"])),
     }
 
@@ -53,7 +62,11 @@ def save(body: dict) -> dict:
         for k in cur["notify"]:
             if isinstance(body["notify"].get(k), bool):
                 cur["notify"][k] = body["notify"][k]
-    for k in ("notch", "close_to_tray"):
+    if body.get("channel") in ("notch", "system"):
+        cur["channel"] = body["channel"]
+    elif isinstance(body.get("notch"), bool):  # clientes de la v0.03.3.1
+        cur["channel"] = "notch" if body["notch"] else "system"
+    for k in ("close_to_tray",):
         if isinstance(body.get(k), bool):
             cur[k] = body[k]
     DATA.mkdir(parents=True, exist_ok=True)

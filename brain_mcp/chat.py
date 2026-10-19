@@ -133,9 +133,10 @@ y los índices, el historial y los ajustes en data/.
   del chat cada modelo muestra «Proveedor · nombre»), instrucciones propias para el chat, notificaciones del
   sistema, backup y restauración, formato de las notas (completar type/created/updated en notas viejas) y colores del grafo.
 - App de escritorio (macOS, Linux y Windows; `brain app`): el mismo dashboard en su ventana, con un ícono en la barra
-  de menú o la bandeja que queda al cerrarla (Open, Notifications, Settings, Updates, Notch…, Close). Si hay cambios
-  en el vault manda una notificación del sistema y abre un panel oscuro arriba al centro con accesos al panel, el
-  grafo y el chat; Logs suma una pestaña App. Desde el dashboard web, Ajustes → App de escritorio pasa a la app. Sin la app, `brain` abre el dashboard en el navegador (versión de terminal).
+  de menú o la bandeja que queda al cerrarla. Un clic abre el notch con el grafo del vault; el clic derecho abre el menú
+  (Open, Notifications, Settings, Updates, Close). Los cambios del vault salen en un solo lugar, a elección en Ajustes:
+  una notificación del sistema, o un aviso chico que crece desde el notch. Logs suma una pestaña App. Desde el dashboard
+  web, Ajustes → App de escritorio pasa a la app. Sin la app, `brain` abre el dashboard en el navegador (versión de terminal).
 - Grafo: para conectar o desconectar notas, propose_graph_change muestra una imagen con los cambios marcados
   (verde = nueva, rojo = se saca) y el usuario aprueba, rechaza o deshace. También se ven en la vista Grafo.
 - Formato de las notas (detalle en FORMAT.md del vault): Markdown con frontmatter compatible con OKF (type, name,
@@ -194,9 +195,10 @@ vault/ and the indexes, history and settings in data/.
   "Provider · name" for each model), custom chat instructions, system notifications, backup and restore, note
   format (fill in type/created/updated on older notes) and graph colors.
 - Desktop app (macOS, Linux and Windows; `brain app`): the same dashboard in its own window, with a menu-bar or
-  tray icon that stays when it's closed (Open, Notifications, Settings, Updates, Notch…, Close). Vault changes show
-  a system notification and open a dark panel at the top center with shortcuts to the dashboard, graph and chat;
-  Logs gets an App tab. From the web dashboard, Settings → Desktop app moves to the app. Without the app, `brain` opens the dashboard in the browser (terminal version).
+  tray icon that stays when it's closed. A click opens the notch with the vault graph; a right click opens the menu
+  (Open, Notifications, Settings, Updates, Close). Vault changes show up in one place, chosen in Settings: a system
+  notification, or a short alert that grows out of the notch. Logs gets an App tab. From the web dashboard, Settings →
+  Desktop app moves to the app. Without the app, `brain` opens the dashboard in the browser (terminal version).
 - Graph: to link or unlink notes, propose_graph_change shows an image with the changes marked (green = new,
   red = removed) and the user approves, rejects or undoes it. They also show in the Graph view.
 - Note format (details in the vault's FORMAT.md): Markdown with OKF-compatible frontmatter (type, name, title,

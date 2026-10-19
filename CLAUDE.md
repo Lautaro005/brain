@@ -23,7 +23,7 @@ brain es un servidor MCP local: un vault en Markdown, el perfil y la memoria del
 - **Dashboard** (`./brain.sh`): switches para Chroma, Ollama y el Inspector MCP, métricas y gráficos, salud del sistema, perfil y memoria, grafo de conexiones, guardar y buscar URLs, y logs. En español o inglés, con tema claro, oscuro o el del sistema.
 - **Fact check** (vista del dashboard, `/factcheck`, tool `fact_check`): verifica afirmaciones con un proceso visible: primero brain, internet solo si no alcanza, fuentes leídas enteras, independencia, contraevidencia y veredicto por reglas.
 - **Cambios en el grafo con aprobación**: `propose_graph_change` propone, el usuario ve una imagen (SVG) con los cambios marcados y aprueba, rechaza o deshace.
-- **App de escritorio** (v0.03.3.1, `apps/desktop`, Tauri 2): el mismo dashboard en su ventana, con ícono en la barra de menú (macOS) o la bandeja (Linux, Windows) que queda al cerrarla, notificaciones del sistema, panel del notch y un log propio (Logs → App). La versión de terminal (`brain` + dashboard en el navegador) sigue igual; el instalador instala las dos.
+- **App de escritorio** (v0.03.3.2, `apps/desktop`, Tauri 2): el mismo dashboard en su ventana, con ícono en la barra de menú (macOS) o la bandeja (Linux, Windows) que queda al cerrarla. Un clic abre el notch (crece desde arriba, con el grafo); el clic derecho abre el menú. Los avisos son o del sistema o del notch, según Ajustes. Log propio en Logs → App. La versión de terminal sigue igual; el instalador instala las dos.
 - **Acceso remoto por URL** (Conectar agente → Por URL): `server.py --http` en 127.0.0.1:8770 publicado con un túnel de Cloudflare (`cloudflared`), con token secreto en la URL. Para agentes en la nube (Claude.ai, ChatGPT, Manus en la web…).
 
 ## Tools MCP
@@ -132,7 +132,7 @@ brain_mcp/
   remote.py            acceso remoto: token y ajustes (data/remote.json), auth ASGI del server --http, descarga de cloudflared, URL del túnel
   oauth.py             login OAuth de conexiones por URL (provider del SDK de MCP, tokens en data/oauth.json, callback /oauth/callback)
   backup.py            backup/restauración (.zip con vault, historial, ajustes y export de Chroma con embeddings) + reconstruir índices
-  appmode.py           modo app de escritorio: ajustes del shell (data/app_settings.json: avisos, notch, cerrar a la bandeja), log propio (data/logs/app.log) y la entrada «App» de Logs
+  appmode.py           modo app de escritorio: ajustes del shell (data/app_settings.json: avisos por tipo, channel system|notch, cerrar a la bandeja), log propio (data/logs/app.log) y la entrada «App» de Logs
   lmstudio.py          LM Studio (URL local en data/lmstudio.json) · llm_providers.py: referencias de modelo `proveedor:id` de Ollama y LM Studio
   obsidian.py          «Abrir en Obsidian»: detectar la app, registrar el vault en obsidian.json (con backup, app cerrada), config mínima en vault/.obsidian/
   autobackup.py        backup automático: ajustes (data/backup_auto.json), cuándo toca, scheduler del dashboard, limpieza y selector de carpeta

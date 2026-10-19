@@ -821,3 +821,23 @@ Pedido del usuario: el CI de `main` falló tras el merge (Tests y App de escrito
 Reporte del usuario (Mac): después de actualizar, `brain app` decía que la app no estaba instalada y el instalador terminaba sin avisar nada (sin «brain instalado» ni aviso de la app).
 - **Causa**: en `install_app` (`install.sh`), cuando el último release existe pero no tiene archivos (la v0.03.3 de Cursor), `grep -o` no encuentra nada y devuelve 1; con `set -euo pipefail` eso termina el script. Se agregó `|| true` a los cuatro pipelines de `tag`, `urls` y `url`. Verificado ejecutando la función con un release sin archivos: avisa «el release todavía no trae la app» y el instalador llega al final. `install.ps1` no tenía el problema (usa `try/catch`).
 - **Lo que falta para que la app se instale**: publicar el release v0.03.3.1 en GitHub; `release.yml` arma y sube los instaladores al publicarlo. Hasta entonces el instalador avisa y sigue.
+
+## 2026-10-19 — v0.03.3.2: el notch sale de la barra, con el grafo, y el aviso es del sistema o del notch
+
+Pedido del usuario: el notch se veía como un cuadrado debajo de la barra de menú. Que al abrirse crezca desde el notch (el negro lo tapa, como en la referencia de notchi), que un clic en el ícono de brain lo abra y el clic derecho muestre el menú (sin la opción Notch), que el panel no tenga los botones y muestre el grafo, con un ícono de notificaciones en el encabezado, y que en Ajustes haya un switch entre notificación del sistema y notch. El aviso del notch tiene que animarse y ocupar mucho menos que el grafo.
+
+**Qué cambió**
+1. **Notch** (`apps/desktop/src-tauri/src/notch.rs`, `ui/notch.html`, `notch.css`, `notch.js`): ventana transparente, arriba al centro. En macOS queda por encima de la barra de menú (`NSStatusWindowLevel`) para que el negro del panel coincida con el del notch y la animación crezca hacia abajo (el borde de arriba es recto; abajo, redondeado). Dos tamaños: el aviso (~308×76) y el grafo (~460×312). El aviso se cierra solo a los 7 s; el grafo, con Escape, al perder el foco o con otro clic en el ícono. El encabezado del grafo tiene una campana que vuelve al aviso chico. Un doble clic en un nodo abre la vista Grafo. El grafo lo pide la app a `GET /api/graph` (`notch_graph`) y la página no tiene red: se quedan proyectos, archivos, memoria, skills y perfil (hasta 42 nodos), sin el índice ni tags.
+2. **Ícono** (`lib.rs`): clic izquierdo abre o cierra el notch con el grafo; clic derecho, el menú (Open, Notifications, Settings, Updates, Close). Se sacó «Notch…». En Linux la bandeja no distingue el clic y el menú sigue saliendo con el izquierdo.
+3. **Un solo canal** (`appmode.py`, `watch.rs`, Ajustes → Notificaciones): `channel` es `"system"` o `"notch"` (en macOS, notch si no hay nada guardado; un `notch: true/false` de la v0.03.3.1 se lee una vez). El aviso del sistema y el del notch no salen juntos. «Probar» respeta el canal.
+4. Docs: README, docs del sitio (App de escritorio), changelog v0.03.3.2, SECURITY.md (`v0.03.3.2`, el notch lee `/api/graph` por el proceso de la app), `chat.APP_GUIDE` (es/en), CLAUDE.md, `VERSION` → `v0.03.3.2` (`0.3.3-2` en Tauri), `llms.txt`.
+
+**Por qué así**
+- El cuadrado de antes estaba debajo de la barra porque la ventana no la tapaba: el negro del notch y el del panel quedaban separados. Subir la ventana y animar el tamaño hace que se vea una sola pieza.
+- El grafo en el notch reemplaza a los cuatro botones: el clic ya eligió «ver brain», y la campana es el camino de vuelta a los cambios, en chico.
+
+**Verificado**
+- `pytest -q` 95 passed (`test_handoff_api` se dejó afuera en esta Mac porque `~/Applications/brain.app` existe y el test espera `installed is False`; el resto de `tests/test_v0331.py` cubre el canal `system`/`notch` y la migración del booleano viejo). `scripts/check_site.py`: 4 páginas, versión v0.03.3.2, OK.
+- App: `cargo clippy --tests -- -D warnings` y `cargo test` (6 tests, entre ellos el grafo del notch que deja proyectos y saca el índice).
+- Chromium: vista previa del aviso (franja negra chica, dos renglones, punto que pulsa) y del grafo (encabezado con la campana, nodos en abanico). Ajustes → Notificaciones muestra «Avisos en» Sistema / Notch; `POST /api/app` con `channel` system y de vuelta notch responde y queda persistido.
+- **No probado**: el notch sobre la barra de menú real de un MacBook (la ventana se posiciona en Rust; la vista previa es HTML), el clic de la bandeja, ni una notificación del sistema en macOS. Linux sigue abriendo el menú con el clic izquierdo.

@@ -1,7 +1,7 @@
 [package]
 name = "brain-desktop"
 description = "brain desktop app: tray icon, system notifications and notch panel around the brain dashboard"
-version = "0.3.3-1"
+version = "0.3.3-2"
 edition = "2021"
 license-file = "../../../LICENSE"
 repository = "https://github.com/Lautaro005/brain"
@@ -20,6 +20,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
