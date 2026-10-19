@@ -257,7 +257,11 @@ fn test_notification(app: AppHandle) {
         .backend
         .get_json("/api/app")
         .ok()
-        .and_then(|c| c.get("channel").and_then(|v| v.as_str()).map(str::to_string))
+        .and_then(|c| {
+            c.get("channel")
+                .and_then(|v| v.as_str())
+                .map(str::to_string)
+        })
         .unwrap_or_else(|| "system".to_string());
     if channel == "notch" {
         app.state::<AppState>().remember(&[body.to_string()]);

@@ -11,7 +11,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder,
+};
 
 const SEED_W: f64 = 188.0;
 const SEED_H: f64 = 34.0;
@@ -31,7 +33,11 @@ struct Live {
 
 fn live() -> &'static Mutex<Live> {
     static LIVE: Mutex<Live> = Mutex::new(Live {
-        mode: String::new(), w: SEED_W, h: SEED_H, shown: false, focused: false,
+        mode: String::new(),
+        w: SEED_W,
+        h: SEED_H,
+        shown: false,
+        focused: false,
     });
     &LIVE
 }
@@ -42,7 +48,11 @@ fn generation() -> &'static AtomicU64 {
 }
 
 fn target(mode: &str) -> (f64, f64) {
-    if mode == "alert" { (ALERT_W, ALERT_H) } else { (GRAPH_W, GRAPH_H) }
+    if mode == "alert" {
+        (ALERT_W, ALERT_H)
+    } else {
+        (GRAPH_W, GRAPH_H)
+    }
 }
 
 fn ease(t: f64) -> f64 {
@@ -53,7 +63,10 @@ fn ease(t: f64) -> f64 {
 /// Drops tag, entity, folder and index nodes so the island stays readable, and caps the rest.
 pub fn slim_graph(graph: &Value) -> Value {
     let keep = |k: &str| {
-        matches!(k, "project" | "subproject" | "file" | "memory" | "skill" | "profile" | "source" | "note")
+        matches!(
+            k,
+            "project" | "subproject" | "file" | "memory" | "skill" | "profile" | "source" | "note"
+        )
     };
     let nodes = graph["nodes"].as_array().cloned().unwrap_or_default();
     let links = graph["links"].as_array().cloned().unwrap_or_default();
@@ -65,19 +78,28 @@ pub fn slim_graph(graph: &Value) -> Value {
             }
         }
     }
-    let mut picked: Vec<&Value> = nodes.iter().filter(|n| keep(n["kind"].as_str().unwrap_or(""))).collect();
+    let mut picked: Vec<&Value> = nodes
+        .iter()
+        .filter(|n| keep(n["kind"].as_str().unwrap_or("")))
+        .collect();
     picked.sort_by(|a, b| {
         let rank = |k: &str| match k {
             "project" | "profile" => 0,
             "subproject" | "skill" | "memory" => 1,
             _ => 2,
         };
-        rank(a["kind"].as_str().unwrap_or("")).cmp(&rank(b["kind"].as_str().unwrap_or("")))
-            .then(degree.get(b["id"].as_str().unwrap_or("")).unwrap_or(&0)
-                .cmp(degree.get(a["id"].as_str().unwrap_or("")).unwrap_or(&0)))
+        rank(a["kind"].as_str().unwrap_or(""))
+            .cmp(&rank(b["kind"].as_str().unwrap_or("")))
+            .then(
+                degree
+                    .get(b["id"].as_str().unwrap_or(""))
+                    .unwrap_or(&0)
+                    .cmp(degree.get(a["id"].as_str().unwrap_or("")).unwrap_or(&0)),
+            )
     });
     picked.truncate(42);
-    let ids: std::collections::HashSet<&str> = picked.iter().filter_map(|n| n["id"].as_str()).collect();
+    let ids: std::collections::HashSet<&str> =
+        picked.iter().filter_map(|n| n["id"].as_str()).collect();
     let link_ok = |k: &str| matches!(k, "part" | "related" | "link" | "memory");
     let out_links: Vec<Value> = links
         .iter()
@@ -127,11 +149,14 @@ fn window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     let app_for_blur = app.clone();
     w.on_window_event(move |event| {
         if let tauri::WindowEvent::Focused(focused) = event {
-            let was = live().lock().map(|mut l| {
-                let prev = l.focused;
-                l.focused = *focused;
-                prev && !focused && l.shown && l.mode == "graph"
-            }).unwrap_or(false);
+            let was = live()
+                .lock()
+                .map(|mut l| {
+                    let prev = l.focused;
+                    l.focused = *focused;
+                    prev && !focused && l.shown && l.mode == "graph"
+                })
+                .unwrap_or(false);
             if was {
                 let app = app_for_blur.clone();
                 thread::spawn(move || dismiss(&app));
@@ -181,7 +206,11 @@ struct Frame {
 
 fn frame_of(app: &AppHandle) -> Option<Frame> {
     let w = app.get_webview_window("notch")?;
-    let m = w.current_monitor().ok().flatten().or_else(|| w.primary_monitor().ok().flatten())?;
+    let m = w
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| w.primary_monitor().ok().flatten())?;
     let scale = m.scale_factor();
     let origin_x = m.position().x as f64 / scale;
     let screen_w = m.size().width as f64 / scale;
@@ -189,17 +218,30 @@ fn frame_of(app: &AppHandle) -> Option<Frame> {
     // whatever panel the system already put at the top.
     let top = {
         #[cfg(target_os = "macos")]
-        { m.position().y as f64 / scale }
+        {
+            m.position().y as f64 / scale
+        }
         #[cfg(not(target_os = "macos"))]
-        { m.work_area().position.y as f64 / scale }
+        {
+            m.work_area().position.y as f64 / scale
+        }
     };
-    Some(Frame { origin_x, top, screen_w })
+    Some(Frame {
+        origin_x,
+        top,
+        screen_w,
+    })
 }
 
 fn place(app: &AppHandle, frame: &Frame, w: f64, h: f64) {
-    let Some(win) = app.get_webview_window("notch") else { return };
+    let Some(win) = app.get_webview_window("notch") else {
+        return;
+    };
     let _ = win.set_size(LogicalSize::new(w, h));
-    let _ = win.set_position(LogicalPosition::new(frame.origin_x + (frame.screen_w - w) / 2.0, frame.top));
+    let _ = win.set_position(LogicalPosition::new(
+        frame.origin_x + (frame.screen_w - w) / 2.0,
+        frame.top,
+    ));
     if let Ok(mut live) = live().lock() {
         live.w = w;
         live.h = h;
@@ -216,7 +258,11 @@ fn animate(app: &AppHandle, gen: u64, frame: &Frame, from: (f64, f64), to: (f64,
         let w = from.0 + (to.0 - from.0) * t;
         let h = from.1 + (to.1 - from.1) * t;
         let app = app.clone();
-        let frame = Frame { origin_x: frame.origin_x, top: frame.top, screen_w: frame.screen_w };
+        let frame = Frame {
+            origin_x: frame.origin_x,
+            top: frame.top,
+            screen_w: frame.screen_w,
+        };
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         let _ = app.clone().run_on_main_thread(move || {
             place(&app, &frame, w, h);
@@ -238,7 +284,11 @@ fn spawn_ui(app: AppHandle, mode: String, hide_after: bool) {
         };
         let lines = app.state::<AppState>().recent();
         if !hide_after {
-            let _ = app.emit_to("notch", "notch-show", json!({ "mode": mode, "lines": lines }));
+            let _ = app.emit_to(
+                "notch",
+                "notch-show",
+                json!({ "mode": mode, "lines": lines }),
+            );
         }
         let (from, to) = {
             let cur = live().lock().ok();
@@ -248,7 +298,11 @@ fn spawn_ui(app: AppHandle, mode: String, hide_after: bool) {
             } else {
                 (SEED_W, SEED_H)
             };
-            let end = if hide_after { (SEED_W, SEED_H) } else { target(&mode) };
+            let end = if hide_after {
+                (SEED_W, SEED_H)
+            } else {
+                target(&mode)
+            };
             (start, end)
         };
         if !hide_after {
@@ -259,7 +313,11 @@ fn spawn_ui(app: AppHandle, mode: String, hide_after: bool) {
             }
             let _ = app.run_on_main_thread({
                 let app = app.clone();
-                let frame = Frame { origin_x: frame.origin_x, top: frame.top, screen_w: frame.screen_w };
+                let frame = Frame {
+                    origin_x: frame.origin_x,
+                    top: frame.top,
+                    screen_w: frame.screen_w,
+                };
                 move || {
                     place(&app, &frame, from.0, from.1);
                     if let Some(w) = app.get_webview_window("notch") {
@@ -301,7 +359,11 @@ pub fn present(app: &AppHandle, mode: &str) {
     if let Ok(l) = live().lock() {
         if l.shown && l.mode == mode {
             let lines = app.state::<AppState>().recent();
-            let _ = app.emit_to("notch", "notch-show", json!({ "mode": mode, "lines": lines }));
+            let _ = app.emit_to(
+                "notch",
+                "notch-show",
+                json!({ "mode": mode, "lines": lines }),
+            );
             return;
         }
     }
@@ -310,8 +372,15 @@ pub fn present(app: &AppHandle, mode: &str) {
 
 /// Left click on the tray icon: open the graph, or close it if it's already the thing on screen.
 pub fn toggle_graph(app: &AppHandle) {
-    let open = live().lock().map(|l| l.shown && l.mode == "graph").unwrap_or(false);
-    if open { dismiss(app); } else { present(app, "graph"); }
+    let open = live()
+        .lock()
+        .map(|l| l.shown && l.mode == "graph")
+        .unwrap_or(false);
+    if open {
+        dismiss(app);
+    } else {
+        present(app, "graph");
+    }
 }
 
 pub fn dismiss(app: &AppHandle) {
@@ -323,7 +392,10 @@ pub fn dismiss(app: &AppHandle) {
 }
 
 pub fn state_json(lines: Vec<String>) -> Value {
-    let (mode, shown) = live().lock().map(|l| (l.mode.clone(), l.shown)).unwrap_or_default();
+    let (mode, shown) = live()
+        .lock()
+        .map(|l| (l.mode.clone(), l.shown))
+        .unwrap_or_default();
     json!({
         "mode": if shown { mode } else { String::new() },
         "lines": lines,
@@ -352,8 +424,19 @@ mod tests {
             ]
         });
         let out = slim_graph(&g);
-        let ids: Vec<&str> = out["nodes"].as_array().unwrap().iter().filter_map(|n| n["id"].as_str()).collect();
-        assert_eq!(ids, vec!["projects/brain-project.md", "projects/brain-project/historia.md"]);
+        let ids: Vec<&str> = out["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|n| n["id"].as_str())
+            .collect();
+        assert_eq!(
+            ids,
+            vec![
+                "projects/brain-project.md",
+                "projects/brain-project/historia.md"
+            ]
+        );
         assert_eq!(out["links"].as_array().unwrap().len(), 1);
     }
 }
