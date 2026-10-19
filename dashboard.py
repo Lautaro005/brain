@@ -463,7 +463,8 @@ class Handler(BaseHTTPRequestHandler):
                             "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") or None,
                             "app": appmode.active()})
             elif u.path == "/api/app":  # ajustes que lee la app de escritorio (avisos, notch, cerrar a la bandeja)
-                self._json({"ok": True, **appmode.load(), "active": appmode.active(), "installed": appmode.installed_path() is not None})
+                self._json({"ok": True, **appmode.load(), "active": appmode.active(), "installed": appmode.installed_path() is not None,
+                            "version": updates.current()})
             elif u.path == "/api/lmstudio":
                 from brain_mcp import lmstudio
 

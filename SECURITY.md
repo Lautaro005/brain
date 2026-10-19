@@ -8,7 +8,7 @@ Only the latest release gets security fixes, on macOS, Linux and Windows. Update
 
 | Version | Supported |
 |---|---|
-| Latest release (currently `v0.03.3.2`) | ✅ |
+| Latest release (currently `v0.03.3.3`) | ✅ |
 | Older releases | ❌ |
 
 ## Reporting a vulnerability

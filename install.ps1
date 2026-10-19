@@ -7,7 +7,7 @@
 # Instala brain (el comando `brain`, dashboard en el navegador) y la app de escritorio (ícono en la
 # bandeja, avisos del sistema y panel del notch), que se baja del último release de GitHub.
 # Sin la app (o si el release todavía no la trae): BRAIN_NO_APP=1.
-# Variables opcionales: BRAIN_HOME, BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN, BRAIN_NO_APP=1, BRAIN_SKIP_OLLAMA=1, BRAIN_SKIP_CHROMIUM=1.
+# Variables opcionales: BRAIN_HOME, BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN, BRAIN_NO_APP=1, BRAIN_SKIP_OLLAMA=1, BRAIN_SKIP_CHROMIUM=1, BRAIN_APP_ONLY=1 (solo la app).
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
@@ -22,6 +22,9 @@ function Warn($m) { Write-Host "!  $m" -ForegroundColor Yellow }
 function Fail($m) { Write-Host "x  $m" -ForegroundColor Red; exit 1 }
 function Has($cmd) { [bool](Get-Command $cmd -ErrorAction SilentlyContinue) }
 function Refresh-Path { $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User") }
+
+# BRAIN_APP_ONLY=1 (lo usa `brain app-update`): solo se vuelve a bajar la app, sin tocar el código ni las dependencias
+if (-not $env:BRAIN_APP_ONLY) {
 
 # ---------- git ----------
 if (-not (Has git)) {
@@ -98,6 +101,8 @@ if (-not $env:BRAIN_SKIP_OLLAMA) {
   }
 }
 
+}
+
 # ---------- app de escritorio (bandeja) ----------
 # Best-effort: si algo falla se avisa y brain sigue funcionando en la terminal. Los datos no se tocan.
 $appInstalled = $false
@@ -118,6 +123,8 @@ if (-not $env:BRAIN_NO_APP) {
     }
   } catch { Warn "No se pudo instalar la app de escritorio ($($_.Exception.Message)); brain sigue andando en la terminal." }
 }
+
+if ($env:BRAIN_APP_ONLY) { exit 0 }
 
 # ---------- comando `brain` ----------
 New-Item -ItemType Directory -Force -Path $Bin | Out-Null

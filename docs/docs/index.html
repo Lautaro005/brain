@@ -736,14 +736,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>The menu-bar / tray icon</h2>
   <p>On macOS and Windows, click the icon to open the notch and right-click it for the menu. On Linux the tray opens the menu with a left click. The menu shows the version, a divider, then <b>Open</b>, <b>Notifications</b>, <b>Settings</b>, <b>Updates</b> and <b>Close</b>. <b>Close</b> asks the dashboard to shut down (it stops what it started) and quits the app. A vault change turns the icon into <code>●</code> for a few seconds (the tooltip on Linux and Windows).</p>
   <h2>The notch</h2>
-  <p>The panel grows down from the top center of the screen. On a Mac the black is the notch's own black, so the panel comes out of the notch with a short animation. Clicking the icon opens your vault <b>graph</b> in that panel. A notifications icon in the header shrinks it to the latest changes, which uses much less space than the graph. Tap the small panel to open the graph again. Escape, or a click outside the graph, closes it.</p>
+  <p>The panel grows down from the top center of the screen. On a Mac the black is the notch's own black, so the panel comes out of the notch with a short animation. Clicking the icon opens your vault <b>graph</b> in that panel. A notifications icon in the header shrinks it to the latest changes, which uses much less space than the graph. Tap the small panel to open the graph again; click a node to open the full graph. It closes itself a few seconds after you leave it (never while the pointer is on it), or with Escape or the icon. It opens on the screen where the pointer is. On Linux the tray can't tell clicks apart, so the menu has a <b>Notch…</b> item.</p>
   <p>The app checks the vault's history every 5 seconds through the dashboard. When something is created, changed or deleted, whether an agent, the chat or you did it, <b>Settings → Notifications</b> chooses where it shows: a <b>system notification</b>, or a <b>short notch alert</b> with the same grow animation. Which changes count, and whether closing the window keeps brain in the tray, live in <code>data/app_settings.json</code> and travel in backups. Alerts still arrive with the window closed.</p>
   <h2>Logs</h2>
   <p>While the app runs, <b>Logs</b> has an <b>App</b> tab with its own log (start, tray actions, notifications, errors) and the dashboard's output when the app started it. It's the file <code>~/.brain/data/logs/app.log</code> (rotated at 1 MB).</p>
   <h2>Moving from the terminal version</h2>
   <p>In the web dashboard, <b>Settings → Desktop app → Move to the desktop app</b> closes that dashboard (it stops what it started) and opens the app, which starts its own. Your data is the same. If the app isn't installed, the card links to the download.</p>
   <h2>Updating</h2>
-  <p><b>Settings → Update and restart</b> updates brain (the dashboard, the vault tools, everything Python) and the app window reloads by itself. The app shell (tray, notifications, notch) changes rarely; to get a new one, run the installer again.</p>
+  <p><b>Settings → Update and restart</b> updates brain (the dashboard, the vault tools, everything Python) and the app window reloads by itself. The app itself (tray, notifications, notch) is its own program, so it checks that its version matches brain's: when brain is newer, the app quits, downloads the app from the latest release (<code>brain app-update</code>), installs it and opens again, so the icon and the window are never on different versions. If the release doesn't carry the app yet it reopens the one you had and tries again later. Run <code>brain app-update</code> or the installer again to force it.</p>
   <h2>Platforms</h2>
   <p>macOS 11 or later (Apple Silicon and Intel), Linux x86_64 with a tray (on GNOME you need the AppIndicator extension), and Windows 10/11. Built with Tauri 2 (Rust); the source is in <code>apps/desktop</code>.</p>
 </div>
@@ -764,14 +764,14 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>El ícono de la barra de menú / bandeja</h2>
   <p>En macOS y Windows, un clic en el ícono abre el notch y el clic derecho abre el menú. En Linux la bandeja abre el menú con el clic izquierdo. El menú muestra la versión, un divisor y después <b>Open</b>, <b>Notifications</b>, <b>Settings</b>, <b>Updates</b> y <b>Close</b>. <b>Close</b> le pide al dashboard que se apague (apaga lo que prendió) y cierra la app. Un cambio en el vault convierte el ícono en <code>●</code> unos segundos (el tooltip en Linux y Windows).</p>
   <h2>El notch</h2>
-  <p>El panel crece desde arriba al centro de la pantalla. En una Mac el negro es el del notch, así que el panel sale de ahí con una animación corta. El clic en el ícono abre el <b>grafo</b> del vault. Un ícono de notificaciones en el encabezado lo achica a los últimos cambios, que ocupa mucho menos que el grafo. Tocá ese panel chico para volver al grafo. Escape, o un clic afuera del grafo, lo cierra.</p>
+  <p>El panel crece desde arriba al centro de la pantalla. En una Mac el negro es el del notch, así que el panel sale de ahí con una animación corta. El clic en el ícono abre el <b>grafo</b> del vault. Un ícono de notificaciones en el encabezado lo achica a los últimos cambios, que ocupa mucho menos que el grafo. Tocá ese panel chico para volver al grafo; un clic en un nodo abre el grafo completo. Se cierra solo unos segundos después de que lo dejás (nunca mientras el puntero está encima), o con Escape o el ícono. Se abre en la pantalla donde está el puntero. En Linux la bandeja no distingue clics, así que el menú tiene un ítem <b>Notch…</b>.</p>
   <p>La app mira el historial del vault cada 5 segundos a través del dashboard. Cuando algo se crea, cambia o se borra, lo haga un agente, el chat o vos, <b>Ajustes → Notificaciones</b> elige dónde se ve: una <b>notificación del sistema</b>, o un <b>aviso chico en el notch</b> con la misma animación. Qué cambios cuentan, y si cerrar la ventana deja brain en la bandeja, viven en <code>data/app_settings.json</code> y van en los backups. Los avisos llegan también con la ventana cerrada.</p>
   <h2>Logs</h2>
   <p>Mientras la app corre, <b>Logs</b> tiene una pestaña <b>App</b> con su propio log (arranque, acciones de la bandeja, avisos, errores) y la salida del dashboard cuando lo prendió la app. Es el archivo <code>~/.brain/data/logs/app.log</code> (rota a 1 MB).</p>
   <h2>Pasar desde la versión de terminal</h2>
   <p>En el dashboard web, <b>Ajustes → App de escritorio → Pasar a la app de escritorio</b> cierra ese dashboard (apaga lo que prendió) y abre la app, que arranca el suyo. Tus datos son los mismos. Si la app no está instalada, la tarjeta lleva a la descarga.</p>
   <h2>Actualizar</h2>
-  <p><b>Ajustes → Actualizar y reiniciar</b> actualiza brain (el dashboard, las tools del vault, todo lo de Python) y la ventana de la app se recarga sola. El shell de la app (bandeja, avisos, notch) cambia poco; para tener uno nuevo, corré el instalador de nuevo.</p>
+  <p><b>Ajustes → Actualizar y reiniciar</b> actualiza brain (el dashboard, las tools del vault, todo lo de Python) y la ventana de la app se recarga sola. La app en sí (bandeja, avisos, notch) es un programa aparte, así que comprueba que su versión coincida con la de brain: cuando brain es más nuevo, la app se cierra, baja la app del último release (<code>brain app-update</code>), la instala y se vuelve a abrir, para que el ícono y la ventana no queden en versiones distintas. Si el release todavía no trae la app, vuelve a abrir la que tenías y reintenta más tarde. Corré <code>brain app-update</code> o el instalador de nuevo para forzarlo.</p>
   <h2>Plataformas</h2>
   <p>macOS 11 o más nuevo (Apple Silicon e Intel), Linux x86_64 con bandeja (en GNOME hace falta la extensión AppIndicator) y Windows 10/11. Hecha con Tauri 2 (Rust); el código está en <code>apps/desktop</code>.</p>
 </div>
@@ -1254,6 +1254,7 @@ brain --port 8766     dashboard on another port
 brain --no-autostart  don't start Ollama/Chroma automatically
 brain --no-browser    don't open the browser
 brain app             opens the desktop app (menu bar / tray, notifications, notch)
+brain app-update      downloads the latest release's app and reopens it
 brain update          updates to the latest version (git pull + uv sync)
 brain path            shows where it's installed
 brain uninstall       removes the command and the desktop app (keeps your data)
@@ -1274,6 +1275,7 @@ brain --port 8766     dashboard en otro puerto
 brain --no-autostart  no prender Ollama/Chroma solo
 brain --no-browser    no abrir el navegador
 brain app             abre la app de escritorio (barra de menú / bandeja, avisos, notch)
+brain app-update      baja la app del último release y la vuelve a abrir
 brain update          actualiza a la última versión (git pull + uv sync)
 brain path            muestra dónde está instalado
 brain uninstall       saca el comando y la app de escritorio (tus datos quedan)

@@ -51,9 +51,50 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.03.3.3 ===================== -->
+  <article class="release" id="v0.03.3.3">
+    <div class="when"><div class="ver">v0.03.3.3</div><time class="date" datetime="2026-10-19">2026-10-19</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>The app updates with brain, and the notch comes alive</h2>
+        <p>If you updated from the dashboard and the notch still looked like the old square, that was the app itself: <b>Update and restart</b> updates brain's code (Python) but the tray icon, the notch and the notifications are the app's own program, which stayed on the old version. Now the app notices when its version is behind brain's, downloads the latest app from the release, installs it and reopens, so the icon and the window are always the same version.</p>
+        <h3>Fixed</h3>
+        <ul>
+          <li><b>The app updates itself.</b> When brain's code is newer than the app, the app quits, <code>brain app-update</code> installs the app of the latest release (macOS, Linux and Windows) and opens it again. If the release doesn't carry the app yet it reopens the one you had and tries again later (every 6 hours at most). <code>brain app-update</code> also works by hand.</li>
+          <li><b>The menu title follows the version.</b> After an update the menu said the old version while the window showed the new one. It now follows what the dashboard reports.</li>
+          <li><b>One alert, not two.</b> With the notch selected, system notifications no longer pop up next to it.</li>
+        </ul>
+        <h3>Improved</h3>
+        <ul>
+          <li><b>The notch grows smoothly.</b> The island is animated with the GPU (a soft spring) instead of resizing the window frame by frame. On a Mac it comes out of the notch with the concave shoulders where it meets the top edge; on a screen without a notch it drops from the top; on Windows and Linux it drops below the panel.</li>
+          <li><b>Alive.</b> The header's dot breathes and pings on a new change, the bell rings with a badge, the lines slide in, and the graph pops in node by node, drifts, pulses on what just changed and sends a spark along a link. It closes itself (a few seconds for an alert, longer for the graph, and not while the pointer is on it). Click a node to open the full graph. Reduced motion is respected.</li>
+          <li><b>Where you click.</b> It opens on the screen where the pointer is. On Linux, where the tray can't tell clicks apart, the menu has a <b>Notch…</b> item.</li>
+        </ul>
+        <p>The first time, reinstall once to get the new app (<code>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</code> or <code>brain app-update</code>); from then on it updates by itself.</p>
+      </div>
+      <div class="l-es">
+        <h2>La app se actualiza con brain, y el notch cobra vida</h2>
+        <p>Si actualizaste desde el dashboard y el notch seguía viéndose como el cuadrado viejo, era la app: <b>Actualizar y reiniciar</b> actualiza el código de brain (Python), pero el ícono, el notch y los avisos son el programa propio de la app, que se quedaba en la versión vieja. Ahora la app detecta que su versión quedó atrás de la de brain, baja la app del último release, la instala y se vuelve a abrir, así que el ícono y la ventana son siempre de la misma versión.</p>
+        <h3>Arreglado</h3>
+        <ul>
+          <li><b>La app se actualiza sola.</b> Cuando el código de brain es más nuevo que la app, la app se cierra, <code>brain app-update</code> instala la app del último release (macOS, Linux y Windows) y la abre otra vez. Si el release todavía no trae la app, vuelve a abrir la que tenías y reintenta más tarde (como mucho cada 6 horas). <code>brain app-update</code> también sirve a mano.</li>
+          <li><b>El título del menú sigue la versión.</b> Después de actualizar, el menú decía la versión vieja y la ventana la nueva. Ahora sigue lo que informa el dashboard.</li>
+          <li><b>Un solo aviso, no dos.</b> Con el notch elegido, las notificaciones del sistema ya no saltan al lado.</li>
+        </ul>
+        <h3>Mejorado</h3>
+        <ul>
+          <li><b>El notch crece fluido.</b> La isla se anima con la GPU (un resorte suave) en vez de cambiar el tamaño de la ventana cuadro a cuadro. En una Mac sale del notch, con los hombros cóncavos donde se une al borde de arriba; en una pantalla sin notch cae desde arriba; en Windows y Linux baja debajo del panel.</li>
+          <li><b>Con vida.</b> El punto del encabezado respira y late con un cambio nuevo, la campana suena con un globito, las líneas entran deslizándose, y el grafo aparece nodo por nodo, se mueve apenas, late en lo que acaba de cambiar y manda una chispa por un enlace. Se cierra solo (unos segundos el aviso, más el grafo, y no mientras el puntero está encima). Un clic en un nodo abre el grafo completo. Respeta «reducir movimiento».</li>
+          <li><b>Donde hacés clic.</b> Se abre en la pantalla donde está el puntero. En Linux, donde la bandeja no distingue clics, el menú tiene un ítem <b>Notch…</b>.</li>
+        </ul>
+        <p>La primera vez, reinstalá una vez para tener la app nueva (<code>curl -fsSL https://raw.githubusercontent.com/Lautaro005/brain/main/install.sh | bash</code> o <code>brain app-update</code>); desde ahí se actualiza sola.</p>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.03.3.2 ===================== -->
   <article class="release" id="v0.03.3.2">
-    <div class="when"><div class="ver">v0.03.3.2</div><time class="date" datetime="2026-10-19">2026-10-19</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.03.3.2</div><time class="date" datetime="2026-10-19">2026-10-19</time></div>
     <div>
       <div class="l-en">
         <h2>The notch grows out of the menu bar</h2>

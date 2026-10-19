@@ -9,7 +9,7 @@
 # (ícono en la barra de menú o la bandeja, avisos del sistema y panel del notch), que se baja del
 # último release de GitHub. Sin la app (o si el release todavía no la trae): `--no-app` o BRAIN_NO_APP=1.
 # Variables opcionales: BRAIN_HOME (carpeta), BRAIN_REPO, BRAIN_BRANCH, BRAIN_BIN, BRAIN_NO_APP=1,
-# BRAIN_SKIP_OLLAMA=1 y BRAIN_SKIP_CHROMIUM=1 (para CI o si los instalás vos).
+# BRAIN_SKIP_OLLAMA=1 y BRAIN_SKIP_CHROMIUM=1 (para CI o si los instalás vos). BRAIN_APP_ONLY=1 vuelve a bajar solo la app.
 set -euo pipefail
 
 for arg in "$@"; do
@@ -37,6 +37,9 @@ if ! command -v git >/dev/null; then
   else fail "Falta git. Instalalo con el gestor de tu distro (ej. sudo apt install git)."; fi
 fi
 command -v curl >/dev/null || fail "Falta curl."
+
+# BRAIN_APP_ONLY=1 (lo usa `brain app-update`): solo se vuelve a bajar la app, sin tocar el código ni las dependencias
+if [ -z "${BRAIN_APP_ONLY:-}" ]; then
 
 # ---------- uv (maneja Python y dependencias) ----------
 UV="$(command -v uv || true)"
@@ -112,6 +115,8 @@ if [ -z "${BRAIN_SKIP_OLLAMA:-}" ]; then
   fi
 fi
 
+fi
+
 # ---------- app de escritorio (barra de menú / bandeja) ----------
 # Best-effort: si algo falla se avisa y brain sigue funcionando en la terminal. Los datos no se tocan.
 APP_REPO="${BRAIN_APP_REPO:-Lautaro005/brain}"
@@ -167,6 +172,7 @@ ENTRY
   rm -rf "$tmp"
 }
 if [ -z "${BRAIN_NO_APP:-}" ]; then install_app; fi
+if [ -n "${BRAIN_APP_ONLY:-}" ]; then exit 0; fi
 
 # ---------- comando `brain` ----------
 mkdir -p "$BIN"

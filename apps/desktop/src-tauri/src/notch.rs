@@ -1,9 +1,13 @@
-//! Notch panel: a black island that grows out of the top center of the screen (on a Mac, out of the
-//! notch — the same black, so the seam disappears). Two sizes:
-//! - `alert`: a short strip when the vault changes (Settings → notch, not a system notification)
+//! Notch panel: a black island that grows out of the top center of the screen. On a Mac with a notch it
+//! comes out of the notch itself (same black, so there is no seam); elsewhere it drops from the top edge.
+//! Two sizes:
+//! - `alert`: a small strip with the last changes (Settings → notch instead of a system notification)
 //! - `graph`: the vault graph, opened by a left click on the tray icon or by tapping the alert
 //!
-//! The page is `ui/notch.html`. It has no network access; the graph arrives through `notch_graph`.
+//! The growing is done by the page (`ui/notch.js`, CSS transitions on the GPU), not by resizing the window
+//! frame by frame: this side only puts a transparent window at the top center, big enough for the island
+//! to grow inside it, shrinks it to fit once the island has settled, and hides it after the island closed.
+//! The page has no network access; the graph arrives through `notch_graph`.
 
 use crate::{applog, AppState};
 use serde_json::{json, Value};
@@ -15,18 +19,23 @@ use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
-const SEED_W: f64 = 188.0;
-const SEED_H: f64 = 34.0;
-const ALERT_W: f64 = 308.0;
-const ALERT_H: f64 = 76.0;
-const GRAPH_W: f64 = 460.0;
-const GRAPH_H: f64 = 312.0;
+/// Width of the physical notch (14"/16" MacBooks are 185–200 pt). The island is wider, so it covers it.
+const NOTCH_W: f64 = 190.0;
+/// Height of the header row: a menu bar high (the notch is 32–38 pt), where the bell and the name go.
+const HEADER_H: f64 = 34.0;
+/// Room around the island inside the window, for the spring overshoot of the animation.
+const PAD: f64 = 20.0;
+const ALERT: (f64, f64) = (352.0, 64.0);
+const GRAPH: (f64, f64) = (500.0, 300.0);
+/// How long the island needs to finish growing or closing (the CSS transition is .6 s).
+const SETTLE: Duration = Duration::from_millis(720);
 
 struct Live {
     mode: String,
+    shown: bool,
+    /// Window size (logical) as last set, island plus padding.
     w: f64,
     h: f64,
-    shown: bool,
     /// True only after the island itself has been focused, so the unfocused show doesn't immediately close it.
     focused: bool,
 }
@@ -34,9 +43,9 @@ struct Live {
 fn live() -> &'static Mutex<Live> {
     static LIVE: Mutex<Live> = Mutex::new(Live {
         mode: String::new(),
-        w: SEED_W,
-        h: SEED_H,
         shown: false,
+        w: 0.0,
+        h: 0.0,
         focused: false,
     });
     &LIVE
@@ -47,17 +56,36 @@ fn generation() -> &'static AtomicU64 {
     &GEN
 }
 
-fn target(mode: &str) -> (f64, f64) {
+struct Layout {
+    origin_x: f64,
+    top: f64,
+    screen_w: f64,
+    /// A physical notch is here: the island grows out of it.
+    notch: bool,
+    header: f64,
+}
+
+/// Island size (without the padding) for a mode.
+fn island(mode: &str, header: f64) -> (f64, f64) {
     if mode == "alert" {
-        (ALERT_W, ALERT_H)
+        (ALERT.0, header + ALERT.1)
     } else {
-        (GRAPH_W, GRAPH_H)
+        (GRAPH.0, header + GRAPH.1)
     }
 }
 
-fn ease(t: f64) -> f64 {
-    let t = 1.0 - t;
-    1.0 - t * t * t
+/// What the page needs to size and style the island.
+fn info(lay: &Layout) -> Value {
+    let (aw, ah) = island("alert", lay.header);
+    let (gw, gh) = island("graph", lay.header);
+    json!({
+        "os": std::env::consts::OS,
+        "notch": lay.notch,
+        "notch_w": NOTCH_W,
+        "header": lay.header,
+        "alert": [aw, ah],
+        "graph": [gw, gh],
+    })
 }
 
 /// Drops tag, entity, folder and index nodes so the island stays readable, and caps the rest.
@@ -134,10 +162,13 @@ fn window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     }
     let w = WebviewWindowBuilder::new(app, "notch", WebviewUrl::App("notch.html".into()))
         .title("brain")
-        .inner_size(SEED_W, SEED_H)
+        .inner_size(GRAPH.0 + 2.0 * PAD, GRAPH.1 + HEADER_H + PAD)
         .decorations(false)
         .transparent(true)
-        .resizable(false)
+        // resizable on purpose: GTK ignores set_size on a non-resizable window, and the island must
+        // shrink to its content (the margin around it is transparent and keeps the edge grips away)
+        .resizable(true)
+        .maximizable(false)
         .always_on_top(true)
         .skip_taskbar(true)
         .focused(false)
@@ -167,8 +198,15 @@ fn window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     Ok(w)
 }
 
+/// Creates the (hidden) window at startup, so its page is loaded by the time the first alert arrives.
+pub fn prepare(app: &AppHandle) {
+    if let Err(e) = window(app) {
+        applog::line(format!("notch: could not create the window: {e}"));
+    }
+}
+
 /// On macOS the island has to paint *over* the menu bar, in the notch's own black. Below the bar it
-/// reads as a square stuck underneath, which is what this replaces.
+/// reads as a square stuck underneath.
 #[cfg(target_os = "macos")]
 fn lift_over_menu_bar(app: &AppHandle, window: &tauri::WebviewWindow) {
     let app = app.clone();
@@ -188,7 +226,7 @@ fn lift_over_menu_bar(app: &AppHandle, window: &tauri::WebviewWindow) {
         let behavior = current | 1usize | (1 << 4) | (1 << 6) | (1 << 8);
         let _: () = msg_send![ns_window, setCollectionBehavior: behavior];
         let _: () = msg_send![ns_window, setOpaque: false];
-        let _: () = msg_send![ns_window, setHasShadow: true];
+        let _: () = msg_send![ns_window, setHasShadow: false];
         let _: () = msg_send![ns_window, setHidesOnDeactivate: false];
         let color: *mut AnyObject = msg_send![class!(NSColor), clearColor];
         let _: () = msg_send![ns_window, setBackgroundColor: color];
@@ -198,24 +236,78 @@ fn lift_over_menu_bar(app: &AppHandle, window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn lift_over_menu_bar(_app: &AppHandle, _window: &tauri::WebviewWindow) {}
 
-struct Frame {
-    origin_x: f64,
-    top: f64,
-    screen_w: f64,
+/// Height of the notch of the menu-bar screen in points, 0 when it has none (or before macOS 12).
+#[cfg(target_os = "macos")]
+fn notch_height() -> f64 {
+    use objc2::encode::{Encode, Encoding};
+    use objc2::runtime::{AnyObject, Bool};
+    use objc2::{class, msg_send, sel};
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct Insets {
+        top: f64,
+        left: f64,
+        bottom: f64,
+        right: f64,
+    }
+    // SAFETY: NSEdgeInsets is four CGFloats (f64 on every supported Mac), in this order.
+    unsafe impl Encode for Insets {
+        const ENCODING: Encoding = Encoding::Struct(
+            "NSEdgeInsets",
+            &[
+                Encoding::Double,
+                Encoding::Double,
+                Encoding::Double,
+                Encoding::Double,
+            ],
+        );
+    }
+
+    unsafe {
+        let screens: *mut AnyObject = msg_send![class!(NSScreen), screens];
+        if screens.is_null() {
+            return 0.0;
+        }
+        // the first screen is the one with the menu bar
+        let first: *mut AnyObject = msg_send![screens, firstObject];
+        if first.is_null() {
+            return 0.0;
+        }
+        let ok: Bool = msg_send![first, respondsToSelector: sel!(safeAreaInsets)];
+        if !ok.as_bool() {
+            return 0.0;
+        }
+        let insets: Insets = msg_send![first, safeAreaInsets];
+        insets.top.max(0.0)
+    }
 }
 
-fn frame_of(app: &AppHandle) -> Option<Frame> {
-    let w = app.get_webview_window("notch")?;
-    let m = w
-        .current_monitor()
-        .ok()
-        .flatten()
-        .or_else(|| w.primary_monitor().ok().flatten())?;
+#[cfg(not(target_os = "macos"))]
+fn notch_height() -> f64 {
+    0.0
+}
+
+/// The screen to grow on: where the pointer is (a click on the tray icon), otherwise the main one.
+fn layout(app: &AppHandle, at_cursor: bool) -> Option<Layout> {
+    let by_cursor = if at_cursor {
+        app.cursor_position()
+            .ok()
+            .and_then(|p| app.monitor_from_point(p.x, p.y).ok().flatten())
+    } else {
+        None
+    };
+    let m = by_cursor
+        .or_else(|| app.primary_monitor().ok().flatten())
+        .or_else(|| {
+            app.get_webview_window("notch")
+                .and_then(|w| w.current_monitor().ok().flatten())
+        })?;
     let scale = m.scale_factor();
     let origin_x = m.position().x as f64 / scale;
     let screen_w = m.size().width as f64 / scale;
-    // macOS: the physical top, so the flat black edge hides inside the notch. Elsewhere: below
-    // whatever panel the system already put at the top.
+    // macOS: the physical top, so the island paints over the menu bar. Elsewhere: below whatever
+    // panel the system already put at the top.
     let top = {
         #[cfg(target_os = "macos")]
         {
@@ -226,148 +318,94 @@ fn frame_of(app: &AppHandle) -> Option<Frame> {
             m.work_area().position.y as f64 / scale
         }
     };
-    Some(Frame {
+    let on_main_screen = m.position().x == 0 && m.position().y == 0;
+    let nh = if on_main_screen { notch_height() } else { 0.0 };
+    Some(Layout {
         origin_x,
         top,
         screen_w,
+        notch: nh > 0.0,
+        header: if nh > 0.0 { nh.max(30.0) } else { HEADER_H },
     })
 }
 
-fn place(app: &AppHandle, frame: &Frame, w: f64, h: f64) {
-    let Some(win) = app.get_webview_window("notch") else {
-        return;
-    };
-    let _ = win.set_size(LogicalSize::new(w, h));
-    let _ = win.set_position(LogicalPosition::new(
-        frame.origin_x + (frame.screen_w - w) / 2.0,
-        frame.top,
-    ));
-    if let Ok(mut live) = live().lock() {
-        live.w = w;
-        live.h = h;
-    }
+/// Runs `f` on the main thread and waits a moment for it (window calls belong there).
+fn on_main<F: FnOnce() + Send + 'static>(app: &AppHandle, f: F) {
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let _ = app.run_on_main_thread(move || {
+        f();
+        let _ = tx.send(());
+    });
+    let _ = rx.recv_timeout(Duration::from_millis(800));
 }
 
-fn animate(app: &AppHandle, gen: u64, frame: &Frame, from: (f64, f64), to: (f64, f64)) {
-    const STEPS: i32 = 13;
-    for i in 1..=STEPS {
-        if generation().load(Ordering::SeqCst) != gen {
+/// Puts the window (island size `w`×`h` plus its padding) centered at the top of the screen.
+fn place(app: &AppHandle, lay: &Layout, w: f64, h: f64, show: bool) {
+    let (ww, wh) = (w + 2.0 * PAD, h + PAD);
+    let (x, y) = (lay.origin_x + (lay.screen_w - ww) / 2.0, lay.top);
+    let app2 = app.clone();
+    on_main(app, move || {
+        let Some(win) = app2.get_webview_window("notch") else {
             return;
-        }
-        let t = ease(i as f64 / STEPS as f64);
-        let w = from.0 + (to.0 - from.0) * t;
-        let h = from.1 + (to.1 - from.1) * t;
-        let app = app.clone();
-        let frame = Frame {
-            origin_x: frame.origin_x,
-            top: frame.top,
-            screen_w: frame.screen_w,
         };
-        let (tx, rx) = std::sync::mpsc::sync_channel(1);
-        let _ = app.clone().run_on_main_thread(move || {
-            place(&app, &frame, w, h);
-            let _ = tx.send(());
-        });
-        let _ = rx.recv_timeout(Duration::from_millis(400));
-        thread::sleep(Duration::from_millis(12));
-    }
-}
-
-fn spawn_ui(app: AppHandle, mode: String, hide_after: bool) {
-    let gen = generation().fetch_add(1, Ordering::SeqCst) + 1;
-    thread::spawn(move || {
-        if let Err(e) = window(&app) {
-            return applog::line(format!("notch: could not create the window: {e}"));
-        }
-        let Some(frame) = frame_of(&app) else {
-            return applog::line("notch: no screen to anchor to");
-        };
-        let lines = app.state::<AppState>().recent();
-        if !hide_after {
-            let _ = app.emit_to(
-                "notch",
-                "notch-show",
-                json!({ "mode": mode, "lines": lines }),
-            );
-        }
-        let (from, to) = {
-            let cur = live().lock().ok();
-            let shown = cur.as_ref().map(|l| l.shown).unwrap_or(false);
-            let start = if shown || hide_after {
-                cur.map(|l| (l.w, l.h)).unwrap_or((SEED_W, SEED_H))
-            } else {
-                (SEED_W, SEED_H)
-            };
-            let end = if hide_after {
-                (SEED_W, SEED_H)
-            } else {
-                target(&mode)
-            };
-            (start, end)
-        };
-        if !hide_after {
-            if let Ok(mut l) = live().lock() {
-                l.mode = mode.clone();
-                l.shown = true;
-                l.focused = false;
-            }
-            let _ = app.run_on_main_thread({
-                let app = app.clone();
-                let frame = Frame {
-                    origin_x: frame.origin_x,
-                    top: frame.top,
-                    screen_w: frame.screen_w,
-                };
-                move || {
-                    place(&app, &frame, from.0, from.1);
-                    if let Some(w) = app.get_webview_window("notch") {
-                        let _ = w.show();
-                    }
-                }
-            });
-            thread::sleep(Duration::from_millis(16));
-        }
-        animate(&app, gen, &frame, from, to);
-        if generation().load(Ordering::SeqCst) != gen {
-            return;
-        }
-        if hide_after {
-            let app_h = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                if let Some(w) = app_h.get_webview_window("notch") {
-                    let _ = w.hide();
-                }
-            });
-            if let Ok(mut l) = live().lock() {
-                l.shown = false;
-                l.focused = false;
-                l.mode.clear();
-                l.w = SEED_W;
-                l.h = SEED_H;
-            }
-            applog::line("notch hidden");
-        } else {
-            let _ = app.emit_to("notch", "notch-settled", json!({ "mode": mode }));
-            applog::line(format!("notch shown ({mode})"));
+        let _ = win.set_size(LogicalSize::new(ww, wh));
+        let _ = win.set_position(LogicalPosition::new(x, y));
+        if show {
+            let _ = win.show();
         }
     });
+    if let Ok(mut l) = live().lock() {
+        l.w = w;
+        l.h = h;
+    }
+}
+
+fn open(app: &AppHandle, mode: &str, at_cursor: bool) {
+    let gen = generation().fetch_add(1, Ordering::SeqCst) + 1;
+    if let Err(e) = window(app) {
+        return applog::line(format!("notch: could not create the window: {e}"));
+    }
+    let Some(lay) = layout(app, at_cursor) else {
+        return applog::line("notch: no screen to anchor to");
+    };
+    let (w, h) = island(mode, lay.header);
+    let (was_shown, cur) = live()
+        .lock()
+        .map(|l| (l.shown, (l.w, l.h)))
+        .unwrap_or((false, (0.0, 0.0)));
+    // while growing, the window is the bigger of what is on screen and what is coming
+    let (cw, ch) = if was_shown {
+        (cur.0.max(w), cur.1.max(h))
+    } else {
+        (w, h)
+    };
+    if let Ok(mut l) = live().lock() {
+        l.mode = mode.to_string();
+        l.shown = true;
+        if !was_shown {
+            l.focused = false;
+        }
+    }
+    place(app, &lay, cw, ch, true);
+    let lines = app.state::<AppState>().recent();
+    let mut payload = info(&lay);
+    payload["mode"] = json!(mode);
+    payload["lines"] = json!(lines);
+    let _ = app.emit_to("notch", "notch-show", payload);
+    applog::line(format!("notch shown ({mode})"));
+    thread::sleep(SETTLE);
+    if generation().load(Ordering::SeqCst) == gen && (cw, ch) != (w, h) {
+        place(app, &lay, w, h, false); // settled: don't keep a bigger transparent window over the screen
+    }
 }
 
 /// Grows the island. `alert` is the small notification; anything else is the graph.
-pub fn present(app: &AppHandle, mode: &str) {
+/// `at_cursor`: grow on the screen where the pointer is (a click on the tray icon).
+pub fn present(app: &AppHandle, mode: &str, at_cursor: bool) {
     let mode = if mode == "alert" { "alert" } else { "graph" };
-    if let Ok(l) = live().lock() {
-        if l.shown && l.mode == mode {
-            let lines = app.state::<AppState>().recent();
-            let _ = app.emit_to(
-                "notch",
-                "notch-show",
-                json!({ "mode": mode, "lines": lines }),
-            );
-            return;
-        }
-    }
-    spawn_ui(app.clone(), mode.to_string(), false);
+    let app = app.clone();
+    let mode = mode.to_string();
+    thread::spawn(move || open(&app, &mode, at_cursor));
 }
 
 /// Left click on the tray icon: open the graph, or close it if it's already the thing on screen.
@@ -379,7 +417,7 @@ pub fn toggle_graph(app: &AppHandle) {
     if open {
         dismiss(app);
     } else {
-        present(app, "graph");
+        present(app, "graph", true);
     }
 }
 
@@ -388,19 +426,41 @@ pub fn dismiss(app: &AppHandle) {
     if !shown {
         return;
     }
-    spawn_ui(app.clone(), "alert".to_string(), true);
+    let gen = generation().fetch_add(1, Ordering::SeqCst) + 1;
+    let _ = app.emit_to("notch", "notch-hide", json!({}));
+    let app = app.clone();
+    thread::spawn(move || {
+        thread::sleep(SETTLE);
+        if generation().load(Ordering::SeqCst) != gen {
+            return; // it was opened again meanwhile
+        }
+        let app2 = app.clone();
+        on_main(&app, move || {
+            if let Some(w) = app2.get_webview_window("notch") {
+                let _ = w.hide();
+            }
+        });
+        if let Ok(mut l) = live().lock() {
+            l.shown = false;
+            l.focused = false;
+            l.mode.clear();
+        }
+        applog::line("notch hidden");
+    });
 }
 
-pub fn state_json(lines: Vec<String>) -> Value {
+pub fn state_json(app: &AppHandle, lines: Vec<String>) -> Value {
     let (mode, shown) = live()
         .lock()
         .map(|l| (l.mode.clone(), l.shown))
         .unwrap_or_default();
-    json!({
-        "mode": if shown { mode } else { String::new() },
-        "lines": lines,
-        "os": std::env::consts::OS,
-    })
+    let mut out = layout(app, false).map(|l| info(&l)).unwrap_or_else(|| {
+        json!({ "os": std::env::consts::OS, "notch": false, "notch_w": NOTCH_W, "header": HEADER_H,
+                "alert": [ALERT.0, HEADER_H + ALERT.1], "graph": [GRAPH.0, HEADER_H + GRAPH.1] })
+    });
+    out["mode"] = json!(if shown { mode } else { String::new() });
+    out["lines"] = json!(lines);
+    out
 }
 
 #[cfg(test)]

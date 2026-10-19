@@ -27,6 +27,24 @@ switch ($cmd) {
     Write-Host "O bajala del release: https://github.com/Lautaro005/brain/releases/latest"
     exit 1
   }
+  "app-update" {
+    # lo lanza la app de escritorio cuando su versión no es la del código: espera a que se cierre (pid), baja la app
+    # del último release, la instala y la vuelve a abrir (si el release todavía no la trae, abre la que había)
+    $log = Join-Path $Dir "data\logs\app.log"
+    New-Item -ItemType Directory -Force -Path (Split-Path $log) | Out-Null
+    function Log($m) { Add-Content -Path $log -Value ("{0} [app-update] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $m) -Encoding UTF8 }
+    if ($args.Count -gt 1) { Wait-Process -Id ([int]$args[1]) -Timeout 40 -ErrorAction SilentlyContinue }
+    else { Stop-Process -Name "brain-app" -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3 }  # a mano: cierra la app que esté abierta
+    Log "actualizando la app de escritorio"
+    $env:BRAIN_APP_ONLY = "1"; $env:BRAIN_HOME = $Dir
+    try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Dir "install.ps1") *>> $log; Log "listo, abriendo la app" }
+    catch { Log "no se pudo actualizar la app; abro la que estaba" }
+    $exe = @("$env:LOCALAPPDATA\brain\brain-app.exe", "$env:LOCALAPPDATA\Programs\brain\brain-app.exe") |
+      Where-Object { Test-Path $_ } | Select-Object -First 1
+    Remove-Item Env:BRAIN_APP_ONLY -ErrorAction SilentlyContinue
+    if ($exe) { $env:BRAIN_HOME = $Dir; Start-Process $exe }
+    exit 0
+  }
   "uninstall" {
     $shim = Join-Path $env:USERPROFILE ".local\bin\brain.cmd"
     if ((Test-Path $shim) -and (Select-String -Quiet -Path $shim -Pattern "generado por install.ps1")) { Remove-Item $shim; Write-Host "Saqué el comando brain ($shim)." }
@@ -46,6 +64,7 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
   brain --no-autostart  no prender Ollama/Chroma solos
   brain --no-browser    no abrir el navegador
   brain app             abre la app de escritorio (bandeja, avisos y notch)
+  brain app-update      baja la app del último release y la vuelve a abrir
   brain update          actualiza a la última versión
   brain path            muestra dónde está instalado (ahí viven vault\ y data\)
   brain uninstall       saca el comando (no borra tus datos)
