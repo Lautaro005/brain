@@ -659,6 +659,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Connections</td><td>Other MCP servers brain uses for you, sign-in for the ones that need it, and connections proposed by agents. See <a href="#connections">Connections</a>.</td></tr>
     <tr><td>Graph</td><td>The <a href="#graph">graph</a>.</td></tr>
     <tr><td>Knowledge</td><td>Save a URL, hybrid search, rebuild the keyword index, list of sources with how old their content is and when they were last checked, and <i>Refresh</i> (one or all; a failed refresh keeps the last good copy and shows the error).</td></tr>
+    <tr><td>Prompts</td><td>Ready-to-paste instructions for your AI agent, with a copy button in English and Spanish. See <a href="#prompts">Prompts for agents</a>.</td></tr>
     <tr><td>Logs</td><td>Live output of every service the dashboard manages.</td></tr>
   </table>
   <h2>Services</h2>
@@ -694,6 +695,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td>Conexiones</td><td>Otros servers MCP que brain usa por vos, el login de los que lo piden y las conexiones que propusieron los agentes. Ver <a href="#connections">Conexiones</a>.</td></tr>
     <tr><td>Grafo</td><td>El <a href="#graph">grafo</a>.</td></tr>
     <tr><td>Conocimiento</td><td>Guardar una URL, búsqueda híbrida, reindexar la búsqueda por palabra, lista de fuentes con de cuándo es su contenido y cuándo se revisaron, y <i>Actualizar</i> (una o todas; si falla, queda la última copia buena y se muestra el error).</td></tr>
+    <tr><td>Prompts</td><td>Instrucciones listas para pegar en tu agente de IA, con botón para copiarlas en español e inglés. Ver <a href="#prompts">Prompts para agentes</a>.</td></tr>
     <tr><td>Logs</td><td>Salida en vivo de cada servicio que maneja el dashboard.</td></tr>
   </table>
   <h2>Servicios</h2>
@@ -976,6 +978,177 @@ restore_file("projects/tienda-online.md", 41)</pre>
 </div>
 </section>
 
+<section class="page" id="prompts" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Prompts for agents" data-title-es="Prompts para agentes">
+<div class="l-en">
+  <h1>Prompts for your agent</h1>
+  <p class="lead">Ready-to-paste instructions so any AI uses brain well: what to read, what to cite and what not to touch. They are also in the dashboard, in the <b>Prompts</b> view, with a copy button in English and Spanish.</p>
+  <h2>How to use them</h2>
+  <ol>
+    <li>Connect your agent (<a href="#agents">Connecting agents</a>): cloud agents by URL, the ones on your computer with the one-click button.</li>
+    <li>Paste <b>Project instructions</b> into the agent's project instructions (in Cursor or Claude Code, the rules file).</li>
+    <li>Replace <code>&lt;project&gt;</code> with the name of your folder in <code>projects/</code>.</li>
+    <li>Try an everyday prompt and check in the agent which tool it called: each prompt says which one it should use.</li>
+    <li>To have the agent write its own rules, paste <b>Let the agent configure itself</b> as the first message.</li>
+  </ol>
+  <p>Without brain tools (an AI that isn't connected), use <b>When the AI has no brain tools</b> and paste the note's content. If you ask an agent directly to write <code>BRAIN.md</code>, <code>FORMAT.md</code> or <code>FACT-CHECK.md</code> it may try, and brain stops it: only you edit them, from the graph.</p>
+  <h2>Set up an agent with brain</h2>
+  <p>Paste them into the project instructions (Claude, ChatGPT, Gemini, Mistral or Cursor) and replace &lt;project&gt; with the name of your folder in projects/.</p>
+  <h3>Project instructions</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Tested in: Mistral, Manus.</p>
+  <pre>Use brain as the main context source for this project.
+1. At the start of a conversation, list the notes in projects/&lt;project&gt;/ with list_vault and read the main note projects/&lt;project&gt;.md.
+2. Before answering about the project, read the relevant notes with read_file. If the information is not there, say so. Do not invent facts.
+3. When you use something from brain, cite the source note path.
+4. Do not save anything to brain unless I ask. If I ask you to save something, show me the exact text first.
+5. Never try to write BRAIN.md, FORMAT.md, FACT-CHECK.md or the base folders. If a change is needed there, ask me.
+6. If brain does not have enough and you need web sources, follow FACT-CHECK.md before answering.</pre>
+  <h3>Coding agents (Claude Code, Cursor, Codex)</h3>
+  <p>Tool: <code>read_file</code> · Not tried in a client yet.</p>
+  <pre>Before changing code in &lt;project&gt;, read projects/&lt;project&gt;/arquitectura.md and projects/&lt;project&gt;/decisiones.md through brain. Respect the decisions you find there. If a task contradicts a decision, stop and ask me. When you finish, propose the entry for the repo's CHANGES.md; do not write anything to brain unless I ask.</pre>
+  <h3>When the AI has no brain tools</h3>
+  <p>Tool: <code>—</code> · Tested in: Manus.</p>
+  <pre>I can't reach brain from this conversation. I'm pasting the content of the note &lt;name&gt;. Work only with that text, say which part you use in each answer, and tell me what information is missing.</pre>
+  <h3>Topic kickoff (once per chat)</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Tested in: Mistral.</p>
+  <pre>Before answering, look up the context about &lt;topic&gt; in brain: list projects/ with list_vault, read the notes that cover it and give me three points with the source note of each. Then answer my question: &lt;question&gt;.</pre>
+  <h3>Let the agent configure itself</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Tested in: Manus.</p>
+  <p>Expected: The agent checks which tools it has, reads BRAIN.md and FORMAT.md, asks its questions in one batch, proposes up to 8 rules and waits for your OK before applying them.</p>
+  <pre>I want you to configure how you will use brain with me, based on the tools you have. Do it in this order and do not answer my underlying question yet:
+
+1. Check which brain tools you have available (for example list_vault, read_file, search_knowledge, add_memory, fact_check). If you see none, say so and ask me to paste the content of the note you need.
+2. Read BRAIN.md and FORMAT.md to understand the vault structure. They are read-only for you.
+3. Ask me only what is necessary, in a single batch: which project it is (the folder in projects/), what you will use it for (explain, decide, write or review code, research) and whether you should save things in brain or only read.
+4. With my answers, write a summary of up to 8 lines with your working rules: what to read before answering, when to cite the source note, when to search the web, what not to touch. Show it to me and wait for my OK.
+5. After the OK, apply the summary for the whole conversation.
+
+Fixed rules: before saving anything to brain, show me the exact text and wait for my OK. Never write BRAIN.md, FORMAT.md, FACT-CHECK.md or the base folders. If a tool fails, say which one and what you did instead; do not invent content. If you are a coding agent (Claude Code, Cursor, Codex), treat the decisions in projects/&lt;project&gt;/decisiones.md as constraints before proposing changes.</pre>
+  <h2>Everyday prompts</h2>
+  <p>To use once the project is set up. Each one says which tool the AI should use, so you can check it did it right.</p>
+  <h3>Explain a project</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Tested in: Mistral.</p>
+  <p>Expected: A list of notes, a read of the main note and five points, each with its path.</p>
+  <pre>What is &lt;project&gt; according to brain? Answer in five points and cite the note for each one.</pre>
+  <h3>Find how something works</h3>
+  <p>Tool: <code>read_file</code> · Tested in: Mistral.</p>
+  <pre>Find in brain how &lt;topic&gt; works. Read the full note before answering and tell me which note it is in.</pre>
+  <h3>Project to-dos</h3>
+  <p>Tool: <code>read_file</code> · Tested in: Mistral.</p>
+  <pre>Read the to-do note of &lt;project&gt; and give me only what is not done yet, ordered by priority.</pre>
+  <h3>Decisions and their reasons</h3>
+  <p>Tool: <code>read_file</code> · Tested in: Mistral.</p>
+  <pre>Why did we decide &lt;decision&gt; in &lt;project&gt;? Find the reason in decisiones and quote the original text.</pre>
+  <h3>Save a fact about me</h3>
+  <p>Tool: <code>add_memory</code> · Tested in: Mistral.</p>
+  <p>Expected: First the confirmation with the exact text; then add_memory, with supersede if it replaces a fact.</p>
+  <pre>Save this fact about me in brain: &lt;fact&gt;. Before saving it, show me the exact text. If it replaces an earlier fact, pass the old one in supersede.</pre>
+  <h3>Add a to-do with permission</h3>
+  <p>Tool: <code>append_file</code> · Tested in: Mistral.</p>
+  <pre>Add this line at the end of projects/&lt;project&gt;/pendientes.md: - [ ] &lt;task&gt;. Show me the change and wait for my OK before writing.</pre>
+  <h3>Ask for a change in a core file (it should refuse)</h3>
+  <p>Tool: <code>append_file</code> · Tested in: Mistral.</p>
+  <p>Expected: It should refuse, explain that the user edits BRAIN.md from the graph and return the exact text to paste.</p>
+  <pre>I want to add &lt;text&gt; to BRAIN.md. Do it.</pre>
+  <h3>Check a fact</h3>
+  <p>Tool: <code>fact_check</code> · Tested in: tool directa.</p>
+  <pre>Check whether this claim still holds: &lt;claim&gt;. Look in brain first and, if needed, search the web. Show me the sources with their date and the verdict.</pre>
+  <h3>Save a web source and search it</h3>
+  <p>Tool: <code>save_url, search_knowledge</code> · Tested in: Mistral.</p>
+  <p>Expected: It needs the embeddings model (nomic-embed-text) in Ollama. With a specific question the search finds the section, not just the front page.</p>
+  <pre>Save this page in brain: &lt;url&gt;. Then search it for: &lt;question&gt;, and quote the passage.</pre>
+  <h3>Search the web</h3>
+  <p>Tool: <code>web_search, read_url</code> · Not tried in a client yet.</p>
+  <p>Expected: A list of results with title, URL and date; then it reads the pages it picks and cites where each fact comes from.</p>
+  <pre>Search the web for &lt;topic&gt; with web_search, pick the two or three most reliable results and read them with read_url. Answer citing the URL and date of each fact; if they disagree, say so.</pre>
+  <h2>What was tested</h2>
+  <p>On 2026-10-25, with brain running on an Ubuntu VM and Mistral connected by URL (the project instructions, the topic kickoff and the everyday prompts), and Manus (the English instructions, the pasted-content prompt and <i>Let the agent configure itself</i>). The central-file guard held: when a request was direct (“do it”), the agent tried to write and brain refused. <code>fact_check</code> was run as a direct tool call: it returns the sources, but without a chat model in Ollama the verdict is “inconclusive”. Saving a page needs the <code>nomic-embed-text</code> model in Ollama. Still to try: HuggingChat, and what happens when a tool fails.</p>
+</div>
+<div class="l-es">
+  <h1>Prompts para tu agente</h1>
+  <p class="lead">Instrucciones listas para pegar, para que cualquier IA use brain bien: qué leer, qué citar y qué no tocar. También están en el dashboard, en la vista <b>Prompts</b>, con botón para copiarlos en español e inglés.</p>
+  <h2>Cómo usarlos</h2>
+  <ol>
+    <li>Conectá tu agente (<a href="#agents">Conectar agentes</a>): los de la nube por URL, los de tu compu con el botón de un clic.</li>
+    <li>Pegá <b>Instrucciones de proyecto</b> en las instrucciones del proyecto del agente (en Cursor o Claude Code, el archivo de reglas).</li>
+    <li>Reemplazá <code>&lt;proyecto&gt;</code> por el nombre de tu carpeta en <code>projects/</code>.</li>
+    <li>Probá un prompt de uso diario y mirá en el agente qué tool llamó: cada prompt dice cuál debería usar.</li>
+    <li>Para que el agente arme sus propias reglas, pegá <b>Que el agente se configure solo</b> como primer mensaje.</li>
+  </ol>
+  <p>Sin tools de brain (una IA sin conectar), usá <b>Cuando la IA no tiene tools de brain</b> y pegale el contenido de la nota. Si le pedís directo a un agente escribir <code>BRAIN.md</code>, <code>FORMAT.md</code> o <code>FACT-CHECK.md</code>, puede intentarlo y brain lo frena: los editás solo vos, desde el grafo.</p>
+  <h2>Configurar un agente con brain</h2>
+  <p>Pegalos en las instrucciones del proyecto (Claude, ChatGPT, Gemini, Mistral o Cursor) y reemplazá &lt;proyecto&gt; por el nombre de tu carpeta en projects/.</p>
+  <h3>Instrucciones de proyecto</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Probado en: Mistral, Manus.</p>
+  <pre>Usá brain como fuente principal de contexto para este proyecto.
+1. Al empezar una conversación, listá las notas de projects/&lt;proyecto&gt;/ con list_vault y leé la nota principal projects/&lt;proyecto&gt;.md.
+2. Antes de responder sobre el proyecto, leé las notas relevantes con read_file. Si no encontrás la información, decilo. No inventes datos.
+3. Cuando uses algo de brain, indicá la ruta de la nota de origen.
+4. No guardes nada en brain sin pedirmelo. Si te pido guardar algo, mostrame el texto exacto antes.
+5. Nunca intentes escribir BRAIN.md, FORMAT.md, FACT-CHECK.md ni las carpetas base. Si hace falta un cambio ahí, pedimelo a mí.
+6. Si brain no alcanza y hace falta buscar en internet, seguí FACT-CHECK.md antes de responder.</pre>
+  <h3>Agentes de código (Claude Code, Cursor, Codex)</h3>
+  <p>Tool: <code>read_file</code> · Sin probar en un cliente.</p>
+  <pre>Antes de cambiar código de &lt;proyecto&gt;, leé con brain projects/&lt;proyecto&gt;/arquitectura.md y projects/&lt;proyecto&gt;/decisiones.md. Respetá las decisiones que aparezcan. Si una tarea contradice una decisión, frenate y preguntame. Al terminar, proponé la entrada para CHANGES.md del repo; no escribas nada en brain sin pedirmelo.</pre>
+  <h3>Cuando la IA no tiene tools de brain</h3>
+  <p>Tool: <code>—</code> · Probado en: Manus.</p>
+  <pre>No tengo acceso a brain desde esta conversación. Te pego el contenido de la nota &lt;nombre&gt;. Trabajá solo con ese texto, indicá qué parte usás en cada respuesta y decime qué información te falta.</pre>
+  <h3>Arranque de tema (una vez por chat)</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Probado en: Mistral.</p>
+  <pre>Antes de responder, buscá en brain el contexto sobre &lt;tema&gt;: listá projects/ con list_vault, leé las notas que lo traten y devolveme tres puntos con la nota de origen de cada uno. Después respondé mi pregunta: &lt;pregunta&gt;.</pre>
+  <h3>Que el agente se configure solo</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Probado en: Manus.</p>
+  <p>Se espera: El agente revisa qué tools tiene, lee BRAIN.md y FORMAT.md, hace sus preguntas en una sola tanda, propone hasta 8 reglas y espera tu OK antes de aplicarlas.</p>
+  <pre>Quiero que configures cómo vas a usar brain conmigo, según las herramientas que tengas. Hacelo en este orden y no respondas todavía a mi pregunta de fondo:
+
+1. Revisá qué herramientas de brain tenés disponibles (por ejemplo list_vault, read_file, search_knowledge, add_memory, fact_check). Si no ves ninguna, decilo y pedime que pegue el contenido de la nota que necesitás.
+2. Leé BRAIN.md y FORMAT.md para entender la estructura del vault. Son de solo lectura para vos.
+3. Preguntame solo lo necesario, en una sola tanda: qué proyecto es (la carpeta en projects/), para qué lo vas a usar (explicar, decidir, escribir o revisar código, investigar) y si querés que guardes cosas en brain o solo leas.
+4. Con mis respuestas, escribí un resumen de hasta 8 líneas con tus reglas de trabajo: qué leer antes de responder, cuándo citar la nota de origen, cuándo buscar en la web, qué no tocar. Mostrámelo y esperá mi OK.
+5. Después del OK, aplicá el resumen en toda la conversación.
+
+Reglas fijas: antes de guardar algo en brain, mostrame el texto exacto y esperá mi OK. Nunca escribas BRAIN.md, FORMAT.md, FACT-CHECK.md ni las carpetas base. Si una tool falla, decí cuál y qué hiciste en su lugar; no inventes contenido. Si sos un agente de código (Claude Code, Cursor, Codex), tomá las decisiones de projects/&lt;proyecto&gt;/decisiones.md como restricciones antes de proponer cambios.</pre>
+  <h2>Prompts de uso diario</h2>
+  <p>Para usar una vez configurado el proyecto. Cada uno dice qué tool debería usar la IA, así podés comprobar si lo hizo bien.</p>
+  <h3>Explicar un proyecto</h3>
+  <p>Tool: <code>list_vault, read_file</code> · Probado en: Mistral.</p>
+  <p>Se espera: Lista de notas, lectura de la nota principal y cinco puntos, cada uno con su ruta.</p>
+  <pre>¿Qué es &lt;proyecto&gt; según brain? Respondé en cinco puntos y citá la nota de cada punto.</pre>
+  <h3>Buscar cómo funciona algo</h3>
+  <p>Tool: <code>read_file</code> · Probado en: Mistral.</p>
+  <pre>Buscá en brain cómo funciona &lt;tema&gt;. Leé la nota completa antes de responder y decime en qué nota está.</pre>
+  <h3>Pendientes del proyecto</h3>
+  <p>Tool: <code>read_file</code> · Probado en: Mistral.</p>
+  <pre>Leé la nota de pendientes de &lt;proyecto&gt; y devolveme solo lo que todavía no está hecho, ordenado por prioridad.</pre>
+  <h3>Decisiones y sus motivos</h3>
+  <p>Tool: <code>read_file</code> · Probado en: Mistral.</p>
+  <pre>¿Por qué decidimos &lt;decisión&gt; en &lt;proyecto&gt;? Buscá el motivo en decisiones y citá el texto original.</pre>
+  <h3>Guardar un dato sobre mí</h3>
+  <p>Tool: <code>add_memory</code> · Probado en: Mistral.</p>
+  <p>Se espera: Primero la confirmación con el texto exacto; después add_memory, con supersede si reemplaza un dato.</p>
+  <pre>Guardá en brain este dato sobre mí: &lt;dato&gt;. Antes de guardarlo, mostrame el texto exacto. Si reemplaza un dato anterior, pasá el viejo en supersede.</pre>
+  <h3>Agregar un pendiente con permiso</h3>
+  <p>Tool: <code>append_file</code> · Probado en: Mistral.</p>
+  <pre>Agregá al final de projects/&lt;proyecto&gt;/pendientes.md esta línea: - [ ] &lt;tarea&gt;. Mostrame el cambio y esperá mi OK antes de escribir.</pre>
+  <h3>Pedir un cambio en un archivo central (debe negarse)</h3>
+  <p>Tool: <code>append_file</code> · Probado en: Mistral.</p>
+  <p>Se espera: Que se niegue, explique que BRAIN.md lo edita el usuario desde el grafo y devuelva el texto exacto para pegar.</p>
+  <pre>Quiero agregar &lt;texto&gt; a BRAIN.md. Hacelo.</pre>
+  <h3>Verificar un dato</h3>
+  <p>Tool: <code>fact_check</code> · Probado en: tool directa.</p>
+  <pre>Verificá si esta afirmación sigue vigente: &lt;afirmación&gt;. Primero mirá en brain y, si hace falta, buscá en la web. Mostrame las fuentes con su fecha y el veredicto.</pre>
+  <h3>Guardar una fuente web y buscar en ella</h3>
+  <p>Tool: <code>save_url, search_knowledge</code> · Probado en: Mistral.</p>
+  <p>Se espera: Necesita el modelo de embeddings (nomic-embed-text) en Ollama. Con una pregunta específica la búsqueda encuentra la sección, no solo la portada.</p>
+  <pre>Guardá en brain esta página: &lt;url&gt;. Después buscá en ella: &lt;pregunta&gt;, y citá el fragmento.</pre>
+  <h3>Buscar en internet</h3>
+  <p>Tool: <code>web_search, read_url</code> · Sin probar en un cliente.</p>
+  <p>Se espera: Una lista de resultados con título, URL y fecha; después lee las páginas que elija y cita de dónde sale cada dato.</p>
+  <pre>Buscá en internet &lt;tema&gt; con web_search, elegí los dos o tres resultados más confiables y leelos con read_url. Respondé citando la URL y la fecha de cada dato; si no coinciden, decilo.</pre>
+  <h2>Qué se probó</h2>
+  <p>El 2026-10-25, con brain corriendo en una VM Ubuntu y Mistral conectado por URL (instrucciones de proyecto, arranque de tema y los prompts de uso diario), y con Manus (las instrucciones en inglés, el prompt con contenido pegado y <i>Que el agente se configure solo</i>). La guarda de los archivos centrales funcionó: ante un pedido directo («hacelo») el agente intentó escribir y brain lo rechazó. <code>fact_check</code> se corrió como llamada directa a la tool: trae las fuentes, pero sin un modelo de chat en Ollama el veredicto sale «no concluyente». Guardar una página necesita el modelo <code>nomic-embed-text</code> en Ollama. Falta probar HuggingChat y qué pasa cuando una tool falla.</p>
+</div>
+</section>
+
 <section class="page" id="factcheck" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Fact check" data-title-es="Fact check">
 <div class="l-en">
   <h1>Fact check</h1>
@@ -1171,6 +1344,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>list_sources()</code></td><td>Saved URLs with title, when the content was downloaded and last checked, path and <code>abstract</code>.</td></tr>
     <tr><td><code>refresh_sources(path?)</code></td><td>Re-downloads one source (or all). If it fails, keeps the last good copy and notes the error.</td></tr>
     <tr><td><code>read_url(url, max_chars?)</code></td><td>Reads a page's text without saving it.</td></tr>
+    <tr><td><code>web_search(query, max_results?, freshness?)</code></td><td>Searches the web with brain's built-in search engine (the one from Fact check: DuckDuckGo, your own SearXNG, Brave or a Connections tool). Returns title, URL, snippet, date and source type; it doesn't read the pages or save anything. Respects the internet switch and the blocked domains. Not available in read-only remote access.</td></tr>
     <tr><td><code>fact_check(text, search_web?)</code></td><td>Verifies claims: brain first, the web if needed, verdict by rules with sources and quotes. Saves nothing. See <a href="#factcheck">Fact check</a>.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Rebuilds the keyword index from <code>knowledge/</code>.</td></tr>
   </table>
@@ -1224,6 +1398,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <tr><td><code>list_sources()</code></td><td>URLs guardadas con título, de cuándo es el contenido y cuándo se revisó, path y <code>abstract</code>.</td></tr>
     <tr><td><code>refresh_sources(path?)</code></td><td>Vuelve a bajar una fuente (o todas). Si falla, conserva la última copia buena y anota el error.</td></tr>
     <tr><td><code>read_url(url, max_chars?)</code></td><td>Lee el texto de una página sin guardarla.</td></tr>
+    <tr><td><code>web_search(query, max_results?, freshness?)</code></td><td>Busca en internet con el buscador incorporado de brain (el de Fact check: DuckDuckGo, tu SearXNG propio, Brave o una tool de las Conexiones). Devuelve título, URL, fragmento, fecha y tipo de fuente; no lee las páginas ni guarda nada. Respeta el interruptor de internet y los dominios bloqueados. No está disponible en el acceso remoto de solo lectura.</td></tr>
     <tr><td><code>fact_check(text, search_web?)</code></td><td>Verifica afirmaciones: primero brain, internet si hace falta, veredicto por reglas con fuentes y citas. No guarda nada. Ver <a href="#factcheck">Fact check</a>.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Reconstruye el índice por palabra desde <code>knowledge/</code>.</td></tr>
   </table>

@@ -127,7 +127,8 @@ y los índices, el historial y los ajustes en data/.
   Conocimiento (guardar y buscar URLs, frescura de fuentes), Fact check (verificar afirmaciones: busca primero
   en brain y, si no alcanza, en internet; da un veredicto con fuentes, citas y limitaciones; sus preferencias
   —nivel, actualidad, fuentes primarias, evidencia en contra, regiones, idiomas, buscador— están en esa vista)
-  y Logs. El engranaje abre Ajustes.
+  Prompts (instrucciones listas para pegar en un agente de IA para que use brain bien, con botón de copiar
+  en español e inglés) y Logs. El engranaje abre Ajustes.
 - Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
   menú, modelo y contexto del chat (Ollama y, si está configurado, LM Studio con su URL local; en el selector
   del chat cada modelo muestra «Proveedor · nombre»), instrucciones propias para el chat, notificaciones del
@@ -189,7 +190,8 @@ vault/ and the indexes, history and settings in data/.
   Connections (other services' MCP servers whose tools brain uses and saves), Graph, Knowledge (save and
   search URLs, source freshness), Fact check (verify claims: searches brain first and, if that's not enough,
   the web; gives a verdict with sources, quotes and limitations; its preferences —level, freshness, primary
-  sources, counter-evidence, regions, languages, search engine— live in that view) and Logs. The gear opens
+  sources, counter-evidence, regions, languages, search engine— live in that view), Prompts (ready-to-paste
+  instructions so an AI agent uses brain well, with a copy button in English and Spanish) and Logs. The gear opens
   Settings.
 - Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
   and context (Ollama and, when configured, LM Studio with its local server URL; the chat picker shows

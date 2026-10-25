@@ -616,6 +616,14 @@
     .color-grid { grid-template-columns: 1fr; }
     .collapse-btn { display: none; }
   }
+  .pr-steps { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; }
+  .pr-group { margin-top: 18px; }
+  .pr-group > p { margin: 0 0 10px; }
+  .pr-item { margin-bottom: 12px; }
+  .pr-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12px; margin-bottom: 8px; }
+  .pr-meta code { font-family: "Courier Prime", monospace; }
+  .pr-item .prompt-box { white-space: pre-wrap; user-select: text; }
+  .pr-act { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -634,6 +642,7 @@
     <button class="nav-item" data-view="grafo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.8 6.2M7.3 13l9.5 4.8"/></svg><span data-i18n="nav.graph"></span></button>
     <button class="nav-item" data-view="conocimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="nav.knowledge"></span></button>
     <button class="nav-item" data-view="factcheck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-3z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span data-i18n="nav.factcheck"></span></button>
+    <button class="nav-item" data-view="prompts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v12H9l-4 4V4z"/><path d="M9 9h6M9 12h4"/></svg><span data-i18n="nav.prompts"></span></button>
     <button class="nav-item" data-view="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg><span data-i18n="nav.logs"></span></button>
     <button class="nav-item nav-action" data-view="obsidian" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 5 7l-1.5 8L9 21.5h6l5.5-6.5L19 7z"/><path d="M12 2.5 9.5 12 9 21.5M12 2.5l2.5 9.5 .5 10M5 7l4.5 5M19 7l-4.5 5"/></svg><span data-i18n="nav.obsidian"></span></button>
     <div class="side-foot">
@@ -948,6 +957,13 @@
     </section>
 
     <!-- LOGS -->
+    <section class="view" id="view-prompts">
+      <header class="page"><div><h1 data-i18n="prompts.title"></h1><p data-i18n="prompts.sub"></p></div></header>
+      <div class="card"><div class="card-h"><h2 data-i18n="prompts.howT"></h2></div>
+        <div class="card-b"><ol class="pr-steps" id="pr-steps"></ol><p class="muted" id="pr-note"></p></div></div>
+      <div id="pr-groups"></div>
+    </section>
+
     <section class="view" id="view-logs">
       <header class="page"><div><h1 data-i18n="logs.title"></h1><p data-i18n="logs.sub"></p></div></header>
       <div class="tabs" id="log-tabs"></div>
@@ -1164,7 +1180,7 @@ const I18N = {
       download: "Ir a obsidian.md",
       running: p => `Obsidian está abierto y todavía no conoce este vault: cerralo y volvé a tocar «Abrir en Obsidian» (brain lo agrega a su lista con la app cerrada). O, con Obsidian abierto, elegí «Open folder as vault» y esta carpeta:\n\n${p}`,
       tryAnyway: "Probar igual", badConfig: "No pude leer la config de Obsidian:" },
-    nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", factcheck: "Fact check", logs: "Logs", obsidian: "Abrir en Obsidian" },
+    nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", factcheck: "Fact check", prompts: "Prompts", logs: "Logs", obsidian: "Abrir en Obsidian" },
     conn: { proposed: "Propuesta", needsKeys: "pide", propAdd: "Agregar", propDiscard: "Descartar",
       propWarn: "Un agente propuso esta conexión. Se va a ejecutar este comando en tu máquina: agregala solo si confiás en el paquete.",
       needsAuth: "Este servicio pide que inicies sesión para dar acceso a brain.", login: "Iniciar sesión", signedIn: "Sesión iniciada",
@@ -1365,6 +1381,16 @@ const I18N = {
       saved: r => `${r.updated ? "Actualizado" : "Guardado"}: “${r.title}” → ${r.path} (${r.chunks} chunks${r.rendered_js ? ", renderizado con Playwright" : ""})` },
     err: { bad_url: "La URL tiene que empezar con http:// o https://", ollama: "Ollama no está corriendo. Prendelo desde el Panel.",
       chroma: "El server de Chroma no está corriendo. Prendelo desde el Panel.", scrape: "No se pudo extraer texto de esa URL.", other: "Error" },
+    prompts: { title: "Prompts", sub: "Instrucciones listas para pegar en tu agente de IA (Claude, ChatGPT, Gemini, Mistral, Cursor…) para que use brain bien: qué leer, qué citar y qué no tocar.",
+      howT: "Cómo usarlos",
+      steps: [
+        "Conectá tu agente en «Conectar agente» (en la nube, por URL; en tu compu, con el botón de cada cliente).",
+        "Elegí el prompt de «Instrucciones de proyecto» y pegalo en las instrucciones del proyecto del agente (en Cursor o Claude Code, en el archivo de reglas).",
+        "Reemplazá <proyecto> por el nombre de tu carpeta en projects/. Si no sabés cuál es, abrí la vista Grafo o Conocimiento.",
+        "Probalo con un prompt de uso diario y mirá en el agente qué tool llamó: cada prompt dice cuál debería usar.",
+        "Si querés que el agente arme sus propias reglas, pegá «Que el agente se configure solo» en el primer mensaje."],
+      note: "Sin tools de brain (por ejemplo una IA sin conectar), usá «Cuando la IA no tiene tools de brain» y pegá el contenido de la nota. Si le pedís directo escribir BRAIN.md, FORMAT.md o FACT-CHECK.md, el agente puede intentarlo y brain lo frena: los edita solo vos desde el grafo.",
+      copy: "Copiar", copyOther: "Copiar en inglés", copied: "Copiado", tools: "Tool", tested: "Probado en", untested: "Sin probar en un cliente", expect: "Se espera" },
     logs: { title: "Logs", sub: "Salida de los servicios que maneja el dashboard",
       external: s => `${s} corre por fuera del dashboard, así que sus logs no pasan por acá.`, empty: "Sin salida todavía. Prendé el servicio desde el Panel." },
     theme: { system: "Tema: sistema", light: "Tema: claro", dark: "Tema: oscuro" },
@@ -1508,7 +1534,7 @@ const I18N = {
       download: "Go to obsidian.md",
       running: p => `Obsidian is open and doesn't know this vault yet: close it and click "Open in Obsidian" again (brain adds it to the list while the app is closed). Or, with Obsidian open, choose "Open folder as vault" and this folder:\n\n${p}`,
       tryAnyway: "Try anyway", badConfig: "I couldn't read Obsidian's settings:" },
-    nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", factcheck: "Fact check", logs: "Logs", obsidian: "Open in Obsidian" },
+    nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", factcheck: "Fact check", prompts: "Prompts", logs: "Logs", obsidian: "Open in Obsidian" },
     conn: { proposed: "Proposed", needsKeys: "needs", propAdd: "Add", propDiscard: "Discard",
       propWarn: "An agent proposed this connection. This command will run on your machine: only add it if you trust the package.",
       needsAuth: "This service asks you to sign in to give brain access.", login: "Sign in", signedIn: "Signed in",
@@ -1709,6 +1735,16 @@ const I18N = {
       saved: r => `${r.updated ? "Updated" : "Saved"}: “${r.title}” → ${r.path} (${r.chunks} chunks${r.rendered_js ? ", rendered with Playwright" : ""})` },
     err: { bad_url: "The URL must start with http:// or https://", ollama: "Ollama isn't running. Turn it on from the Dashboard.",
       chroma: "The Chroma server isn't running. Turn it on from the Dashboard.", scrape: "Couldn't extract text from that URL.", other: "Error" },
+    prompts: { title: "Prompts", sub: "Ready-to-paste instructions for your AI agent (Claude, ChatGPT, Gemini, Mistral, Cursor…) so it uses brain well: what to read, what to cite and what not to touch.",
+      howT: "How to use them",
+      steps: [
+        "Connect your agent in “Connect agent” (cloud agents by URL; on your computer, with each client's button).",
+        "Pick the “Project instructions” prompt and paste it into the agent's project instructions (in Cursor or Claude Code, the rules file).",
+        "Replace <project> with the name of your folder in projects/. If you don't know it, open the Graph or Knowledge view.",
+        "Try it with an everyday prompt and check in the agent which tool it called: each prompt says which one it should use.",
+        "If you want the agent to write its own rules, paste “Let the agent configure itself” as the first message."],
+      note: "Without brain tools (an AI that isn't connected), use “When the AI has no brain tools” and paste the note's content. If you ask it directly to write BRAIN.md, FORMAT.md or FACT-CHECK.md, the agent may try and brain stops it: only you edit them, from the graph.",
+      copy: "Copy", copyOther: "Copy in Spanish", copied: "Copied", tools: "Tool", tested: "Tested in", untested: "Not tried in a client yet", expect: "Expected" },
     logs: { title: "Logs", sub: "Output of the services managed by the dashboard",
       external: s => `${s} runs outside the dashboard, so its logs don't come through here.`, empty: "No output yet. Turn the service on from the Dashboard." },
     theme: { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" },
@@ -1877,7 +1913,7 @@ function setLang(l) {
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
   renderMemSource(); renderProfileView(); renderMemory(); renderAutoAbout(); renderAgents(); renderConnections();
-  fcStatic(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") { loadLmStudio(); loadFormat(); loadAppCfg(); }
+  fcStatic(); if (view === "prompts") renderPrompts(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") { loadLmStudio(); loadFormat(); loadAppCfg(); }
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
   if (view === "logs") { logSig = ""; loadLogs(); }
@@ -2391,7 +2427,7 @@ addEventListener("storage", e => { if (e.key === "brain-notify" && view === "aju
 // localStorage "brain-nav" = {order: [vistas], hidden: [vistas]}. Una vista oculta sigue accesible
 // por su #hash; Ajustes no está en la lista (es el engranaje, siempre visible).
 // "obsidian" no es una vista: es una acción (abre el vault en Obsidian), pero se ordena y se oculta como las demás
-const NAV_DEFAULT = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs", "obsidian"];
+const NAV_DEFAULT = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "prompts", "logs", "obsidian"];
 function navPrefs() {
   let p = {};
   try { p = JSON.parse(localStorage.getItem("brain-nav") || "{}") || {}; } catch (e) {}
@@ -2606,7 +2642,7 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
 });
 
 // ================= routing =================
-const VIEWS = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "logs", "ajustes"];
+const VIEWS = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "prompts", "logs", "ajustes"];
 let view = "panel";
 function go(v) {
   if (!VIEWS.includes(v)) v = "panel";
@@ -2619,6 +2655,7 @@ function go(v) {
   if (v === "grafo" && !$("#graph-iframe").getAttribute("src")) $("#graph-iframe").src = graphSrc();
   if (v === "grafo") loadGraphProposals();
   if (v === "factcheck") loadFactcheck();
+  if (v === "prompts") loadPrompts();
   if (v === "chat" && !$("#chat-iframe").getAttribute("src")) $("#chat-iframe").src = "/chat?mode=embed";
   if (location.hash !== `#${v}`) history.replaceState(null, "", `#${v}`);
   if (v === "logs") loadLogs();
@@ -2631,6 +2668,36 @@ function go(v) {
 }
 document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => b.dataset.view === "obsidian" ? openObsidian() : go(b.dataset.view));
 window.addEventListener("hashchange", () => go(location.hash.slice(1)));
+
+// ================= prompts para agentes (brain_mcp/prompts.json) =================
+let promptsData = null;
+async function loadPrompts() {
+  if (!promptsData) { try { promptsData = await api("/api/prompts"); } catch (e) { return; } }
+  renderPrompts();
+}
+async function copyText(text, btn, label) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  btn.textContent = T.prompts.copied; setTimeout(() => btn.textContent = label, 1500);
+}
+function renderPrompts() {
+  if (!promptsData) return;
+  const P = T.prompts, other = lang === "es" ? "en" : "es";
+  $("#pr-steps").innerHTML = P.steps.map(x => `<li>${esc(x)}</li>`).join("");
+  $("#pr-note").textContent = P.note;
+  $("#pr-groups").innerHTML = promptsData.groups.map(g => `<div class="pr-group"><h2>${esc(g.title[lang])}</h2><p class="muted">${esc(g.intro[lang])}</p>` +
+    g.items.map(it => `<div class="card pr-item"><div class="card-h"><h2>${esc(it.title[lang])}</h2></div><div class="card-b">
+      <div class="pr-meta"><span>${esc(P.tools)}: <code>${esc(it.tools)}</code></span>
+      <span class="muted">${it.tested.length ? esc(P.tested) + ": " + esc(it.tested.join(", ")) : esc(P.untested)}</span></div>
+      ${it.expect ? `<p class="muted" style="margin:0 0 8px">${esc(P.expect)}: ${esc(it.expect[lang])}</p>` : ""}
+      <div class="prompt-box">${esc(it.text[lang])}</div>
+      <div class="pr-act"><button class="btn primary" type="button" data-pr="${esc(it.id)}" data-l="${lang}">${esc(P.copy)}</button>
+      <button class="btn" type="button" data-pr="${esc(it.id)}" data-l="${other}">${esc(P.copyOther)}</button></div></div></div>`).join("") + "</div>").join("");
+  $("#pr-groups").querySelectorAll("button[data-pr]").forEach(b => b.onclick = () => {
+    const it = promptsData.groups.flatMap(g => g.items).find(x => x.id === b.dataset.pr);
+    copyText(it.text[b.dataset.l], b, b.dataset.l === lang ? P.copy : P.copyOther);
+  });
+}
 
 // ================= servicios =================
 let status = null;
