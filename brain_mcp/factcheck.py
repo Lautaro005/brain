@@ -715,6 +715,41 @@ def search_web(query: str, p: dict, days: int | None = None) -> list[dict]:
         raise FactCheckError("search_failed", f"{p['provider']}: {e}") from e
 
 
+MAX_SEARCH_RESULTS = 15
+
+
+def web_results(query: str, max_results: int = 8, freshness: str = "any") -> dict:
+    """Búsqueda web suelta (tool MCP `web_search`): usa el buscador configurado en Fact check (DuckDuckGo,
+    SearXNG propio, Brave o una tool de las Conexiones), sin leer las páginas ni guardar nada. Respeta el
+    interruptor de internet, los dominios bloqueados y las fuentes excluidas de las preferencias."""
+    query = (query or "").strip()[:300]
+    if not query:
+        raise FactCheckError("empty_query")
+    p = prefs()
+    if not p["enabled"]:
+        raise FactCheckError("web_disabled")
+    if freshness not in FRESH_DAYS:
+        raise FactCheckError("bad_freshness", freshness)
+    limit = max(1, min(int(max_results), MAX_SEARCH_RESULTS))
+    seen, out = set(), []
+    blocked = set(p["blocked_domains"])
+    for r in search_web(query, p, FRESH_DAYS[freshness]):
+        url = r.get("url", "")
+        key = url.split("#")[0].rstrip("/")
+        host = (urlparse(url).hostname or "").removeprefix("www.")
+        if not url.startswith(("http://", "https://")) or key in seen or any(host == b or host.endswith("." + b) for b in blocked):
+            continue
+        t = source_type(url)
+        if p["source_prefs"].get(t) == "exclude":
+            continue
+        seen.add(key)
+        out.append({"title": (r.get("title") or "")[:200], "url": url, "snippet": (r.get("snippet") or "")[:400],
+                    "date": r.get("date") or "", "site": site_of(url), "type": t})
+        if len(out) >= limit:
+            break
+    return {"query": query, "provider": p["provider"], "results": out}
+
+
 COUNTER = {"es": "desmentido falso refutado", "en": "false debunked refuted", "pt": "falso desmentido"}
 EVIDENCE = {"es": "estudio informe oficial datos", "en": "study official report data", "pt": "estudo relatório oficial"}
 PRIMARY = {"es": "fuente original documento oficial", "en": "original source official document", "pt": "fonte original documento oficial"}

@@ -865,3 +865,12 @@ Reporte del usuario (Mac): los cambios de la v0.03.3.2 «no se aplicaron»: el n
 - App real bajo Xvfb (binario de depuración, dashboard real, `channel: notch`): un cambio en el vault abre el aviso en el notch (y no sale notificación del sistema), la ventana se achica a 392×118, un clic en el aviso lo pasa al grafo con los nodos reales (los recién cambiados con halo) y crece a 540×354. Con `VERSION` = `v0.03.3.9` y la app copiada fuera de `target/`: detecta que está atrás, se cierra, `brain app-update` baja el AppImage del último release real, lo instala y reabre (todo en `app.log`), sin bucle.
 - **No probado**: macOS y Windows con ventana real (la animación sobre el notch físico, el clic izquierdo/derecho de la bandeja, el nivel por encima de la barra), `brain.ps1 app-update` y la actualización de la app en macOS (`.dmg`).
 - **Para actualizar una app vieja** (anterior a esta versión, que no sabe actualizarse): publicar el release `v0.03.3.3` (el workflow arma los instaladores) y volver a correr el instalador una vez; de ahí en adelante se actualiza sola.
+
+## 2026-10-25 — v0.03.3.4 (en curso): tool MCP `web_search`
+
+Pedido del usuario: una herramienta local, alojada en brain, que use el buscador web incorporado y figure en la lista de tools MCP.
+
+- **`web_search(query, max_results=8, freshness="any")`** (`server.py`) → `factcheck.web_results()` (`brain_mcp/factcheck.py`): usa el proveedor configurado en Ajustes → Fact check (DuckDuckGo, SearXNG propio, Brave o una tool de las Conexiones). Devuelve título, url, fragmento, fecha, sitio y tipo de fuente; no lee las páginas ni escribe en el vault. Respeta el interruptor de internet (`enabled`), `blocked_domains` y las fuentes `exclude`; sin repetidos y solo `http(s)`. `freshness`: any, day, month, year.
+- **No está en `READ_ONLY_TOOLS`**: sale a internet con la clave de Brave o con una conexión del usuario, así que el acceso remoto de solo lectura no la expone.
+- Test: `tests/test_v0311.py::test_web_search_tool_filters_and_respects_prefs`.
+- **Pendiente de esta versión**: vista «Prompts» del sidebar y página de docs (falta el contenido de `file.md`, que no llegó al entorno), subir `VERSION`, README, landing, docs, changelog, `chat.APP_GUIDE` y la nota de `brain-project` en el vault.

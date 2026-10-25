@@ -193,3 +193,33 @@ def test_factcheck_connection_provider(monkeypatch):
     assert fc.save_prefs({"reset": True})["provider"] == "connection"
     # sin JSON: las URLs del texto
     assert [r["url"] for r in fc.parse_tool_results(["Ver https://a.org/x, y https://b.com/y."])] == ["https://a.org/x", "https://b.com/y"]
+
+
+# ---------- web_search (v0.03.3.4) ----------
+
+def test_web_search_tool_filters_and_respects_prefs(monkeypatch):
+    import server
+    from brain_mcp import factcheck as fc
+
+    raw = [{"url": "https://a.com/x#top", "title": "A", "snippet": "uno"},
+           {"url": "https://a.com/x", "title": "A dup", "snippet": ""},
+           {"url": "https://spam.net/p", "title": "Spam", "snippet": ""},
+           {"url": "javascript:alert(1)", "title": "mal", "snippet": ""},
+           {"url": "https://b.org/y", "title": "B", "snippet": "dos", "date": "2026-10-01"}]
+    seen = {}
+
+    def fake(q, p, days=None):
+        seen["days"] = days
+        return raw
+
+    monkeypatch.setattr(fc, "search_web", fake)
+    fc.save_prefs({"blocked_domains": ["spam.net"]})
+    out = fc.web_results("hola", 8, "month")
+    assert [r["url"] for r in out["results"]] == ["https://a.com/x#top", "https://b.org/y"]
+    assert seen["days"] == 31 and out["provider"] == "duckduckgo"
+    assert len(fc.web_results("hola", 1)["results"]) == 1
+    assert "web_search" in {t.name for t in asyncio.run(server.mcp.list_tools())}
+    res = asyncio.run(server.mcp.call_tool("web_search", {"query": "hola"}))
+    assert "https://b.org/y" in json.dumps(res.structured_content or [c.text for c in res.content])
+    fc.save_prefs({"enabled": False})
+    assert "Error" in asyncio.run(server.mcp.call_tool("web_search", {"query": "hola"})).content[0].text
