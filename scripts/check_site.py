@@ -81,8 +81,13 @@ def main() -> int:
         if 'class="l-en"' not in m.group(2) or 'class="l-es"' not in m.group(2):
             errors.append(f"docs: la página #{m.group(1)} no tiene inglés y español")
 
-    # llms.txt, sitemap.xml y robots.txt: al día con las docs, y cada URL del sitemap existe
     sys.path.insert(0, str(ROOT / "scripts"))
+    # la página Prompts sale de brain_mcp/prompts.json
+    import build_prompts_page
+    if build_prompts_page.main(check=True):
+        errors.append("docs: la página #prompts está desactualizada: corré python3 scripts/build_prompts_page.py")
+
+    # llms.txt, sitemap.xml y robots.txt: al día con las docs, y cada URL del sitemap existe
     import build_site_files
     for path, text in build_site_files.expected().items():
         if not path.exists() or path.read_text(encoding="utf-8") != text:

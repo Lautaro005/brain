@@ -1,0 +1,285 @@
+{
+ "groups": [
+  {
+   "id": "setup",
+   "title": {
+    "es": "Configurar un agente con brain",
+    "en": "Set up an agent with brain"
+   },
+   "intro": {
+    "es": "Pegalos en las instrucciones del proyecto (Claude, ChatGPT, Gemini, Mistral o Cursor) y reemplazá <proyecto> por el nombre de tu carpeta en projects/.",
+    "en": "Paste them into the project instructions (Claude, ChatGPT, Gemini, Mistral or Cursor) and replace <project> with the name of your folder in projects/."
+   },
+   "items": [
+    {
+     "id": "project",
+     "title": {
+      "es": "Instrucciones de proyecto",
+      "en": "Project instructions"
+     },
+     "tools": "list_vault, read_file",
+     "expect": null,
+     "tested": [
+      "Mistral",
+      "Manus"
+     ],
+     "text": {
+      "es": "Usá brain como fuente principal de contexto para este proyecto.\n1. Al empezar una conversación, listá las notas de projects/<proyecto>/ con list_vault y leé la nota principal projects/<proyecto>.md.\n2. Antes de responder sobre el proyecto, leé las notas relevantes con read_file. Si no encontrás la información, decilo. No inventes datos.\n3. Cuando uses algo de brain, indicá la ruta de la nota de origen.\n4. No guardes nada en brain sin pedirmelo. Si te pido guardar algo, mostrame el texto exacto antes.\n5. Nunca intentes escribir BRAIN.md, FORMAT.md, FACT-CHECK.md ni las carpetas base. Si hace falta un cambio ahí, pedimelo a mí.\n6. Si brain no alcanza y hace falta buscar en internet, seguí FACT-CHECK.md antes de responder.",
+      "en": "Use brain as the main context source for this project.\n1. At the start of a conversation, list the notes in projects/<project>/ with list_vault and read the main note projects/<project>.md.\n2. Before answering about the project, read the relevant notes with read_file. If the information is not there, say so. Do not invent facts.\n3. When you use something from brain, cite the source note path.\n4. Do not save anything to brain unless I ask. If I ask you to save something, show me the exact text first.\n5. Never try to write BRAIN.md, FORMAT.md, FACT-CHECK.md or the base folders. If a change is needed there, ask me.\n6. If brain does not have enough and you need web sources, follow FACT-CHECK.md before answering."
+     }
+    },
+    {
+     "id": "code",
+     "title": {
+      "es": "Agentes de código (Claude Code, Cursor, Codex)",
+      "en": "Coding agents (Claude Code, Cursor, Codex)"
+     },
+     "tools": "read_file",
+     "expect": null,
+     "tested": [],
+     "text": {
+      "es": "Antes de cambiar código de <proyecto>, leé con brain projects/<proyecto>/arquitectura.md y projects/<proyecto>/decisiones.md. Respetá las decisiones que aparezcan. Si una tarea contradice una decisión, frenate y preguntame. Al terminar, proponé la entrada para CHANGES.md del repo; no escribas nada en brain sin pedirmelo.",
+      "en": "Before changing code in <project>, read projects/<project>/arquitectura.md and projects/<project>/decisiones.md through brain. Respect the decisions you find there. If a task contradicts a decision, stop and ask me. When you finish, propose the entry for the repo's CHANGES.md; do not write anything to brain unless I ask."
+     }
+    },
+    {
+     "id": "no-tools",
+     "title": {
+      "es": "Cuando la IA no tiene tools de brain",
+      "en": "When the AI has no brain tools"
+     },
+     "tools": "—",
+     "expect": null,
+     "tested": [
+      "Manus"
+     ],
+     "text": {
+      "es": "No tengo acceso a brain desde esta conversación. Te pego el contenido de la nota <nombre>. Trabajá solo con ese texto, indicá qué parte usás en cada respuesta y decime qué información te falta.",
+      "en": "I can't reach brain from this conversation. I'm pasting the content of the note <name>. Work only with that text, say which part you use in each answer, and tell me what information is missing."
+     }
+    },
+    {
+     "id": "topic",
+     "title": {
+      "es": "Arranque de tema (una vez por chat)",
+      "en": "Topic kickoff (once per chat)"
+     },
+     "tools": "list_vault, read_file",
+     "expect": null,
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Antes de responder, buscá en brain el contexto sobre <tema>: listá projects/ con list_vault, leé las notas que lo traten y devolveme tres puntos con la nota de origen de cada uno. Después respondé mi pregunta: <pregunta>.",
+      "en": "Before answering, look up the context about <topic> in brain: list projects/ with list_vault, read the notes that cover it and give me three points with the source note of each. Then answer my question: <question>."
+     }
+    },
+    {
+     "id": "self-config",
+     "title": {
+      "es": "Que el agente se configure solo",
+      "en": "Let the agent configure itself"
+     },
+     "tools": "list_vault, read_file",
+     "expect": {
+      "es": "El agente revisa qué tools tiene, lee BRAIN.md y FORMAT.md, hace sus preguntas en una sola tanda, propone hasta 8 reglas y espera tu OK antes de aplicarlas.",
+      "en": "The agent checks which tools it has, reads BRAIN.md and FORMAT.md, asks its questions in one batch, proposes up to 8 rules and waits for your OK before applying them."
+     },
+     "tested": [
+      "Manus"
+     ],
+     "text": {
+      "es": "Quiero que configures cómo vas a usar brain conmigo, según las herramientas que tengas. Hacelo en este orden y no respondas todavía a mi pregunta de fondo:\n\n1. Revisá qué herramientas de brain tenés disponibles (por ejemplo list_vault, read_file, search_knowledge, add_memory, fact_check). Si no ves ninguna, decilo y pedime que pegue el contenido de la nota que necesitás.\n2. Leé BRAIN.md y FORMAT.md para entender la estructura del vault. Son de solo lectura para vos.\n3. Preguntame solo lo necesario, en una sola tanda: qué proyecto es (la carpeta en projects/), para qué lo vas a usar (explicar, decidir, escribir o revisar código, investigar) y si querés que guardes cosas en brain o solo leas.\n4. Con mis respuestas, escribí un resumen de hasta 8 líneas con tus reglas de trabajo: qué leer antes de responder, cuándo citar la nota de origen, cuándo buscar en la web, qué no tocar. Mostrámelo y esperá mi OK.\n5. Después del OK, aplicá el resumen en toda la conversación.\n\nReglas fijas: antes de guardar algo en brain, mostrame el texto exacto y esperá mi OK. Nunca escribas BRAIN.md, FORMAT.md, FACT-CHECK.md ni las carpetas base. Si una tool falla, decí cuál y qué hiciste en su lugar; no inventes contenido. Si sos un agente de código (Claude Code, Cursor, Codex), tomá las decisiones de projects/<proyecto>/decisiones.md como restricciones antes de proponer cambios.",
+      "en": "I want you to configure how you will use brain with me, based on the tools you have. Do it in this order and do not answer my underlying question yet:\n\n1. Check which brain tools you have available (for example list_vault, read_file, search_knowledge, add_memory, fact_check). If you see none, say so and ask me to paste the content of the note you need.\n2. Read BRAIN.md and FORMAT.md to understand the vault structure. They are read-only for you.\n3. Ask me only what is necessary, in a single batch: which project it is (the folder in projects/), what you will use it for (explain, decide, write or review code, research) and whether you should save things in brain or only read.\n4. With my answers, write a summary of up to 8 lines with your working rules: what to read before answering, when to cite the source note, when to search the web, what not to touch. Show it to me and wait for my OK.\n5. After the OK, apply the summary for the whole conversation.\n\nFixed rules: before saving anything to brain, show me the exact text and wait for my OK. Never write BRAIN.md, FORMAT.md, FACT-CHECK.md or the base folders. If a tool fails, say which one and what you did instead; do not invent content. If you are a coding agent (Claude Code, Cursor, Codex), treat the decisions in projects/<project>/decisiones.md as constraints before proposing changes."
+     }
+    }
+   ]
+  },
+  {
+   "id": "daily",
+   "title": {
+    "es": "Prompts de uso diario",
+    "en": "Everyday prompts"
+   },
+   "intro": {
+    "es": "Para usar una vez configurado el proyecto. Cada uno dice qué tool debería usar la IA, así podés comprobar si lo hizo bien.",
+    "en": "To use once the project is set up. Each one says which tool the AI should use, so you can check it did it right."
+   },
+   "items": [
+    {
+     "id": "explain",
+     "title": {
+      "es": "Explicar un proyecto",
+      "en": "Explain a project"
+     },
+     "tools": "list_vault, read_file",
+     "expect": {
+      "es": "Lista de notas, lectura de la nota principal y cinco puntos, cada uno con su ruta.",
+      "en": "A list of notes, a read of the main note and five points, each with its path."
+     },
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "¿Qué es <proyecto> según brain? Respondé en cinco puntos y citá la nota de cada punto.",
+      "en": "What is <project> according to brain? Answer in five points and cite the note for each one."
+     }
+    },
+    {
+     "id": "how",
+     "title": {
+      "es": "Buscar cómo funciona algo",
+      "en": "Find how something works"
+     },
+     "tools": "read_file",
+     "expect": null,
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Buscá en brain cómo funciona <tema>. Leé la nota completa antes de responder y decime en qué nota está.",
+      "en": "Find in brain how <topic> works. Read the full note before answering and tell me which note it is in."
+     }
+    },
+    {
+     "id": "todo",
+     "title": {
+      "es": "Pendientes del proyecto",
+      "en": "Project to-dos"
+     },
+     "tools": "read_file",
+     "expect": null,
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Leé la nota de pendientes de <proyecto> y devolveme solo lo que todavía no está hecho, ordenado por prioridad.",
+      "en": "Read the to-do note of <project> and give me only what is not done yet, ordered by priority."
+     }
+    },
+    {
+     "id": "why",
+     "title": {
+      "es": "Decisiones y sus motivos",
+      "en": "Decisions and their reasons"
+     },
+     "tools": "read_file",
+     "expect": null,
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "¿Por qué decidimos <decisión> en <proyecto>? Buscá el motivo en decisiones y citá el texto original.",
+      "en": "Why did we decide <decision> in <project>? Find the reason in decisiones and quote the original text."
+     }
+    },
+    {
+     "id": "memory",
+     "title": {
+      "es": "Guardar un dato sobre mí",
+      "en": "Save a fact about me"
+     },
+     "tools": "add_memory",
+     "expect": {
+      "es": "Primero la confirmación con el texto exacto; después add_memory, con supersede si reemplaza un dato.",
+      "en": "First the confirmation with the exact text; then add_memory, with supersede if it replaces a fact."
+     },
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Guardá en brain este dato sobre mí: <dato>. Antes de guardarlo, mostrame el texto exacto. Si reemplaza un dato anterior, pasá el viejo en supersede.",
+      "en": "Save this fact about me in brain: <fact>. Before saving it, show me the exact text. If it replaces an earlier fact, pass the old one in supersede."
+     }
+    },
+    {
+     "id": "append",
+     "title": {
+      "es": "Agregar un pendiente con permiso",
+      "en": "Add a to-do with permission"
+     },
+     "tools": "append_file",
+     "expect": null,
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Agregá al final de projects/<proyecto>/pendientes.md esta línea: - [ ] <tarea>. Mostrame el cambio y esperá mi OK antes de escribir.",
+      "en": "Add this line at the end of projects/<project>/pendientes.md: - [ ] <task>. Show me the change and wait for my OK before writing."
+     }
+    },
+    {
+     "id": "central",
+     "title": {
+      "es": "Pedir un cambio en un archivo central (debe negarse)",
+      "en": "Ask for a change in a core file (it should refuse)"
+     },
+     "tools": "append_file",
+     "expect": {
+      "es": "Que se niegue, explique que BRAIN.md lo edita el usuario desde el grafo y devuelva el texto exacto para pegar.",
+      "en": "It should refuse, explain that the user edits BRAIN.md from the graph and return the exact text to paste."
+     },
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Quiero agregar <texto> a BRAIN.md. Hacelo.",
+      "en": "I want to add <text> to BRAIN.md. Do it."
+     }
+    },
+    {
+     "id": "fact",
+     "title": {
+      "es": "Verificar un dato",
+      "en": "Check a fact"
+     },
+     "tools": "fact_check",
+     "expect": null,
+     "tested": [
+      "tool directa"
+     ],
+     "text": {
+      "es": "Verificá si esta afirmación sigue vigente: <afirmación>. Primero mirá en brain y, si hace falta, buscá en la web. Mostrame las fuentes con su fecha y el veredicto.",
+      "en": "Check whether this claim still holds: <claim>. Look in brain first and, if needed, search the web. Show me the sources with their date and the verdict."
+     }
+    },
+    {
+     "id": "source",
+     "title": {
+      "es": "Guardar una fuente web y buscar en ella",
+      "en": "Save a web source and search it"
+     },
+     "tools": "save_url, search_knowledge",
+     "expect": {
+      "es": "Necesita el modelo de embeddings (nomic-embed-text) en Ollama. Con una pregunta específica la búsqueda encuentra la sección, no solo la portada.",
+      "en": "It needs the embeddings model (nomic-embed-text) in Ollama. With a specific question the search finds the section, not just the front page."
+     },
+     "tested": [
+      "Mistral"
+     ],
+     "text": {
+      "es": "Guardá en brain esta página: <url>. Después buscá en ella: <pregunta>, y citá el fragmento.",
+      "en": "Save this page in brain: <url>. Then search it for: <question>, and quote the passage."
+     }
+    },
+    {
+     "id": "web",
+     "title": {
+      "es": "Buscar en internet",
+      "en": "Search the web"
+     },
+     "tools": "web_search, read_url",
+     "expect": {
+      "es": "Una lista de resultados con título, URL y fecha; después lee las páginas que elija y cita de dónde sale cada dato.",
+      "en": "A list of results with title, URL and date; then it reads the pages it picks and cites where each fact comes from."
+     },
+     "tested": [],
+     "text": {
+      "es": "Buscá en internet <tema> con web_search, elegí los dos o tres resultados más confiables y leelos con read_url. Respondé citando la URL y la fecha de cada dato; si no coinciden, decilo.",
+      "en": "Search the web for <topic> with web_search, pick the two or three most reliable results and read them with read_url. Answer citing the URL and date of each fact; if they disagree, say so."
+     }
+    }
+   ]
+  }
+ ]
+}

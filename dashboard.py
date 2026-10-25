@@ -370,6 +370,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, _oauth_page(ok, who).encode(), "text/html; charset=utf-8")
             elif u.path == "/ui.js":
                 self._send(200, (HERE / "ui.js").read_bytes(), "text/javascript; charset=utf-8")
+            elif u.path == "/api/prompts":  # prompts para agentes (brain_mcp/prompts.json)
+                self._json(json.loads((HERE / "prompts.json").read_text("utf-8")))
             elif u.path == "/api/status":
                 self._json(_status())
             elif u.path == "/api/stats":

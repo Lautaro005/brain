@@ -354,6 +354,23 @@ def propose_graph_change(changes: list[dict], reason: str = "") -> dict | str:
 
 
 @mcp.tool()
+async def web_search(query: str, max_results: int = 8, freshness: str = "any") -> dict | str:
+    """Busca en internet con el buscador incorporado de brain (el de Fact check: DuckDuckGo, tu SearXNG propio,
+    Brave o una tool de tus Conexiones, según Ajustes → Fact check). Devuelve título, url, fragmento, fecha y tipo
+    de fuente de cada resultado, sin leer las páginas ni guardar nada: para leer una, read_url; para guardarla,
+    save_url; para comprobar un dato, fact_check. freshness: any, day, month o year. Respeta el interruptor de
+    internet y los dominios bloqueados de Fact check."""
+    try:
+        from brain_mcp import factcheck
+
+        import anyio
+
+        return await anyio.to_thread.run_sync(lambda: factcheck.web_results(query, max_results, freshness))
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 async def fact_check(text: str, search_web: bool = True) -> str:
     """Verifica afirmaciones con un proceso visible: las separa, busca primero en brain y, si lo guardado no
     alcanza (y el usuario lo permite en Fact check), busca en internet con consultas a favor y en contra,
