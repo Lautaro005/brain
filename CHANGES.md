@@ -903,3 +903,7 @@ Pedido del usuario: (1) leer el proyecto «workspace» del vault (es `projects/w
 
 **Verificado**: `pytest -q tests` 115 passed (nuevos: `tests/test_v0335.py`, con un `opencue mcp-serve` falso por stdio real, la base de agentes de juguete, el chat con agente y Lumina, y la API); `check_site.py` OK; en Chromium contra un Lumina falso en el puerto 47770 y un `opencue` falso: el selector lista los agentes, el + abre el menú con el interruptor y el filtro, y el mensaje llegó al agente con el perfil, la memoria y el fragmento de Lumina; Ajustes → Familia de apps en es y en.
 **No probado**: OpenCue, Lumina y WorkStudio reales (no están en este entorno; el contrato salió de su código), la app de OpenCue abriéndose desde brain en macOS/Windows (`pgrep`/`tasklist` y el comando `opencue`), aprobaciones que pida un agente (se responden en OpenCue), y la vista en la app de escritorio.
+
+## 2026-10-28 — v0.03.3.5: arreglo del CI en Windows
+
+El CI de `main` (`f037966`) falló solo en `Tests (windows-latest)`: `tests/test_v0335.py::test_send_to_agent_over_stdio` escribía el `opencue mcp-serve` falso con `write_text` sin codificación (cp1252 en Windows) y el script traía una «ó» ("falló"); Python lo leía como UTF-8 → `SyntaxError` y el cliente MCP veía «Connection closed». Ahora el test lo escribe en `utf-8` y el mensaje del falso server es ASCII. No cambia código de la app (`family.py` no se tocó): los otros 12 jobs ya estaban en verde.

@@ -125,7 +125,7 @@ FAKE_SERVER = textwrap.dedent('''
     @s.tool()
     def send_to_agent(agent: str, message: str) -> str:
         if agent == "boom":
-            raise ValueError("falló")
+            raise ValueError("fallo")
         return f"[{agent}]: desde {AGENT}: {message[-40:]}"
 
     s.run()
@@ -134,7 +134,7 @@ FAKE_SERVER = textwrap.dedent('''
 
 def test_send_to_agent_over_stdio(tmp_path):
     script = tmp_path / "fake_opencue.py"
-    script.write_text(FAKE_SERVER)
+    script.write_text(FAKE_SERVER, encoding="utf-8")
     out = asyncio.run(family._send_to_agent(sys.executable, "a2", "pacman", "hola mundo", 60, prefix=(str(script),)))
     assert out == "desde a2: hola mundo"  # sin el prefijo "[agente]:"
     with pytest.raises(family.FamilyError) as e:
