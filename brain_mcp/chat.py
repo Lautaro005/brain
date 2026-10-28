@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from . import chroma_store, memory, organize, reflect, vault
+from . import chroma_store, family, memory, organize, reflect, vault
 from .embeddings import OllamaUnavailable, embed
 
 log = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ MAX_ROUNDS = 6           # vueltas de tool calls por respuesta
 MAX_HISTORY = 24         # mensajes previos del chat que se mandan al modelo
 MAX_TOOL_RESULT = 8000   # caracteres de cada resultado de tool que ve el modelo
 MAX_MEMORY_CHARS = 12000
+MAX_AGENT_MEMORY = 9000  # memorias que se le pasan a un agente de OpenCue
 EMBED_CHARS = 4000       # nomic-embed-text: alcanza con el principio del mensaje
 MAX_SYSTEM_USER = 4000   # instrucciones propias del usuario (Ajustes → Chat)
 MAX_TITLE = 80
@@ -129,6 +130,10 @@ y los índices, el historial y los ajustes en data/.
   —nivel, actualidad, fuentes primarias, evidencia en contra, regiones, idiomas, buscador— están en esa vista)
   Prompts (instrucciones listas para pegar en un agente de IA para que use brain bien, con botón de copiar
   en español e inglés) y Logs. El engranaje abre Ajustes.
+- Familia de apps: si el usuario tiene OpenCue, sus agentes aparecen en el selector de modelo del chat («OpenCue ·
+  nombre») y responden con el perfil y la memoria de brain; el botón + de la caja de mensaje lista los comandos y
+  skills y tiene un interruptor para buscar en la base de Lumina (reuniones, archivos y notas); Ajustes → Familia de
+  apps muestra OpenCue, Lumina y AI WorkStudio y las abre.
 - Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
   menú, modelo y contexto del chat (Ollama y, si está configurado, LM Studio con su URL local; en el selector
   del chat cada modelo muestra «Proveedor · nombre»), instrucciones propias para el chat, notificaciones del
@@ -193,6 +198,10 @@ vault/ and the indexes, history and settings in data/.
   sources, counter-evidence, regions, languages, search engine— live in that view), Prompts (ready-to-paste
   instructions so an AI agent uses brain well, with a copy button in English and Spanish) and Logs. The gear opens
   Settings.
+- App family: if the user has OpenCue, its agents show up in the chat model picker ("OpenCue · name") and answer
+  with brain's profile and memory; the + button in the message box lists the commands and skills and has a switch
+  to search Lumina's knowledge base (meetings, files and notes); Settings → App family shows OpenCue, Lumina and
+  AI WorkStudio and opens them.
 - Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
   and context (Ollama and, when configured, LM Studio with its local server URL; the chat picker shows
   "Provider · name" for each model), custom chat instructions, system notifications, backup and restore, note
@@ -294,9 +303,10 @@ def models() -> list[dict]:
     from . import lmstudio as _lm
 
     out = llm_providers.list_chat_models()
-    if not out and not llm_providers.ollama_healthy() and not _lm.healthy():
+    agents = family.chat_models()  # los agentes de OpenCue: hablan con el contexto de brain (ver _run_agent)
+    if not out and not agents and not llm_providers.ollama_healthy() and not _lm.healthy():
         raise ChatError("ollama")
-    return out
+    return out + agents
 
 
 _MAX: dict[str, int] = {}  # "modelo@digest" → context_length que reporta Ollama
@@ -646,18 +656,29 @@ def _factcheck_guide(full: bool) -> str:
     return "# FACT-CHECK.md (guía del usuario para verificar y buscar afuera de brain)\n" + body[:FACTCHECK_MAX]
 
 
-def _context(text: str, chat_id: str, lang: str, user_system: str = "", command: str = "", past: bool = True) -> str:
-    """System prompt. Lo que cambia en cada mensaje (fragmentos de otros chats) va al final: Ollama reusa
-    el caché del prefijo que no cambió, así no vuelve a procesar el perfil, la memoria y las tools cada vez."""
-    p = memory.get_profile()
+def _profile_block(p: dict) -> str:
+    return "# Perfil (profile.md)\n" + (f"Nombre: {p['name']}\nEn una línea: {p['headline']}\n\n{p['about']}"
+                                       + (f"\n\nLo que brain sabe de vos (resumen automático de la memoria):\n{p['auto_about']}"
+                                          if p.get("auto_about") else "")
+                                       if p["exists"] else "(todavía no cargó su perfil)")
+
+
+def _memory_block(limit: int = MAX_MEMORY_CHARS) -> str:
     mem_lines, used = [], 0
     for c in memory.list_all():
         block = f"## {c['category']}\n" + "\n".join(f"- {i}" for i in c["items"])
-        if used + len(block) > MAX_MEMORY_CHARS:
+        if used + len(block) > limit:
             mem_lines.append("(hay más memorias: usá list_vault('memory') y read_file para verlas)")
             break
         mem_lines.append(block)
         used += len(block)
+    return "# Memoria del usuario (memory/)\n" + ("\n\n".join(mem_lines) or "(todavía no hay memorias)")
+
+
+def _context(text: str, chat_id: str, lang: str, user_system: str = "", command: str = "", past: bool = True) -> str:
+    """System prompt. Lo que cambia en cada mensaje (fragmentos de otros chats) va al final: Ollama reusa
+    el caché del prefijo que no cambió, así no vuelve a procesar el perfil, la memoria y las tools cada vez."""
+    p = memory.get_profile()
     try:
         index = vault.read_file("BRAIN.md")[:3000]
     except vault.VaultError:
@@ -666,11 +687,8 @@ def _context(text: str, chat_id: str, lang: str, user_system: str = "", command:
     parts = [
         HARNESS.format(reply_lang=reply_lang),
         APP_GUIDE["es"],
-        "# Perfil (profile.md)\n" + (f"Nombre: {p['name']}\nEn una línea: {p['headline']}\n\n{p['about']}"
-                                     + (f"\n\nLo que brain sabe de vos (resumen automático de la memoria):\n{p['auto_about']}"
-                                        if p.get("auto_about") else "")
-                                     if p["exists"] else "(todavía no cargó su perfil)"),
-        "# Memoria del usuario (memory/)\n" + ("\n\n".join(mem_lines) or "(todavía no hay memorias)"),
+        _profile_block(p),
+        _memory_block(),
     ]
     if index:
         parts.append("# Índice del vault (BRAIN.md)\n" + index)
@@ -933,15 +951,141 @@ def _compact(chat_id, title, model, created, history, summary, recent, user_msg,
     yield {"type": "done", "chat_id": chat_id, "title": title, "saved": saved_ok}
 
 
-def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", user_system: str = ""):
+# ---------- OpenCue y Lumina (familia de apps, ver family.py) ----------
+
+LUMINA_TOOL = "lumina_search"
+AGENT_TIMEOUT = 960  # OpenCue le da 15 min a una respuesta entre agentes
+
+
+def _lumina_prefetch(text: str, lang: str):
+    """Busca en la base de Lumina con lo que escribió el usuario. Generador: emite los eventos tool/tool_result
+    (así el chat muestra la consulta) y devuelve (bloque para el contexto, [tool usada para el historial])."""
+    query = text.strip()[:500]
+    args = {"query": query}
+    yield {"type": "tool", "i": 0, "name": LUMINA_TOOL, "args": args}
+    try:
+        hits = family.lumina_search(query, 6)
+    except family.FamilyError as e:
+        yield {"type": "tool_result", "i": 0, "name": LUMINA_TOOL, "ok": False, "result": f"Error: {e.code}"}
+        yield {"type": "notice", "code": e.code if e.code in ("lumina_down", "lumina_not_ready") else "lumina_error"}
+        return "", [{"name": LUMINA_TOOL, "args": args, "ok": False, "result": f"Error: {e.code}"}]
+    summary = "\n".join(f"- {h['kind']} · {h['title']} {h['date']}".rstrip() for h in hits)[:1500] or "(sin resultados)"
+    yield {"type": "tool_result", "i": 0, "name": LUMINA_TOOL, "ok": True, "result": summary}
+    block = family.lumina_block(hits, lang) or ("# Lumina\nEl usuario habilitó la búsqueda en Lumina y no encontró nada para este "
+                                              "mensaje: no inventes datos de sus reuniones o archivos.")
+    return block, [{"name": LUMINA_TOOL, "args": args, "ok": True, "result": summary}]
+
+
+def _agent_brain_context(lang: str, user_system: str = "") -> str:
+    """Lo que brain le cuenta a un agente de OpenCue en el primer mensaje del chat: quién es el usuario (perfil y
+    memoria), el índice del vault y cómo está organizado, para que el agente hable con todo el contexto de brain."""
+    try:
+        index = vault.read_file("BRAIN.md")[:3000]
+    except vault.VaultError:
+        index = ""
+    es = lang != "en"
+    parts = [("# Contexto de brain\nEl usuario te escribe desde el chat de brain, su memoria local compartida entre todas "
+              "sus IAs. Lo de abajo es lo que brain sabe de él: usalo como conocimiento sobre el usuario (no lo repitas "
+              "ni lo cites salvo que ayude) y respondé al mensaje que está al final. Si necesitás más, brain tiene su "
+              "vault en Markdown (proyectos, memoria, skills y fuentes).") if es else
+             ("# brain context\nThe user is writing to you from the brain chat, their local memory shared across all "
+              "their AIs. Below is what brain knows about them: use it as knowledge about the user (don't repeat or "
+              "cite it unless it helps) and answer the message at the end. If you need more, brain keeps their "
+              "Markdown vault (projects, memory, skills and sources)."),
+             _profile_block(memory.get_profile()), _memory_block(MAX_AGENT_MEMORY)]
+    if index:
+        parts.append("# Índice del vault (BRAIN.md)\n" + index)
+    if user_system.strip():
+        parts.append("# Instrucciones del usuario para el chat (Ajustes)\n" + user_system.strip()[:MAX_SYSTEM_USER])
+    parts.append(f"Fecha de hoy: {datetime.now().strftime('%Y-%m-%d')}")
+    return "\n\n".join(parts)[:family.MAX_AGENT_CONTEXT]
+
+
+def _agent_error(e: "family.FamilyError") -> dict:
+    return {"type": "error", "code": f"agent_{e.code}" if not e.code.startswith(("agent_", "opencue_")) else e.code, "detail": e.detail}
+
+
+def _run_agent(text: str, model: str, chat_id: str | None, lang: str, user_system: str, lumina: bool):
+    """Responde con un agente de OpenCue (modelo `opencue:<nombre>`). El agente corre en la app de OpenCue, con sus
+    tools, su memoria y sus permisos; brain le pasa su contexto (perfil, memoria, índice) en el primer mensaje del
+    chat y, si el usuario lo habilitó, lo que encuentre en Lumina. La respuesta llega entera (OpenCue no la va
+    mandando de a pedazos por este camino). Eventos: start · tool · tool_result · notice · token · done · error."""
+    agent = model[len(family.OPENCUE_PREFIX):]
+    title = text.splitlines()[0][:MAX_TITLE]
+    history, created, saved_ok = [], _now(), True
+    if chat_id:
+        try:
+            prev = get_chat(chat_id)
+            history, title = prev["messages"], prev["title"] or title
+            created = prev.get("created_at") or created
+        except ChatError:
+            pass
+        except Exception as e:
+            log.info("no se pudo leer el chat %s: %s", chat_id, e)
+            saved_ok = False
+    chat_id = chat_id or _new_id()
+    yield {"type": "start", "chat_id": chat_id, "title": title, "command": ""}
+    user_msg = {"role": "user", "content": text, "ts": _now()}
+    answer, used, failed = "", [], False
+    try:
+        parts = []
+        if not any(m["role"] == "assistant" for m in history):  # el primer mensaje de este chat lleva el contexto
+            parts.append(_agent_brain_context(lang, user_system))
+        if lumina:
+            block, used = yield from _lumina_prefetch(text, lang)
+            if block:
+                parts.append(block)
+        parts.append(("# Mensaje del usuario\n" if parts else "") + text)
+        i = len(used)
+        yield {"type": "tool", "i": i, "name": f"OpenCue → {agent}", "args": {}}
+        try:
+            answer = family.opencue_chat(agent, "\n\n".join(parts), AGENT_TIMEOUT)
+        except family.FamilyError as e:
+            used.append({"name": f"OpenCue → {agent}", "args": {}, "ok": False, "result": f"Error: {e.code}"})
+            yield {"type": "tool_result", "i": i, "name": f"OpenCue → {agent}", "ok": False, "result": f"Error: {e.code}"}
+            raise
+        used.append({"name": f"OpenCue → {agent}", "args": {}, "ok": True, "result": "OK"})
+        yield {"type": "tool_result", "i": i, "name": f"OpenCue → {agent}", "ok": True, "result": "OK"}
+        if answer:
+            yield {"type": "token", "text": answer}
+    except family.FamilyError as e:
+        failed = True
+        yield _agent_error(e)
+    except Exception as e:
+        failed = True
+        log.exception("chat con un agente de OpenCue")
+        yield {"type": "error", "code": "other", "detail": str(e)}
+    finally:
+        new = [user_msg]
+        if answer.strip() or used:
+            new.append({"role": "assistant", "content": answer.strip(), "ts": _now(), "tools": used})
+        try:
+            if failed and len(new) == 1:
+                saved_ok = None
+            elif saved_ok:
+                _save(chat_id, title, model, created, new, len(history), {"command": "", "tokens": 0, "ctx": 0})
+            else:
+                raise RuntimeError("historial no disponible")
+        except Exception as e:
+            log.info("no se pudo guardar el chat: %s", e)
+            saved_ok = False
+    yield {"type": "done", "chat_id": chat_id, "title": title, "saved": saved_ok}
+
+
+def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", user_system: str = "", lumina: bool = False):
     """Genera los eventos de una respuesta (para mandar como NDJSON):
-    start · token · rewrite · tool · tool_result · usage · notice · done · error."""
+    start · token · rewrite · tool · tool_result · usage · notice · done · error.
+    `lumina`: el usuario habilitó la búsqueda en Lumina para este mensaje. Un modelo `opencue:<agente>` va por
+    _run_agent."""
     text = (text or "").strip()
     if not text:
         yield {"type": "error", "code": "empty"}
         return
     if not model:
         yield {"type": "error", "code": "no_model"}
+        return
+    if family.is_agent_ref(model):
+        yield from _run_agent(text, model, chat_id, lang, user_system, lumina)
         return
 
     _names: list = []
@@ -990,6 +1134,8 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
     except Exception as e:
         log.warning("sin tools para el chat: %s", e)
         mcp_tools = []
+    # lumina_search solo está en el chat cuando el usuario habilitó Lumina (botón +): ahí además se busca de entrada
+    mcp_tools = [t for t in mcp_tools if lumina or t.name != LUMINA_TOOL]
     valid = {t.name for t in mcp_tools}
     mode = _MODE.get(model, "native") if mcp_tools else "none"
 
@@ -1028,6 +1174,11 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
                             saved_ok, command, rest)
         return
 
+    prefetched = []
+    if lumina and not cmd:
+        block, prefetched = yield from _lumina_prefetch(text, lang)
+        if block:
+            past = (past + "\n\n" + block).strip()
     msgs = build(mode)
     # auto-compact (como Claude): si la conversación ya casi no entra en la ventana, se resume sola antes
     # de responder, en vez de que Ollama corte el principio sin avisar
@@ -1045,7 +1196,7 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
             yield {"type": "compacted", "summary": new_summary}
         except Exception as e:  # si no se pudo, se sigue como antes (Ollama recorta lo más viejo)
             log.info("auto-compact: %s", e)
-    answer, used, failed = "", [], False
+    answer, used, failed = "", list(prefetched), False
     seen_calls, repeats, out_of_rounds = set(), 0, False
     try:
         rounds = 0
