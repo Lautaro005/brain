@@ -26,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import server as mcp_tools  # noqa: E402  (las mismas funciones que exponen las tools MCP)
 import asyncio  # noqa: E402
 
-from brain_mcp import agents, appmode, autobackup, backup, obsidian, chat, clients, connectors, factcheck, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
+from brain_mcp import agents, appmode, autobackup, backup, obsidian, chat, clients, connectors, factcheck, family, graph_proposals, history, memory, oauth, reflect, remote, stats, updates, vault  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
 from brain_mcp.embeddings import OllamaUnavailable  # noqa: E402
 from brain_mcp.scrape import ScrapeError  # noqa: E402
@@ -382,6 +382,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"missing": vault.missing_metadata()})
             elif u.path == "/api/factcheck/prefs":
                 self._json({"prefs": factcheck.public(), "defaults": factcheck.public(factcheck.DEFAULTS)})
+            elif u.path == "/api/family":  # OpenCue, Lumina y AI WorkStudio: ¿instaladas? ¿corriendo? ¿agentes?
+                self._json({"ok": True, **family.status()})
             elif u.path == "/api/factcheck/tools":  # tools de las Conexiones que sirven de buscador
                 self._json({"tools": factcheck.search_tools()})
             elif u.path == "/api/factcheck/reports":
@@ -608,6 +610,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "agent": st})
             elif u.path == "/api/chat/send":
                 self._stream_chat(body)
+            elif u.path == "/api/family":
+                try:
+                    family.save(body)
+                    self._json({"ok": True, **family.status()})
+                except family.FamilyError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
+            elif u.path == "/api/family/open":
+                try:
+                    self._json({"ok": True, **family.open_app(str(body.get("app", "")))})
+                except family.FamilyError as e:
+                    self._json({"ok": False, "code": e.code, "detail": e.detail})
             elif u.path == "/api/chat/delete":
                 try:
                     chat.delete_chat(str(body.get("id", "")))
@@ -733,7 +746,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         gen = chat.run(str(body.get("text", "")), str(body.get("model", "")),
                        str(body.get("chat_id") or "") or None, "en" if body.get("lang") == "en" else "es",
-                       str(body.get("system") or ""))
+                       str(body.get("system") or ""), bool(body.get("lumina")))
         try:
             for ev in gen:
                 self.wfile.write((json.dumps(ev, ensure_ascii=False, default=str) + "\n").encode())

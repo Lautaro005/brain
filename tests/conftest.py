@@ -14,7 +14,7 @@ os.environ.setdefault("BRAIN_AUTO_ABOUT", "off")  # el resumen del perfil en seg
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
-    from brain_mcp import appmode, backup, chat, connectors, graph, history, keyword_store, lmstudio, oauth, remote, vault
+    from brain_mcp import appmode, backup, chat, connectors, family, graph, history, keyword_store, lmstudio, oauth, remote, vault
 
     data = tmp_path / "data"
     v = (tmp_path / "vault")
@@ -37,6 +37,11 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(lmstudio, "DATA", data)
     monkeypatch.setattr(lmstudio, "CONFIG", data / "lmstudio.json")
     lmstudio._CACHE["key"] = None
+    monkeypatch.setattr(family, "DATA", data)
+    monkeypatch.setattr(family, "CONFIG", data / "family.json")
+    monkeypatch.setenv("BRAIN_FAMILY_HOME", str(tmp_path / "home"))  # nada de las apps reales del usuario
+    monkeypatch.setenv("OPENCUE_HOME", str(tmp_path / "opencue-none"))
+    monkeypatch.delenv("BRAIN_LUMINA_URL", raising=False)
     monkeypatch.setattr(appmode, "DATA", data)
     monkeypatch.setattr(appmode, "SETTINGS", data / "app_settings.json")
     monkeypatch.setattr(appmode, "LOG", data / "logs" / "app.log")

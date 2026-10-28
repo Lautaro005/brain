@@ -215,6 +215,38 @@
     border: 1px solid var(--line-strong); border-radius: 3px; padding: 2px 4px; margin-left: 6px; color: var(--text-2); vertical-align: 1px; }
   .cmds .cmds-h { display: block; padding: 4px 12px 6px; font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); cursor: default; }
   .pop .cmds, .narrow .cmds { left: 10px; right: 10px; }
+  /* botón + del compositor: skills y herramientas (Lumina) */
+  .comp { padding-left: 8px; }
+  .plus { width: 40px; height: 40px; border-radius: 999px; border: 0; background: none; display: grid; place-items: center; flex: none; cursor: pointer; color: var(--text-2); }
+  .plus:hover, .plus[aria-expanded="true"] { background: var(--soft); color: var(--text); }
+  .plus svg { width: 20px; height: 20px; transition: transform .15s; }
+  .plus[aria-expanded="true"] svg { transform: rotate(45deg); }
+  .pmenu { position: absolute; left: 20px; right: 20px; bottom: calc(100% - 6px); max-width: 740px; margin: 0 auto; padding: 6px; z-index: 4;
+    background: var(--bg); border: 1px solid var(--line-strong); border-radius: 18px; box-shadow: var(--shadow); max-height: min(420px, 62vh); overflow-y: auto; }
+  .pmenu[hidden] { display: none; }
+  .pm-filter { width: 100%; border: 1px solid var(--line); background: var(--softer); border-radius: 12px; padding: 8px 12px; outline: none; margin-bottom: 4px; }
+  .pm-filter:focus { border-color: var(--text-3); }
+  .pm-h { display: block; padding: 8px 12px 4px; font: 700 10.5px/1 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+  .pm-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; align-items: center; width: 100%; text-align: left; border: 0; background: none;
+    padding: 9px 12px; border-radius: 12px; cursor: pointer; }
+  .pm-row:hover, .pm-row:focus-visible { background: var(--soft); outline: none; }
+  .pm-row b { font: 700 13.5px/1.3 "Courier Prime", monospace; }
+  .pm-row span { font-size: 13px; color: var(--text-2); grid-column: 1; }
+  .pm-row.cmd { grid-template-columns: auto 1fr; align-items: baseline; }
+  .pm-row.cmd span { grid-column: auto; }
+  .pm-sw { grid-column: 2; grid-row: 1 / span 2; width: 34px; height: 20px; border-radius: 999px; background: var(--line-strong); position: relative; transition: background .15s; }
+  .pm-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); transition: transform .15s; }
+  .pm-row[aria-checked="true"] .pm-sw { background: var(--text); }
+  .pm-row[aria-checked="true"] .pm-sw::after { transform: translateX(14px); }
+  .pm-warn { color: var(--bad) !important; }
+  .pm-empty { padding: 10px 12px; font-size: 13px; color: var(--text-3); }
+  .chips { max-width: 740px; margin: 0 auto 8px; display: flex; gap: 6px; flex-wrap: wrap; padding-left: 4px; }
+  .chips[hidden] { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 11px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--softer);
+    font: 700 12px/1 "Courier Prime", monospace; cursor: pointer; color: var(--text); }
+  .chip svg { width: 12px; height: 12px; }
+  .chip:hover { background: var(--soft); }
+  .pop .pmenu, .narrow .pmenu { left: 10px; right: 10px; }
   .narrow .cmds li, .pop .cmds li { grid-template-columns: 1fr; }
   .msg.compact { border: 1px dashed var(--line-strong); border-radius: 16px; padding: 12px 16px; background: var(--softer); }
   .compact-h { font: 700 11px/1.3 "Courier Prime", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
@@ -265,7 +297,10 @@
     <div class="msgs" id="msgs" aria-live="polite"><div class="col" id="col"></div></div>
     <form class="composer" id="composer">
       <ul class="cmds" id="cmds" role="listbox" hidden></ul>
+      <div class="pmenu" id="pmenu" role="menu" hidden></div>
+      <div class="chips" id="chips" hidden></div>
       <div class="comp">
+        <button class="plus" id="plus" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pmenu"></button>
         <textarea id="text" rows="1" aria-autocomplete="list" aria-controls="cmds"></textarea>
         <button class="ctx" id="ctx" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="track" cx="12" cy="12" r="9" fill="none" stroke-width="2.6"/><circle class="fill" cx="12" cy="12" r="9" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="56.55" stroke-dashoffset="56.55"/></svg><span class="tipbox" id="ctx-tip"></span></button>
         <button class="send" id="send" type="submit"></button>
@@ -297,7 +332,10 @@ const I18N = {
     maxRounds: "Se cortó después de varias acciones seguidas.", delConfirm: "¿Borrar este chat del historial?", del: "Borrar chat",
     actions: n => n === 1 ? "1 acción" : `${n} acciones`, args: "Argumentos", result: "Resultado", running: "ejecutando…",
     err: { ollama: "Ollama no está corriendo. Prendelo desde el Panel.", no_model: "Elegí un modelo instalado.", empty: "Escribí un mensaje.",
-      chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", nothing_to_compact: "Todavía no hay nada que compactar en este chat.", other: "Error" },
+      chroma: "Chroma no está corriendo.", not_found: "Ese chat ya no existe.", nothing_to_compact: "Todavía no hay nada que compactar en este chat.",
+      opencue_missing: "OpenCue no está instalada en esta compu (o no tiene agentes).", opencue_start: "No pude abrir la app de OpenCue: abrila y volvé a probar.",
+      agent_not_found: "Ese agente de OpenCue ya no existe.", agent_timeout: "El agente de OpenCue tardó demasiado en responder.",
+      agent_error: "El agente de OpenCue falló:", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("es", { numeric: "auto" }).format(-n, u), model: "Modelo",
     cancel: "Cancelar", delOk: "Borrar", rename: "Cambiar el título", renameErr: "No se pudo cambiar el título",
     modelLocked: m => `Este chat usa ${m}. Para otro modelo, empezá un chat nuevo.`,
@@ -312,6 +350,11 @@ const I18N = {
       "add-mcp": "Agregar un conector: pasale la URL o las instrucciones de un server MCP y lo arma por vos.",
       factcheck: "Verificar una afirmación: busca primero en tu brain y, si no alcanza, en internet, con fuentes y citas." },
     fcLink: "Ver el informe completo en Fact check",
+    plus: "Skills y herramientas", pmFilter: "Filtrar comandos y skills", pmNone: "No hay comandos ni skills con ese nombre.",
+    lumina: { title: "Buscar en Lumina", sub: "Reuniones, archivos y notas de tu compu", chip: "Lumina", chipOff: "Quitar la búsqueda en Lumina",
+      down: "Lumina no está corriendo: abrila (comando lumina o AI WorkStudio) y volvé a probar. Respondí sin ella.",
+      notReady: "Lumina todavía no tiene listo su modelo de búsqueda. Respondí sin ella.", error: "No pude buscar en Lumina. Respondí sin ella.",
+      statusUp: "corriendo", statusDown: "no está corriendo", statusMissing: "no está instalada", statusUnknown: "" },
     prop: { title: "Conector propuesto", add: "Agregar", discard: "Descartar", added: n => `Agregado: ${n} tools disponibles.`,
       discarded: "Descartado.", gone: "Esta propuesta ya no está pendiente.", needsAuth: "Agregado. Este servicio pide iniciar sesión.",
       login: "Iniciar sesión", loginWait: "Terminá de iniciar sesión en la pestaña que se abrió…", popup: "El navegador bloqueó la pestaña del login.",
@@ -349,7 +392,10 @@ const I18N = {
     maxRounds: "Stopped after several actions in a row.", delConfirm: "Delete this chat from history?", del: "Delete chat",
     actions: n => n === 1 ? "1 action" : `${n} actions`, args: "Arguments", result: "Result", running: "running…",
     err: { ollama: "Ollama isn't running. Turn it on from the Dashboard.", no_model: "Pick an installed model.", empty: "Write a message.",
-      chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", nothing_to_compact: "There's nothing to compact in this chat yet.", other: "Error" },
+      chroma: "Chroma isn't running.", not_found: "That chat no longer exists.", nothing_to_compact: "There's nothing to compact in this chat yet.",
+      opencue_missing: "OpenCue isn't installed on this computer (or it has no agents).", opencue_start: "I couldn't open the OpenCue app: open it and try again.",
+      agent_not_found: "That OpenCue agent no longer exists.", agent_timeout: "The OpenCue agent took too long to answer.",
+      agent_error: "The OpenCue agent failed:", other: "Error" },
     ago: (n, u) => new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-n, u), model: "Model",
     cancel: "Cancel", delOk: "Delete", rename: "Rename chat", renameErr: "Couldn't rename the chat",
     modelLocked: m => `This chat uses ${m}. For another model, start a new chat.`,
@@ -364,6 +410,11 @@ const I18N = {
       "add-mcp": "Add a connector: give it the URL or instructions for an MCP server and it sets it up for you.",
       factcheck: "Verify a claim: searches your brain first and, if that's not enough, the web, with sources and quotes." },
     fcLink: "See the full report in Fact check",
+    plus: "Skills and tools", pmFilter: "Filter commands and skills", pmNone: "No commands or skills with that name.",
+    lumina: { title: "Search Lumina", sub: "Meetings, files and notes on your computer", chip: "Lumina", chipOff: "Turn off Lumina search",
+      down: "Lumina isn't running: open it (the lumina command or AI WorkStudio) and try again. I answered without it.",
+      notReady: "Lumina doesn't have its search model ready yet. I answered without it.", error: "I couldn't search Lumina. I answered without it.",
+      statusUp: "running", statusDown: "not running", statusMissing: "not installed", statusUnknown: "" },
     prop: { title: "Proposed connector", add: "Add", discard: "Discard", added: n => `Added: ${n} tools available.`,
       discarded: "Discarded.", gone: "This proposal is no longer pending.", needsAuth: "Added. This service asks you to sign in.",
       login: "Sign in", loginWait: "Finish signing in in the tab that opened…", popup: "The browser blocked the sign-in tab.",
@@ -432,7 +483,7 @@ async function api(path, body) {
   if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
   return j;
 }
-const errText = r => (T.err[r.code] || T.err.other) + (["other", "ollama_http", "pull_failed"].includes(r.code) ? ` ${r.detail || ""}` : "");
+const errText = r => (T.err[r.code] || T.err.other) + (["other", "ollama_http", "pull_failed", "agent_error"].includes(r.code) ? ` ${r.detail || ""}` : "");
 // Las respuestas pueden traer HTML (tablas, <details>, <mark>, un <svg>…). Se sanitiza con DOMPurify y además:
 // sin formularios, iframes ni <style>; imágenes solo del propio brain (/api/…) o data:, así una página
 // guardada con instrucciones escondidas no puede hacer que el modelo filtre datos en la URL de una imagen;
@@ -480,6 +531,8 @@ function applyStatic() {
   const shortPh = MODE === "pop" || document.body.classList.contains("narrow");
   $("#text").placeholder = shortPh ? T.phShort : T.ph; $("#text").setAttribute("aria-label", T.ph);
   $("#hint").textContent = T.hint;
+  $("#plus").innerHTML = ICON.plus; $("#plus").title = T.plus; $("#plus").setAttribute("aria-label", T.plus);
+  renderChips(); if (!$("#pmenu").hidden) renderPlus();
   $("#model").title = T.model; $("#model").setAttribute("aria-label", T.model);
   $("#rename-btn").innerHTML = ICON.pencil; $("#rename-btn").title = T.rename; $("#rename-btn").setAttribute("aria-label", T.rename);
   renderSend(); renderList(); renderMessages(); renderModelBox(); renderCtx();
@@ -853,7 +906,7 @@ async function send() {
   controller = new AbortController();
   try {
     const r = await fetch("/api/chat/send", { method: "POST", signal: controller.signal,
-      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang, system: store.get("brain-chat-system") || "" }) });
+      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang, system: store.get("brain-chat-system") || "", lumina: luminaOn }) });
     if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = "";
@@ -885,7 +938,8 @@ function handle(ev, reply) {
     const t = ev.i !== undefined ? reply.tools[ev.i] : [...reply.tools].reverse().find(x => x.name === ev.name && x.ok === undefined);
     if (t) { t.ok = ev.ok; t.result = ev.result ?? ev.preview ?? ""; }
   }
-  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "text_tools" || ev.code === "no_tools" ? T.textTools : ev.code === "auto_compact" ? T.autoCompact : T.maxRounds });
+  else if (ev.type === "notice") reply.notes.push({ text: ev.code === "text_tools" || ev.code === "no_tools" ? T.textTools : ev.code === "auto_compact" ? T.autoCompact
+    : ev.code === "lumina_down" ? T.lumina.down : ev.code === "lumina_not_ready" ? T.lumina.notReady : ev.code === "lumina_error" ? T.lumina.error : T.maxRounds });
   else if (ev.type === "compact_progress") reply.progress = T.compactProgress(ev.part, ev.total);
   else if (ev.type === "compacted") {
     // auto-compact: el resumen va antes del mensaje que se está respondiendo, como un /compact
@@ -950,6 +1004,55 @@ function pickCmd(c) {
   if (!c.skill && c.name === "new") { $("#text").value = ""; autosize(); newChat(); return; }
   $("#text").value = `/${c.name} `; cmdDismissed = null; autosize(); $("#text").focus();
 }
+
+// ================= botón +: skills y búsqueda en Lumina =================
+let luminaOn = store.get("brain-chat-lumina") === "1", fam = null, pmFilter = "";
+async function loadFamily() { try { fam = await api("/api/family"); } catch (e) { fam = null; } }
+function setLumina(on) {
+  luminaOn = !!on; store.set("brain-chat-lumina", luminaOn ? "1" : "0");
+  renderChips(); if (!$("#pmenu").hidden) renderPlus();
+}
+function renderChips() {
+  const c = $("#chips");
+  c.hidden = !luminaOn;
+  c.innerHTML = luminaOn ? `<button class="chip" type="button" id="chip-lumina" title="${esc(T.lumina.chipOff)}" aria-label="${esc(T.lumina.chipOff)}"><span>${esc(T.lumina.chip)}</span>${ICON.x}</button>` : "";
+  if (luminaOn) $("#chip-lumina").onclick = () => setLumina(false);
+}
+function luminaStatus() {
+  const l = fam && fam.lumina;
+  if (!l) return { text: T.lumina.sub, warn: false };
+  if (l.running) return { text: `${T.lumina.sub} · ${T.lumina.statusUp}`, warn: false };
+  return { text: `${T.lumina.sub} · ${l.installed ? T.lumina.statusDown : T.lumina.statusMissing}`, warn: luminaOn };
+}
+function renderPlus() {
+  const box = $("#pmenu"), q = pmFilter.trim().toLowerCase();
+  const st = luminaStatus();
+  const cmds = COMMANDS.filter(c => c !== "new" && (!q || c.includes(q))).map(c => ({ name: c, skill: false, desc: T.cmds[c] }));
+  const own = skills.filter(k => !q || k.name.toLowerCase().includes(q)).map(k => ({ name: k.name, skill: true, desc: k.description || T.skillNoDesc }));
+  const row = c => `<button class="pm-row cmd" type="button" role="menuitem" data-n="${esc(c.name)}" data-s="${c.skill ? 1 : 0}"><b>/${esc(c.name)}${c.skill ? ` <em class="skill-tag">${esc(T.skillTag)}</em>` : ""}</b><span>${esc(c.desc)}</span></button>`;
+  box.innerHTML = `<button class="pm-row" type="button" role="menuitemcheckbox" id="pm-lumina" aria-checked="${luminaOn}"><b>${esc(T.lumina.title)}</b><span class="${st.warn ? "pm-warn" : ""}">${esc(st.text)}</span><i class="pm-sw"></i></button>`
+    + `<input class="pm-filter" id="pm-filter" type="search" placeholder="${esc(T.pmFilter)}" aria-label="${esc(T.pmFilter)}" value="${esc(pmFilter)}">`
+    + (cmds.length ? `<span class="pm-h">${esc(T.cmdsTitle)}</span>` + cmds.map(row).join("") : "")
+    + (own.length ? `<span class="pm-h">${esc(T.skillsTitle)}</span>` + own.map(row).join("") : "")
+    + (!cmds.length && !own.length ? `<div class="pm-empty">${esc(T.pmNone)}</div>` : "");
+  $("#pm-lumina").onclick = () => setLumina(!luminaOn);
+  const f = $("#pm-filter");
+  f.oninput = () => { pmFilter = f.value; const pos = f.selectionStart; renderPlus(); const g = $("#pm-filter"); g.focus(); g.setSelectionRange(pos, pos); };
+  box.querySelectorAll(".pm-row.cmd").forEach(b => b.onclick = () => { closePlus(); pickCmd({ name: b.dataset.n, skill: b.dataset.s === "1" }); });
+}
+function openPlus() {
+  hideCmds(); pmFilter = "";
+  $("#pmenu").hidden = false; $("#plus").setAttribute("aria-expanded", "true");
+  renderPlus();
+  loadSkills(true).then(() => { if (!$("#pmenu").hidden) renderPlus(); });
+  loadFamily().then(() => { if (!$("#pmenu").hidden) renderPlus(); });
+}
+function closePlus() { $("#pmenu").hidden = true; $("#plus").setAttribute("aria-expanded", "false"); }
+$("#plus").onclick = () => $("#pmenu").hidden ? openPlus() : closePlus();
+document.addEventListener("mousedown", e => { if (!$("#pmenu").hidden && !e.target.closest("#pmenu, #plus")) closePlus(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#pmenu").hidden) { closePlus(); $("#plus").focus(); } });
+renderChips();
+if (luminaOn) loadFamily();
 
 // ================= título editable =================
 function currentTitle() {

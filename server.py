@@ -101,6 +101,7 @@ INSTRUCTIONS = (
     "resultado se guarda solo en knowledge/ y después se puede buscar con search_knowledge. "
     "Al escribir notas, conectalas: usá [[nombre]] o [texto](ruta.md) para linkear otros archivos del vault, y en el "
     "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
+    "lumina_search busca en Lumina (las reuniones, archivos y notas del usuario) cuando esa app está corriendo en su compu. "
     "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
     "(preguntale al usuario antes de mover o borrar). Para sumar un server MCP que pida el usuario, "
     "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba. "
@@ -367,6 +368,28 @@ async def web_search(query: str, max_results: int = 8, freshness: str = "any") -
 
         return await anyio.to_thread.run_sync(lambda: factcheck.web_results(query, max_results, freshness))
     except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def lumina_search(query: str, limit: int = 6, scope: str = "all") -> dict | str:
+    """Busca en la base de Lumina (la app de notas de reuniones y archivos del usuario, en su compu): sus
+    reuniones (transcripciones y resúmenes), archivos y notas. Devuelve fragmentos con título, fecha, tipo y
+    puntaje. scope: all, documents, meetings o notes. Solo lee. Requiere que Lumina esté corriendo
+    (127.0.0.1:47770); si no, devuelve un error claro. Para responder con ellos, citá el título y la fecha."""
+    try:
+        from brain_mcp import family
+
+        import anyio
+
+        hits = await anyio.to_thread.run_sync(lambda: family.lumina_search(query, limit, scope))
+        return {"query": query, "results": hits}
+    except Exception as e:
+        code = getattr(e, "code", "")
+        if code == "lumina_down":
+            return "Error: Lumina no está corriendo (abrila con `lumina` o desde AI WorkStudio) o no está en 127.0.0.1:47770."
+        if code == "lumina_not_ready":
+            return "Error: Lumina todavía no tiene listo el modelo de búsqueda (embeddings); esperá a que termine de descargarlo."
         return _err(e)
 
 

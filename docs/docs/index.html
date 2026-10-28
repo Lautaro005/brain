@@ -799,6 +799,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Choosing a model</h2>
   <p>The selector lists your installed chat models with their size and context window. Without any, click <i>Download llama3.2</i>. Small models sometimes don't follow the tool format; larger ones (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) do better.</p>
   <p>You pick the model in a new chat, before the first message. From then on it stays fixed for that chat (the selector becomes a tag with a lock) and reopening the chat uses it again. To use another model, start a new chat. If the chat's model was uninstalled, the selector comes back.</p>
+  <h2>The + button</h2>
+  <p>At the start of the message box, <b>+</b> opens a menu with the commands and <b>your skills</b> (filterable; clicking one writes <code>/name</code> in the box, same as typing <code>/</code>) and a <b>Search Lumina</b> switch. See <a href="#family">OpenCue, Lumina and WorkStudio</a>.</p>
+  <h2>OpenCue agents</h2>
+  <p>If you have <a href="#family">OpenCue</a>, its agents are listed in the model selector as <i>OpenCue · name</i>. They answer with your profile and memory as context and run in OpenCue with their own tools.</p>
   <h2>Context window</h2>
   <p>The circle to the left of the send button fills up as the conversation uses the model's context window, and turns red past 90% (the model starts forgetting the beginning: better start a new chat). Hover it to see the tokens. By default brain asks Ollama for the model's full window capped at 16,384 tokens, so it doesn't eat all your RAM; a model with a smaller window uses its own. Change it in <b>Settings → Context</b>. When it fills up, <code>/compact</code> frees it without leaving the chat, and at 85% the chat compacts by itself before answering.</p>
   <h2>Compacting</h2>
@@ -838,6 +842,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>Elegir un modelo</h2>
   <p>El selector lista tus modelos de chat instalados con su tamaño y su ventana de contexto. Si no hay ninguno, tocá <i>Descargar llama3.2</i>. Los modelos chicos a veces no siguen el formato de tools; los más grandes (<code>llama3.2</code>, <code>qwen2.5</code>, <code>mistral</code>) andan mejor.</p>
   <p>El modelo se elige en un chat nuevo, antes del primer mensaje. Desde ahí queda fijo para ese chat (el selector pasa a ser una etiqueta con candado) y al reabrirlo se usa el mismo. Para usar otro modelo, empezá un chat nuevo. Si desinstalaste el modelo del chat, vuelve el selector.</p>
+  <h2>El botón +</h2>
+  <p>Al principio de la caja de mensaje, <b>+</b> abre un menú con los comandos y <b>tus skills</b> (con filtro; al tocar uno escribe <code>/nombre</code> en la caja, igual que al escribir <code>/</code>) y un interruptor <b>Buscar en Lumina</b>. Ver <a href="#family">OpenCue, Lumina y WorkStudio</a>.</p>
+  <h2>Agentes de OpenCue</h2>
+  <p>Si tenés <a href="#family">OpenCue</a>, sus agentes aparecen en el selector de modelo como <i>OpenCue · nombre</i>. Responden con tu perfil y tu memoria como contexto y corren en OpenCue con sus propias tools.</p>
   <h2>Ventana de contexto</h2>
   <p>El círculo a la izquierda del botón de enviar se va llenando a medida que la conversación ocupa la ventana de contexto del modelo, y se pone rojo pasado el 90% (el modelo empieza a olvidar lo primero: conviene un chat nuevo). Pasá el mouse para ver los tokens. Por defecto brain le pide a Ollama la ventana completa del modelo con un tope de 16.384 tokens, para no comerse toda la RAM; un modelo con una ventana más chica usa la suya. Se cambia en <b>Ajustes → Contexto</b>. Cuando se llena, <code>/compact</code> la libera sin salir del chat, y al 85% el chat se compacta solo antes de responder.</p>
   <h2>Compactar</h2>
@@ -1212,6 +1220,57 @@ Reglas fijas: antes de guardar algo en brain, mostrame el texto exacto y esperá
 </div>
 </section>
 
+<section class="page" id="family" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="OpenCue, Lumina and WorkStudio" data-title-es="OpenCue, Lumina y WorkStudio">
+<div class="l-en">
+  <h1>OpenCue, Lumina and AI WorkStudio</h1>
+  <p class="lead">brain is one of four apps that work together. It uses the others as programs you already have installed (through their command, their local port or their database), without copying their data or bundling their code.</p>
+  <table>
+    <tr><th>App</th><th>What it is</th><th>How brain uses it</th></tr>
+    <tr><td><b>OpenCue</b></td><td>Desktop app with personal AI agents (memory, tools, a computer of their own).</td><td>Its agents show up in the chat's model picker as <i>OpenCue · name</i>. They answer with your brain profile and memory as context.</td></tr>
+    <tr><td><b>Lumina</b></td><td>Local meeting notes and knowledge base (transcripts, summaries, your files).</td><td>The <b>+</b> button in the chat turns on search in Lumina's knowledge base; the <code>lumina_search</code> tool does the same for any agent.</td></tr>
+    <tr><td><b>AI WorkStudio</b></td><td>The hub that opens all of them in one window, with one MCP server (<code>workstudio mcp</code>) that joins their tools.</td><td>brain is part of its catalog and its MCP server. From <b>Settings → App family</b> you can see whether it is installed and open it.</td></tr>
+  </table>
+  <h2>Talking to an OpenCue agent from the chat</h2>
+  <p>Open a new chat and pick an agent in the model selector (they are listed after your Ollama and LM Studio models). The first message of the chat carries what brain knows about you: <code>profile.md</code>, the memory and the <code>BRAIN.md</code> index, so the agent starts with the full context. The next messages only carry what you write. The agent runs inside the OpenCue app with its own tools, memory and permissions: if it needs your approval for something, it asks in OpenCue.</p>
+  <p>Under the hood brain does what AI WorkStudio does: it starts <code>opencue mcp-serve --agent &lt;another agent&gt;</code> and calls its <code>send_to_agent</code> tool, which delivers the message to the agent you picked and waits for the answer. OpenCue's app has to be open (brain opens it if it isn't). The answer arrives whole, not word by word, and the chat has no context meter for agents. Anything the agent writes to its own conversation stays in OpenCue.</p>
+  <h2>Searching Lumina</h2>
+  <p>The <b>+</b> button at the start of the message box has a <b>Search Lumina</b> switch (it says whether Lumina is running). With it on, a <i>Lumina</i> tag appears above the box and each message first searches Lumina's knowledge base (<code>GET /api/search</code> on <code>127.0.0.1:47770</code>) and hands the passages to the model, or to the OpenCue agent, with their title and date so it can cite them. The search shows up under the answer as a <code>lumina_search</code> call. If Lumina isn't running or doesn't have its search model ready yet, the chat says so and answers without it.</p>
+  <p>Agents connected to brain get the same thing as the <code>lumina_search(query, limit?, scope?)</code> tool (<code>scope</code>: <code>all</code>, <code>documents</code>, <code>meetings</code> or <code>notes</code>). It is not available in read-only remote access.</p>
+  <h2>Privacy</h2>
+  <ul>
+    <li>brain only talks to Lumina on this computer (<code>127.0.0.1</code>, <code>localhost</code>) and only when you turn the switch on or an agent calls the tool.</li>
+    <li>It reads OpenCue's agent list from its database in read-only mode and writes nothing there.</li>
+    <li>With AI WorkStudio's single MCP server, brain's <code>lumina_search</code> and Lumina's own <code>search_knowledge</code> both appear. They do the same; use either.</li>
+  </ul>
+  <h2>Settings → App family</h2>
+  <p>Shows each app (installed, running, OpenCue's agent count, Lumina's version) with an <b>Open</b> button, a switch to list OpenCue's agents in the chat, and Lumina's URL if you changed its port.</p>
+</div>
+<div class="l-es">
+  <h1>OpenCue, Lumina y AI WorkStudio</h1>
+  <p class="lead">brain es una de cuatro apps que trabajan juntas. Usa a las otras como programas que ya tenés instalados (por su comando, su puerto local o su base de datos), sin copiar sus datos ni traer su código.</p>
+  <table>
+    <tr><th>App</th><th>Qué es</th><th>Cómo la usa brain</th></tr>
+    <tr><td><b>OpenCue</b></td><td>App de escritorio con agentes de IA personales (memoria, tools, una computadora propia).</td><td>Sus agentes aparecen en el selector de modelo del chat como <i>OpenCue · nombre</i>. Responden con tu perfil y tu memoria de brain como contexto.</td></tr>
+    <tr><td><b>Lumina</b></td><td>Notas de reuniones y base de conocimiento locales (transcripciones, resúmenes, tus archivos).</td><td>El botón <b>+</b> del chat enciende la búsqueda en la base de Lumina; la tool <code>lumina_search</code> hace lo mismo para cualquier agente.</td></tr>
+    <tr><td><b>AI WorkStudio</b></td><td>El hub que abre a todas en una ventana, con un solo servidor MCP (<code>workstudio mcp</code>) que junta sus tools.</td><td>brain está en su catálogo y en su servidor MCP. Desde <b>Ajustes → Familia de apps</b> ves si está instalada y la abrís.</td></tr>
+  </table>
+  <h2>Hablar con un agente de OpenCue desde el chat</h2>
+  <p>Abrí un chat nuevo y elegí un agente en el selector de modelo (aparecen después de tus modelos de Ollama y LM Studio). El primer mensaje del chat lleva lo que brain sabe de vos: <code>profile.md</code>, la memoria y el índice <code>BRAIN.md</code>, así el agente arranca con todo el contexto. Los mensajes siguientes llevan solo lo que escribís. El agente corre dentro de la app de OpenCue con sus propias tools, su memoria y sus permisos: si necesita tu aprobación para algo, la pide en OpenCue.</p>
+  <p>Por debajo brain hace lo mismo que AI WorkStudio: arranca <code>opencue mcp-serve --agent &lt;otro agente&gt;</code> y llama a su tool <code>send_to_agent</code>, que le entrega el mensaje al agente que elegiste y espera la respuesta. La app de OpenCue tiene que estar abierta (brain la abre si no lo está). La respuesta llega entera, no palabra por palabra, y el chat no muestra el medidor de contexto con agentes. Lo que el agente escriba en su propia conversación queda en OpenCue.</p>
+  <h2>Buscar en Lumina</h2>
+  <p>El botón <b>+</b> al principio de la caja de mensaje tiene un interruptor <b>Buscar en Lumina</b> (dice si Lumina está corriendo). Con él prendido, aparece una etiqueta <i>Lumina</i> arriba de la caja y cada mensaje busca primero en la base de conocimiento de Lumina (<code>GET /api/search</code> en <code>127.0.0.1:47770</code>) y le pasa los fragmentos al modelo, o al agente de OpenCue, con su título y fecha para que los cite. La búsqueda se ve debajo de la respuesta como una llamada <code>lumina_search</code>. Si Lumina no está corriendo o todavía no tiene listo su modelo de búsqueda, el chat lo avisa y responde sin ella.</p>
+  <p>Los agentes conectados a brain tienen lo mismo como la tool <code>lumina_search(query, limit?, scope?)</code> (<code>scope</code>: <code>all</code>, <code>documents</code>, <code>meetings</code> o <code>notes</code>). No está en el acceso remoto de solo lectura.</p>
+  <h2>Privacidad</h2>
+  <ul>
+    <li>brain solo habla con Lumina en esta compu (<code>127.0.0.1</code>, <code>localhost</code>) y solo cuando prendés el interruptor o un agente llama a la tool.</li>
+    <li>La lista de agentes de OpenCue se lee de su base de datos en solo lectura; brain no escribe nada ahí.</li>
+    <li>Con el servidor MCP único de AI WorkStudio aparecen tanto el <code>lumina_search</code> de brain como el <code>search_knowledge</code> de Lumina. Hacen lo mismo; usá cualquiera.</li>
+  </ul>
+  <h2>Ajustes → Familia de apps</h2>
+  <p>Muestra cada app (instalada, corriendo, la cantidad de agentes de OpenCue, la versión de Lumina) con un botón <b>Abrir</b>, un interruptor para listar los agentes de OpenCue en el chat y la URL de Lumina si cambiaste su puerto.</p>
+</div>
+</section>
+
 <section class="page" id="connections" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Connections" data-title-es="Conexiones">
 <div class="l-en">
   <h1>Connections</h1>
@@ -1345,6 +1404,7 @@ Reglas fijas: antes de guardar algo en brain, mostrame el texto exacto y esperá
     <tr><td><code>refresh_sources(path?)</code></td><td>Re-downloads one source (or all). If it fails, keeps the last good copy and notes the error.</td></tr>
     <tr><td><code>read_url(url, max_chars?)</code></td><td>Reads a page's text without saving it.</td></tr>
     <tr><td><code>web_search(query, max_results?, freshness?)</code></td><td>Searches the web with brain's built-in search engine (the one from Fact check: DuckDuckGo, your own SearXNG, Brave or a Connections tool). Returns title, URL, snippet, date and source type; it doesn't read the pages or save anything. Respects the internet switch and the blocked domains. Not available in read-only remote access.</td></tr>
+    <tr><td><code>lumina_search(query, limit?, scope?)</code></td><td>Searches Lumina's knowledge base (your meetings, files and notes) when Lumina is running on your computer. Read-only; not available in read-only remote access. See <a href="#family">OpenCue, Lumina and WorkStudio</a>.</td></tr>
     <tr><td><code>fact_check(text, search_web?)</code></td><td>Verifies claims: brain first, the web if needed, verdict by rules with sources and quotes. Saves nothing. See <a href="#factcheck">Fact check</a>.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Rebuilds the keyword index from <code>knowledge/</code>.</td></tr>
   </table>
@@ -1399,6 +1459,7 @@ Reglas fijas: antes de guardar algo en brain, mostrame el texto exacto y esperá
     <tr><td><code>refresh_sources(path?)</code></td><td>Vuelve a bajar una fuente (o todas). Si falla, conserva la última copia buena y anota el error.</td></tr>
     <tr><td><code>read_url(url, max_chars?)</code></td><td>Lee el texto de una página sin guardarla.</td></tr>
     <tr><td><code>web_search(query, max_results?, freshness?)</code></td><td>Busca en internet con el buscador incorporado de brain (el de Fact check: DuckDuckGo, tu SearXNG propio, Brave o una tool de las Conexiones). Devuelve título, URL, fragmento, fecha y tipo de fuente; no lee las páginas ni guarda nada. Respeta el interruptor de internet y los dominios bloqueados. No está disponible en el acceso remoto de solo lectura.</td></tr>
+    <tr><td><code>lumina_search(query, limit?, scope?)</code></td><td>Busca en la base de conocimiento de Lumina (tus reuniones, archivos y notas) cuando Lumina está corriendo en tu compu. Solo lee; no está en el acceso remoto de solo lectura. Ver <a href="#family">OpenCue, Lumina y WorkStudio</a>.</td></tr>
     <tr><td><code>fact_check(text, search_web?)</code></td><td>Verifica afirmaciones: primero brain, internet si hace falta, veredicto por reglas con fuentes y citas. No guarda nada. Ver <a href="#factcheck">Fact check</a>.</td></tr>
     <tr><td><code>reindex_keyword_search()</code></td><td>Reconstruye el índice por palabra desde <code>knowledge/</code>.</td></tr>
   </table>

@@ -1124,6 +1124,18 @@
               </div>
               <div class="result" id="lm-result"></div>
             </div></div>
+          <div class="card" id="family-card"><div class="card-h"><h2 data-i18n="settings.famTitle"></h2><span class="sub" data-i18n="settings.famSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.famHint"></p>
+              <ul class="backup-list" id="fam-list"></ul>
+              <label class="check" style="margin-top:12px"><input type="checkbox" id="fam-agents"> <span data-i18n="settings.famAgents"></span></label>
+              <label class="code-label" for="fam-lumina" data-i18n="settings.famLumina" style="margin-top:10px"></label>
+              <input class="input full mono" id="fam-lumina" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:47770" style="margin-top:6px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="fam-save" data-i18n="settings.lmSave"></button>
+              </div>
+              <div class="result" id="fam-result"></div>
+            </div></div>
           <div class="card" id="format-card"><div class="card-h"><h2 data-i18n="settings.format"></h2><span class="sub" data-i18n="settings.formatSub"></span></div>
             <div class="card-b">
               <p class="form-hint" style="margin-top:0" data-i18n="settings.formatHint"></p>
@@ -1397,6 +1409,12 @@ const I18N = {
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
     settings: { title: "Ajustes", sub: "Versión, sidebar, chat, notificaciones, backup, formato de las notas y colores del grafo.",
+      famTitle: "Familia de apps", famSub: "OpenCue, Lumina y AI WorkStudio",
+      famHint: "brain se integra con las otras apps que tengas instaladas, sin copiar sus datos: los agentes de OpenCue aparecen en el selector de modelo del chat (hablan con tu perfil y tu memoria), el botón + del chat enciende la búsqueda en la base de Lumina, y AI WorkStudio junta a todas en una ventana y un solo servidor MCP.",
+      famAgents: "Mostrar los agentes de OpenCue en el selector del chat", famLumina: "URL de Lumina (solo esta compu)",
+      famOpen: "Abrir", famUp: "corriendo", famDown: "instalada, apagada", famMissing: "no instalada", famAgentsN: n => n === 1 ? "1 agente" : `${n} agentes`,
+      famApps: { opencue: "OpenCue — agentes de IA", lumina: "Lumina — reuniones y archivos", workstudio: "AI WorkStudio — el hub de la familia" },
+      famBadUrl: "La URL de Lumina tiene que ser http://127.0.0.1:<puerto> (solo se habla con Lumina en esta compu).",
       lmTitle: "LM Studio", lmSub: "modelos de chat alternativos o complementarios a Ollama",
       lmHint: "Prendé el server local en LM Studio (Developer → Local Server) y pegá la URL. Los modelos cargados aparecen en el chat con el prefijo «LM Studio ·».",
       lmOn: "Usar LM Studio en el chat", lmUrl: "URL del server", lmSave: "Guardar",
@@ -1751,6 +1769,12 @@ const I18N = {
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
     settings: { title: "Settings", sub: "Version, sidebar, chat, notifications, backup, note format and graph colors.",
+      famTitle: "App family", famSub: "OpenCue, Lumina and AI WorkStudio",
+      famHint: "brain works with the other apps you have installed, without copying their data: OpenCue agents show up in the chat's model picker (they talk with your profile and memory), the chat's + button turns on search in the Lumina knowledge base, and AI WorkStudio brings them all into one window and a single MCP server.",
+      famAgents: "Show OpenCue agents in the chat picker", famLumina: "Lumina URL (this computer only)",
+      famOpen: "Open", famUp: "running", famDown: "installed, not running", famMissing: "not installed", famAgentsN: n => n === 1 ? "1 agent" : `${n} agents`,
+      famApps: { opencue: "OpenCue — AI agents", lumina: "Lumina — meetings and files", workstudio: "AI WorkStudio — the family hub" },
+      famBadUrl: "Lumina's URL has to be http://127.0.0.1:<port> (brain only talks to Lumina on this computer).",
       lmTitle: "LM Studio", lmSub: "alternative or complementary chat models alongside Ollama",
       lmHint: "Turn on the local server in LM Studio (Developer → Local Server) and paste the URL. Loaded models show up in chat as «LM Studio · …».",
       lmOn: "Use LM Studio in chat", lmUrl: "Server URL", lmSave: "Save",
@@ -1913,7 +1937,7 @@ function setLang(l) {
   if (status) { renderServices(); renderHealth(); }
   if (stats) renderStats();
   renderMemSource(); renderProfileView(); renderMemory(); renderAutoAbout(); renderAgents(); renderConnections();
-  fcStatic(); if (view === "prompts") renderPrompts(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") { loadLmStudio(); loadFormat(); loadAppCfg(); }
+  fcStatic(); if (view === "prompts") renderPrompts(); if (view === "grafo") loadGraphProposals(); if (view === "ajustes") { loadLmStudio(); loadFamily(); loadFormat(); loadAppCfg(); }
   if (memPreview) renderPreview();
   const f = $("#graph-iframe"); if (f.getAttribute("src")) f.src = graphSrc();
   if (view === "logs") { logSig = ""; loadLogs(); }
@@ -2039,7 +2063,7 @@ document.addEventListener("mousedown", e => { if (!$("#side-svcs").hidden && !e.
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#side-svcs").hidden) { toggleInfo(false); $("#info-btn").focus(); } });
 $("#colors-vivid").onclick = () => saveGraphColors({ ...GRAPH_VIVID });
 $("#colors-reset").onclick = () => saveGraphColors({});
-function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAutoBackup(); loadAppCtx(); renderNotify(); loadLmStudio(); loadFormat(); }
+function renderSettings() { renderColorGrid(); renderNavOrder(); loadDefaultModel(); loadVersion(); loadSystemPrompt(); loadContext(); loadBackups(); loadAutoBackup(); loadAppCtx(); renderNotify(); loadLmStudio(); loadFamily(); loadFormat(); }
 
 // ================= ajustes: backup y restauración (brain_mcp/backup.py) =================
 const fmtSize = n => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -3582,6 +3606,39 @@ $("#lm-save").onclick = async () => {
     showResult(out, "ok", T.settings.saved);
     loadLmStudio(); loadDefaultModel(); loadContext();
     await loadStatus();
+  } catch (e) { showResult(out, "err", e.message); }
+};
+
+// ================= ajustes: familia de apps (brain_mcp/family.py) =================
+async function loadFamily() {
+  let r; try { r = await api("/api/family"); } catch (e) { return; }
+  const S = T.settings;
+  $("#fam-agents").checked = !!r.settings.opencue_agents;
+  $("#fam-lumina").value = r.settings.lumina_url || "";
+  const row = (id, st, extra) => {
+    const state = st.running ? S.famUp : st.installed ? S.famDown : S.famMissing;
+    return `<li><div class="bk-main"><span class="mono">${esc(S.famApps[id])}</span><span class="muted">${esc(state)}${extra ? " · " + esc(extra) : ""}</span></div>
+      <div class="bk-act">${st.installed ? `<button class="btn" type="button" data-fam-open="${id}">${esc(S.famOpen)}</button>` : ""}</div></li>`;
+  };
+  $("#fam-list").innerHTML = row("opencue", r.opencue, r.opencue.installed ? S.famAgentsN(r.opencue.agents) : "")
+    + row("lumina", r.lumina, r.lumina.version ? "v" + r.lumina.version : "") + row("workstudio", r.workstudio, "");
+  $("#fam-list").querySelectorAll("[data-fam-open]").forEach(b => b.onclick = async () => {
+    try {
+      const o = await api("/api/family/open", { app: b.dataset.famOpen });
+      if (!o.ok) return toast(o.detail || o.code);
+      if (o.url) window.open(o.url, "_blank", "noopener");
+      setTimeout(loadFamily, 2500);
+    } catch (e) { toast(e.message); }
+  });
+}
+$("#fam-save").onclick = async () => {
+  const out = $("#fam-result");
+  try {
+    const r = await api("/api/family", { opencue_agents: $("#fam-agents").checked, lumina_url: $("#fam-lumina").value.trim() });
+    if (!r.ok) return showResult(out, "err", r.code === "bad_url" ? T.settings.famBadUrl : r.detail || r.code);
+    showResult(out, "ok", T.settings.saved);
+    try { localStorage.setItem("brain-ctx-changed", String(Date.now())); } catch (e) {}  // el chat vuelve a leer los modelos
+    loadFamily();
   } catch (e) { showResult(out, "err", e.message); }
 };
 
