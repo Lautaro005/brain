@@ -9,7 +9,7 @@
 <meta property="og:description" content="Every brain release with its date and what changed.">
 <meta property="og:url" content="https://lautaro005.github.io/brain/changelog/">
 <meta name="theme-color" content="#0a0a0a">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='7' width='26' height='18' rx='2' fill='%23fff' stroke='%230a0a0a' stroke-width='2.4'/%3E%3Cpath d='M3 12.5h26' stroke='%230a0a0a' stroke-width='2.4'/%3E%3Cpath d='M8 17.5h10M8 21h7' stroke='%230a0a0a' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect x=%223%22 y=%224%22 width=%2226%22 height=%2224%22 rx=%223%22 fill=%22%23fff%22 stroke=%22%230a0a0a%22 stroke-width=%222.4%22/%3E%3Cpath d=%22M3 10.5h26%22 stroke=%22%230a0a0a%22 stroke-width=%222.4%22/%3E%3Cpath d=%22M16 20 9.5 16M16 20l6.5-4.5M16 20l4.5 4%22 stroke=%22%230a0a0a%22 stroke-width=%221.8%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2216%22 cy=%2220%22 r=%222.7%22 fill=%22%230a0a0a%22/%3E%3Ccircle cx=%229.5%22 cy=%2216%22 r=%221.8%22 fill=%22%230a0a0a%22/%3E%3Ccircle cx=%2222.5%22 cy=%2215.5%22 r=%221.8%22 fill=%22%230a0a0a%22/%3E%3Ccircle cx=%2220.5%22 cy=%2224%22 r=%221.8%22 fill=%22%230a0a0a%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
@@ -21,7 +21,7 @@
 <header class="top">
   <div class="wrap">
     <a class="mark" href="../" aria-label="brain">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="2" fill="#fff" stroke="#0a0a0a" stroke-width="2.2"/><path d="M3 12.5h26" stroke="#0a0a0a" stroke-width="2.2"/><path d="M8 17.5h10M8 21h7" stroke="#0a0a0a" stroke-width="1.8"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="4" width="26" height="24" rx="3" fill="#fff" stroke="#0a0a0a" stroke-width="2.2"/><path d="M3 10.5h26" stroke="#0a0a0a" stroke-width="2.2"/><path d="M16 20 9.5 16M16 20l6.5-4.5M16 20l4.5 4" stroke="#0a0a0a" stroke-width="1.6" stroke-linecap="round"/><circle cx="16" cy="20" r="2.7" fill="#0a0a0a"/><circle cx="9.5" cy="16" r="1.8" fill="#0a0a0a"/><circle cx="22.5" cy="15.5" r="1.8" fill="#0a0a0a"/><circle cx="20.5" cy="24" r="1.8" fill="#0a0a0a"/></svg>
       <span class="mark-word">brain</span>
     </a>
     <nav class="tabs" aria-label="Site">
@@ -51,9 +51,44 @@
     <p class="lead l-es">Cada versión, la más nueva primero, con la fecha en que se publicó en GitHub (UTC). Actualizá con <b>Actualizar y reiniciar</b> en Ajustes o <code>brain update</code>.</p>
   </div>
 
+  <!-- ===================== v0.03.3.6 ===================== -->
+  <article class="release" id="v0.03.3.6">
+    <div class="when"><div class="ver">v0.03.3.6</div><time class="date" datetime="2026-10-31">2026-10-31</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div>
+      <div class="l-en">
+        <h2>A steadier notch and graph, and a new logo</h2>
+        <h3>Fixed</h3>
+        <ul>
+          <li><b>Notch.</b> Some alerts (“3 changes in your vault”, “Updating the app…”) left an empty gap where the <i>Changed / New / Deleted</i> label goes. Lines without a label now use the full width.</li>
+          <li><b>Graph.</b> Links inside a note's text (like the one to <code>FORMAT.md</code> in <code>BRAIN.md</code>) no longer open a “not found” page that left the graph blank: they jump to the note in the graph, and links to the web open in a new tab.</li>
+          <li><b>Locked files can't be linked.</b> <code>BRAIN.md</code>, <code>FORMAT.md</code> and <code>FACT-CHECK.md</code> hang only from <code>BRAIN.md</code> as structure: links, mentions and <code>related</code> from other notes no longer connect to them, and <code>propose_graph_change</code> refuses them as a target. (That also removes the stray line between a Lumina note and <code>BRAIN.md</code>.)</li>
+        </ul>
+        <h3>Added</h3>
+        <ul>
+          <li><b>Back button in the graph</b> (top right; also the <kbd>Esc</kbd> key): goes back to the previous note and then to the whole graph.</li>
+          <li><b>New logo:</b> a file card with a small graph inside — the vault and its connections. It is in the site, the dashboard, the app icon and the tray.</li>
+        </ul>
+      </div>
+      <div class="l-es">
+        <h2>Un notch y un grafo más firmes, y un logo nuevo</h2>
+        <h3>Arreglado</h3>
+        <ul>
+          <li><b>Notch.</b> Algunos avisos («3 cambios en tu vault», «Actualizando la app…») dejaban un hueco vacío donde va la etiqueta <i>Modificado / Nuevo / Eliminado</i>. Las líneas sin etiqueta ahora usan todo el ancho.</li>
+          <li><b>Grafo.</b> Los links dentro del texto de una nota (como el de <code>BRAIN.md</code> a <code>FORMAT.md</code>) ya no abren una página «not found» que dejaba el grafo en blanco: saltan a la nota en el grafo, y los links a la web se abren en otra pestaña.</li>
+          <li><b>Los archivos bloqueados no se linkean.</b> <code>BRAIN.md</code>, <code>FORMAT.md</code> y <code>FACT-CHECK.md</code> cuelgan solo de <code>BRAIN.md</code> como estructura: los links, menciones y <code>related</code> de otras notas ya no se conectan con ellos, y <code>propose_graph_change</code> los rechaza como destino. (Con eso desaparece la línea suelta entre una nota de Lumina y <code>BRAIN.md</code>.)</li>
+        </ul>
+        <h3>Agregado</h3>
+        <ul>
+          <li><b>Botón Atrás en el grafo</b> (arriba a la derecha; también la tecla <kbd>Esc</kbd>): vuelve a la nota anterior y después al grafo completo.</li>
+          <li><b>Logo nuevo:</b> una ficha con un pequeño grafo adentro — el vault y sus conexiones. Está en la web, el dashboard, el ícono de la app y la bandeja.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
   <!-- ===================== v0.03.3.5 ===================== -->
   <article class="release" id="v0.03.3.5">
-    <div class="when"><div class="ver">v0.03.3.5</div><time class="date" datetime="2026-10-28">2026-10-28</time><span class="stamp solid"><span class="l-en">Latest</span><span class="l-es">Última</span></span></div>
+    <div class="when"><div class="ver">v0.03.3.5</div><time class="date" datetime="2026-10-28">2026-10-28</time></div>
     <div>
       <div class="l-en">
         <h2>brain joins OpenCue, Lumina and AI WorkStudio</h2>

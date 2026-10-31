@@ -7,16 +7,31 @@ OUT = Path(__file__).resolve().parent.parent / "src-tauri" / "icons"
 S = 1024
 
 
+K = 664 / 26  # el mismo dibujo que el logo de la web (viewBox 32x32): una ficha con un grafo adentro
+
+
+def u(x: float) -> float:
+    return 180 + (x - 3) * K
+
+
+def v(y: float) -> float:
+    return 205 + (y - 4) * K
+
+
 def draw() -> Image.Image:
     img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 40, S - 40, S - 40), radius=210, fill=(10, 10, 10, 255))
-    # el fichero: tarjeta blanca con encabezado y dos renglones
-    x0, y0, x1, y1 = 180, 270, 844, 754
-    d.rounded_rectangle((x0, y0, x1, y1), radius=40, fill=(255, 255, 255, 255))
-    d.rectangle((x0, y0 + 120, x1, y0 + 132), fill=(10, 10, 10, 255))
-    d.rounded_rectangle((x0 + 70, y0 + 230, x0 + 420, y0 + 262), radius=16, fill=(10, 10, 10, 255))
-    d.rounded_rectangle((x0 + 70, y0 + 320, x0 + 300, y0 + 352), radius=16, fill=(10, 10, 10, 255))
+    ink, paper = (10, 10, 10, 255), (255, 255, 255, 255)
+    d.rounded_rectangle((40, 40, S - 40, S - 40), radius=210, fill=ink)
+    # la ficha: tarjeta blanca con la franja del encabezado
+    d.rounded_rectangle((u(3), v(4), u(29), v(28)), radius=3 * K, fill=paper)
+    d.rectangle((u(3), v(9.6), u(29), v(11.4)), fill=ink)
+    # el grafo: un nodo central unido a tres más
+    c, sats = (16, 20), [(9.5, 16), (22.5, 15.5), (20.5, 24)]
+    for x, y in sats:
+        d.line((u(c[0]), v(c[1]), u(x), v(y)), fill=ink, width=int(1.9 * K))
+    for (x, y), r in [(c, 2.9)] + [(p, 2.1) for p in sats]:
+        d.ellipse((u(x) - r * K, v(y) - r * K, u(x) + r * K, v(y) + r * K), fill=ink)
     return img
 
 

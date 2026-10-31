@@ -122,6 +122,7 @@ li .p {
   font-family: "Courier Prime", "Courier New", monospace; font-size: 12px;
 }
 li.empty { color: #8f8f89; }
+li.plain .p { font-family: Archivo, "Helvetica Neue", Arial, sans-serif; font-size: 12.5px; }
 .go { width: 14px; height: 14px; flex: none; margin-top: 2px; fill: none; stroke: #f4f4f0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; transition: transform .25s var(--ease), opacity .25s; }
 
 .stage { padding: 0; }

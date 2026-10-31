@@ -907,3 +907,14 @@ Pedido del usuario: (1) leer el proyecto «workspace» del vault (es `projects/w
 ## 2026-10-28 — v0.03.3.5: arreglo del CI en Windows
 
 El CI de `main` (`f037966`) falló solo en `Tests (windows-latest)`: `tests/test_v0335.py::test_send_to_agent_over_stdio` escribía el `opencue mcp-serve` falso con `write_text` sin codificación (cp1252 en Windows) y el script traía una «ó» ("falló"); Python lo leía como UTF-8 → `SyntaxError` y el cliente MCP veía «Connection closed». Ahora el test lo escribe en `utf-8` y el mensaje del falso server es ASCII. No cambia código de la app (`family.py` no se tocó): los otros 12 jobs ya estaban en verde.
+
+## 2026-10-31 — v0.03.3.6: notch sin huecos, grafo con «Atrás», archivos centrales sin links y logo nuevo
+
+**Qué cambió**
+- **Notch** (`apps/desktop/ui/notch.js`, `notch.css`): una línea sin «Verbo: ruta» («N cambios en tu vault», «Actualizando la app…») dibujaba igual la columna del verbo (`.v`, `min-width: 56px`) vacía y dejaba un hueco. `renderLines` ahora separa verbo y ruta con una regex y las líneas sin verbo son `li.plain` (solo texto, ancho completo).
+- **Grafo** (`brain_mcp/graph.html`): los `<a href="FORMAT.md">` del texto de una nota navegaban el iframe a `/FORMAT.md` («not found», pantalla en blanco). `wireLinks()` ahora intercepta todos los links del contenido y del preview del editor: http(s)/mailto → pestaña nueva; el resto → `nodeFor()` (busca el nodo, relativo a la nota) y, si no existe, no hace nada. Botón **Atrás** arriba a la derecha (`#back`, `trail`, `goBack`; también `Esc` sin editor abierto): vuelve a la nota anterior y después a la vista completa.
+- **Archivos centrales sin links** (`graph.py`, `graph_proposals.py`): `build_graph` descarta todo link, mención o `related` de una nota hacia `BRAIN.md`/`FORMAT.md`/`FACT-CHECK.md` (salvo que el origen sea otro central); solo queda la estructura `core`. `propose_graph_change` rechaza un archivo central como **destino** (antes solo como origen). Con esto desaparece la línea de `projects/workstudio/lumina/version-0-1-7.md` a `BRAIN.md` (el nombre «brain» del índice coincidía con un nombre/mención del texto).
+- **Logo nuevo** (docs ×4, `dashboard.html`, `apps/desktop/assets/make_icons.py` → `src-tauri/icons/*`): la ficha del fichero ahora lleva un grafo adentro (un nodo central unido a tres), monocromo. Favicon SVG de las cuatro páginas, marca del sidebar (usa `currentColor`) e íconos de la app y la bandeja regenerados.
+- `VERSION` v0.03.3.6; Tauri/Cargo `0.3.3-6`; changelog, README, CLAUDE.md, docs.
+
+**Verificado**: `pytest -q tests` 119 passed (nuevo `tests/test_v0336.py`). **No probado**: el notch dentro de la app de escritorio ni el ícono nuevo en la bandeja de macOS/Windows; el botón Atrás en un navegador real (solo se revisó la sintaxis del script).
