@@ -193,6 +193,8 @@ def build_graph() -> dict:
             dst = resolve(t, rel)
             if rel == "BRAIN.md" and kind == "mention" and dst and dst.startswith("dir:"):
                 continue  # las carpetas que nombra el índice ya cuelgan de él como estructura
+            if dst in vault.CORE_FILES and rel not in vault.CORE_FILES:
+                continue  # los archivos centrales (bloqueados) no se enlazan desde otras notas: solo cuelgan de BRAIN.md
             if dst and dst != rel:
                 links.add((rel, dst, kind))
         for tag in _as_list(meta.get("tags")):

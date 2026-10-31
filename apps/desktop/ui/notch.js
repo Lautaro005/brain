@@ -98,13 +98,16 @@
         li.className = "empty";
         li.textContent = tx.none;
       } else {
-        var i = l.indexOf(": ");
+        // "Changed: path" → verb + path. A line with no verb ("3 changes in your vault",
+        // "Updating the app…") is all text: no empty verb column left as a gap.
+        var m = /^([^:\n]{1,16}):\s+(.+)$/.exec(l);
         var v = document.createElement("span");
         var p = document.createElement("span");
-        v.className = "v"; p.className = "p";
-        if (i > 0 && i < 16) { v.textContent = l.slice(0, i); p.textContent = l.slice(i + 2); }
-        else { v.textContent = ""; p.textContent = l; }
-        li.appendChild(v); li.appendChild(p);
+        p.className = "p";
+        if (m) { v.className = "v"; v.textContent = m[1]; p.textContent = m[2]; }
+        else { li.className = "plain"; p.textContent = l; }
+        if (m) li.appendChild(v);
+        li.appendChild(p);
       }
       ul.appendChild(li);
     });

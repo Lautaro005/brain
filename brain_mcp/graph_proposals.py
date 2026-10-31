@@ -140,6 +140,10 @@ def propose(changes, reason: str = "", origin: str = "agent") -> dict:
             errors.append(f"cambio {i}: {src} es un archivo central de brain; lo edita solo el usuario. Proponé el "
                           f"cambio desde la otra nota («{ch.get('target')}» → «{ch.get('source')}»)")
             continue
+        if vault.is_core(dst):
+            errors.append(f"cambio {i}: {dst} es un archivo central de brain (solo lo edita el usuario) y no se conecta "
+                          f"con otras notas: ya cuelga de BRAIN.md como estructura")
+            continue
         key = (kind, src, dst)
         if key in seen:
             continue

@@ -80,6 +80,11 @@
   .controls button:hover { background: var(--bg); }
   .controls button:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
   .controls svg { width: 17px; height: 17px; }
+  .back { position: absolute; top: 14px; right: 16px; z-index: 5; display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 12px 0 9px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); }
+  .back:hover { background: var(--bg); } .back:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+  .back[hidden] { display: none; } .back svg { width: 15px; height: 15px; }
   .hint { position: absolute; right: 62px; bottom: 22px; font-size: 11.5px; color: var(--muted); }
 
   .node circle { transition: opacity .15s; }
@@ -172,6 +177,7 @@
     </div>
     <svg id="svg"></svg>
     <div class="stats" id="stats"></div>
+    <button class="back" id="back" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span id="back-t"></span></button>
     <div class="controls">
       <button id="zin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <button id="zout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
@@ -210,7 +216,7 @@ const I18N = {
     brand: "· conexiones", search: "Buscar…", empty: "Hacé click en un nodo para ver su contenido y conexiones",
     connections: "Conexiones", none: "Sin conexiones todavía", cut: "… (recortado, el archivo completo está en el vault)",
     stats: (f, l) => `${f} archivos · ${l} conexiones`,
-    zin: "Acercar", zout: "Alejar", zfit: "Volver al centro (tecla 0 o doble click en el fondo)",
+    zin: "Acercar", zout: "Alejar", back: "Atrás", zfit: "Volver al centro (tecla 0 o doble click en el fondo)",
     edit: "Editar el Markdown", lockTitle: "Archivo central de brain: las IAs no lo pueden cambiar. Editalo vos.",
     lockNote: "Archivo central: las IAs lo leen pero no lo pueden cambiar. Lo editás vos.",
     lockDir: "Carpeta base de brain: las IAs pueden crear notas adentro, pero no moverla, renombrarla ni borrarla.",
@@ -229,7 +235,7 @@ const I18N = {
     brand: "· connections", search: "Search…", empty: "Click a node to see its content and connections",
     connections: "Connections", none: "No connections yet", cut: "… (truncated, the full file is in the vault)",
     stats: (f, l) => `${f} files · ${l} connections`,
-    zin: "Zoom in", zout: "Zoom out", zfit: "Back to center (key 0 or double-click the background)",
+    zin: "Zoom in", zout: "Zoom out", back: "Back", zfit: "Back to center (key 0 or double-click the background)",
     edit: "Edit the Markdown", lockTitle: "Core brain file: AIs can't change it. You edit it.",
     lockNote: "Core file: AIs read it but can't change it. You edit it.",
     lockDir: "Base brain folder: AIs can create notes inside it, but not move, rename or delete it.",
@@ -421,8 +427,32 @@ function highlight() {
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-async function select(id) {
+// recorrido: el botón «Atrás» vuelve a la nota anterior (o a la vista completa)
+const trail = [];
+function syncBack() {
+  const b = document.getElementById("back");
+  b.hidden = !selected && !trail.length;
+  document.getElementById("back-t").textContent = I18N.back;
+}
+function goBack() {
+  if (trail.length) { const prev = trail.pop(); select(prev, true); }
+  else select(null, true);
+}
+// busca el nodo al que apunta un link del texto de una nota (nunca navega el iframe)
+function nodeFor(href, fromPath) {
+  let t = decodeURIComponent(String(href).replace(/^#brain:/, "")).split("#")[0].trim().replace(/^\.\//, "");
+  if (!t) return null;
+  const low = t.toLowerCase(), dir = (fromPath || "").includes("/") ? fromPath.replace(/\/[^/]*$/, "") + "/" : "";
+  const cands = new Set([low, (dir + low)]);
+  return data.nodes.find(m => [m.label, m.path, (m.path || "").replace(/\.md$/, "")]
+    .some(v => { v = (v || "").toLowerCase(); return v && (cands.has(v) || cands.has(v + ".md") || v === low || v.endsWith("/" + low) || v.endsWith("/" + low + ".md")); })) || null;
+}
+
+async function select(id, isBack) {
+  if (!isBack && id && selected && id !== selected) trail.push(selected);
+  if (!isBack && !id) trail.length = 0;
   selected = id;
+  syncBack();
   highlight();
   const side = document.getElementById("side");
   if (!id) { side.innerHTML = `<div class="empty">${esc(I18N.empty)}</div>`; return; }
@@ -461,15 +491,23 @@ async function select(id) {
       const box = document.getElementById("content");
       box.innerHTML = DOMPurify.sanitize(marked.parse(md)) +
         (cut ? `<p class="more">${esc(I18N.cut)}</p>` : "");
-      box.querySelectorAll('a[href^="#brain:"]').forEach(a => a.onclick = ev => {
-        ev.preventDefault();
-        const t = decodeURIComponent(a.getAttribute("href").slice(7)).toLowerCase();
-        const hit = data.nodes.find(m => [m.label, m.path, (m.path || "").replace(/\.md$/, "")]
-          .some(v => (v || "").toLowerCase() === t || (v || "").toLowerCase().endsWith("/" + t)));
-        if (hit) select(hit.id);
-      });
+      wireLinks(box, n.path);
     } catch (e) { /* ignore */ }
   }
+}
+
+// Los links del texto nunca navegan el iframe (daba «not found» y dejaba todo en blanco): los de la web se abren en
+// otra pestaña; los demás van al nodo si existe en el grafo y, si no, no hacen nada.
+function wireLinks(box, fromPath) {
+  box.querySelectorAll("a[href]").forEach(a => {
+    const href = a.getAttribute("href") || "";
+    if (/^(https?:|mailto:)/i.test(href)) { a.target = "_blank"; a.rel = "noopener noreferrer"; return; }
+    a.onclick = ev => {
+      ev.preventDefault();
+      const hit = nodeFor(href, fromPath);
+      if (hit) select(hit.id);
+    };
+  });
 }
 
 // ================= editor de Markdown (v0.03.2) =================
@@ -486,7 +524,7 @@ function edMsg(text, err = false) { const m = $e("ed-msg"); m.textContent = text
 function edTab(prev) {
   $e("ed-tab-edit").setAttribute("aria-pressed", String(!prev)); $e("ed-tab-prev").setAttribute("aria-pressed", String(prev));
   $e("ed-text").hidden = prev; $e("ed-prev").hidden = !prev;
-  if (prev) $e("ed-prev").innerHTML = DOMPurify.sanitize(marked.parse($e("ed-text").value.replace(/^---\n[\s\S]*?\n---\n?/, "")));
+  if (prev) { $e("ed-prev").innerHTML = DOMPurify.sanitize(marked.parse($e("ed-text").value.replace(/^---\n[\s\S]*?\n---\n?/, ""))); wireLinks($e("ed-prev"), ed.path); }
   else $e("ed-text").focus();
 }
 async function openEditor(n) {
@@ -547,6 +585,9 @@ document.addEventListener("keydown", e => {
 }, true);
 
 document.getElementById("zfit").onclick = () => fit();
+document.getElementById("back").onclick = goBack;
+addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("ed").hidden && (selected || trail.length)) goBack(); });
+syncBack();
 document.getElementById("zin").onclick = () => svg.transition().duration(250).call(zoomer.scaleBy, 1.4);
 document.getElementById("zout").onclick = () => svg.transition().duration(250).call(zoomer.scaleBy, 1 / 1.4);
 document.addEventListener("keydown", e => {
