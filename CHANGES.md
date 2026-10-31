@@ -918,3 +918,7 @@ El CI de `main` (`f037966`) falló solo en `Tests (windows-latest)`: `tests/test
 - `VERSION` v0.03.3.6; Tauri/Cargo `0.3.3-6`; changelog, README, CLAUDE.md, docs.
 
 **Verificado**: `pytest -q tests` 119 passed (nuevo `tests/test_v0336.py`). **No probado**: el notch dentro de la app de escritorio ni el ícono nuevo en la bandeja de macOS/Windows; el botón Atrás en un navegador real (solo se revisó la sintaxis del script).
+
+## 2026-10-31 — v0.03.3.6: security fixes
+
+Dependencias actualizadas (`uv.lock`) y revisadas con `pip-audit`. `pytest` 119 passed, `scripts/smoke_mcp.py` OK, Chroma real levantado con las dependencias nuevas. Va dentro de la v0.03.3.6 (sin versión nueva).
