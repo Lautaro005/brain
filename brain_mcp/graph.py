@@ -12,7 +12,7 @@ WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
 MDLINK = re.compile(r"\]\(([^)\s]+?\.md)\)")
 CODEPATH = re.compile(r"`([\w\-./]+)`")
 
-TOP_KINDS = {"projects": "project", "skills": "skill", "knowledge": "source", "memory": "memory"}
+TOP_KINDS = {"projects": "project", "agents": "agent", "skills": "skill", "knowledge": "source", "memory": "memory"}
 
 
 PROJECT_KINDS = {"Project": "project", "SubProject": "subproject", "File": "file"}
@@ -57,6 +57,8 @@ def _kind(rel: str, meta: dict | None = None) -> str:
     t = vault.effective_type(rel, meta or {})
     if t in PROJECT_KINDS and (rel.startswith("projects/") or (meta or {}).get("type") == t):
         return PROJECT_KINDS[t]
+    if rel.startswith("agents/"):  # agentes de IA (v0.03.4): no son proyectos
+        return {"Agent": "agent", "File": "file"}.get(t, "note")
     if rel.startswith("projects/"):
         return "note"  # projects/index.md
     return TOP_KINDS.get(rel.split("/")[0], "note")
@@ -148,15 +150,15 @@ def build_graph() -> dict:
     # cada File y SubProject queda unido al proyecto (o subproyecto) del que es parte: la nota principal de su
     # carpeta o, si no hay, la de la carpeta de arriba
     mains = {rel.rsplit("/", 1)[0]: rel for rel in docs
-             if "/" in rel and nodes[rel]["kind"] in ("project", "subproject")}
+             if "/" in rel and nodes[rel]["kind"] in ("project", "subproject", "agent")}
     for rel in docs:
         kind = nodes[rel]["kind"]
-        if kind not in ("file", "subproject") or not rel.startswith("projects/"):
+        if kind not in ("file", "subproject") or not rel.startswith(("projects/", "agents/")):
             continue
         folder = rel.rsplit("/", 1)[0]
         if kind == "subproject":  # su propia carpeta es la del subproyecto: el padre está una más arriba
             folder = folder.rsplit("/", 1)[0] if "/" in folder else ""
-        while folder and folder != "projects":
+        while folder and folder not in ("projects", "agents"):
             owner = mains.get(folder)
             if owner and owner != rel:
                 links.add((rel, owner, "part"))

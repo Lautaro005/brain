@@ -922,3 +922,25 @@ El CI de `main` (`f037966`) falló solo en `Tests (windows-latest)`: `tests/test
 ## 2026-10-31 — v0.03.3.6: security fixes
 
 Dependencias actualizadas (`uv.lock`) y revisadas con `pip-audit`. `pytest` 119 passed, `scripts/smoke_mcp.py` OK, Chroma real levantado con las dependencias nuevas. Va dentro de la v0.03.3.6 (sin versión nueva).
+
+## 2026-11-03 — v0.03.4: actualizaciones que terminan, OpenBlocks, agentes fuera de projects/ y Familia WorkStudio
+
+**1. La app no se actualizaba** (se cerraba, se abría y seguía la misma versión). No se pudo reproducir en esta máquina; se cerraron los caminos que lo producen y se hizo visible el motivo:
+- `brain.sh` / `brain.ps1` / `install.sh` / `install.ps1`: `pull_code` / `Pull-Code` — pull, si falla `git stash` + reintento, y en una instalación (`data/.brain-install` o `~/.brain`) `fetch` + `reset --hard` al upstream; en un clon de desarrollo nunca se pisa nada. Antes un `pull --ff-only` fallido (cambio local, rama que no seguía a main) hacía que «Actualizar» reabriera la versión vieja sin explicación. Log en `data/logs/update.log`.
+- `brain update` reinicia el dashboard abierto (`/api/update/apply`) para que no siga corriendo el código viejo.
+- `dashboard.py`: `RUNNING_VERSION`, `_update_diag()` → `/api/version` suma `running`, `stale`, `last_update`, `app_install`; Ajustes → Versión muestra el diagnóstico (`#update-diag`) y un botón «Reiniciar brain».
+- `install.sh` (`install_app`): escribe `data/app_install.json` (ok / motivo, y avisa si el último release es más viejo que el código: la app se vuelve a ofrecer sola cuando se publique); en macOS reemplaza la app que se abrió (`BRAIN_APP_TARGET`, que pasa `backend.rs::spawn_app_update`) y `brain.sh app` la abre primero. Rust sin compilar acá (faltan las libs de GTK): lo compila el CI.
+
+**2. OpenBlocks** (`family.py`, `server.py`, `chat.py`, `chat.html`, `dashboard.py`): estado, abrir, `openblocks_search` (tool MCP para todos los agentes + interruptor en el botón + del chat), ajuste para apagarlo.
+
+**3. Agentes ≠ proyectos** (`vault.py`, `graph.py`, `graph.html`, `dashboard.html`, `stats.py`, `notch.js`, `server.py`, `chat.py`): carpeta base `agents/`, tipo `Agent`, kind `agent` en el grafo, FORMAT.md v4 y BRAIN.md core v2, `migrate_agents()` y el botón «Mover a agents/». Falta que OpenCue cambie su `brain_root` por defecto a `agents` (otro repo).
+
+**4. Ajustes → Familia WorkStudio** (`dashboard.html`, `dashboard.py`, `brain_mcp/assets/family/*.svg`): tarjetas con los logos de AI WorkStudio, brain, OpenCue, Lumina y OpenBlocks (los SVG que mandó el usuario: se asumió que el de cuadros de colores es WorkStudio y el de barras con tinta y marcador amarillo es OpenBlocks).
+
+Logo, docs, README, changelog, CLAUDE.md. `VERSION` v0.03.4; Tauri/Cargo `0.3.4`.
+
+**Verificado**: `pytest -q tests` (nuevo `tests/test_v034.py`: pull_code sobre repos reales, agentes, migración, OpenBlocks por stdio real con un server falso, API y logos), `check_site.py`, captura de la tarjeta en Chromium. **No probado**: OpenBlocks, OpenCue y WorkStudio reales; el flujo de actualización en la máquina del usuario; la compilación de Rust.
+
+## 2026-11-03 — v0.03.4: arreglo del CI en Windows
+
+`tests/test_v034.py`: las dos pruebas de `pull_code` (brain.sh) corren solo en macOS/Linux (`skipif win32`): en Windows `bash` es el de WSL y el equivalente es `Pull-Code` de brain.ps1. Solo cambia el test.

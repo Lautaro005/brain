@@ -8,14 +8,58 @@ $Uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
 if (-not $Uv) { $Uv = Join-Path $env:USERPROFILE ".local\bin\uv.exe" }
 if (-not (Test-Path $Uv)) { Write-Host "No encontré uv. Instalalo con: irm https://astral.sh/uv/install.ps1 | iex"; exit 1 }
 
+
+# Trae el código nuevo sin quedarse trabado (v0.03.4; ver pull_code en brain.sh): pull, y si falla guarda los cambios
+# locales (git stash) y reintenta; en una instalación (data\.brain-install o %USERPROFILE%\.brain) se alinea con origin.
+function Pull-Code($d) {
+  $ErrorActionPreference = "Continue"
+  $logDir = Join-Path $d "data\logs"; New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  $log = Join-Path $logDir "update.log"
+  function ULog($m) { Add-Content -Path $log -Value ("{0} [update] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $m) -Encoding UTF8 }
+  $out = git -C $d pull --ff-only 2>&1
+  if ($LASTEXITCODE -eq 0) { ULog "pull ok"; $out | ForEach-Object { Write-Host $_ }; return $true }
+  ULog ("pull falló: " + (($out | Out-String) -replace "\s+", " "))
+  if (git -C $d status --porcelain --untracked-files=no) {
+    git -C $d stash push --quiet -m ("brain-update " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) *> $null
+    if ($LASTEXITCODE -eq 0) {
+      ULog "cambios locales guardados con git stash"
+      git -C $d pull --ff-only *> $null
+      if ($LASTEXITCODE -eq 0) { ULog "pull ok después del stash"; return $true }
+    }
+  }
+  $home1 = Join-Path $env:USERPROFILE ".brain"
+  if ((Test-Path (Join-Path $d "data\.brain-install")) -or ($d -eq $home1)) {
+    $up = (git -C $d rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>$null)
+    if (-not $up) { $up = "origin/main" }
+    git -C $d fetch --quiet origin ($up -replace "^origin/", "") *> $null
+    if ($LASTEXITCODE -eq 0) {
+      git -C $d reset --hard --quiet $up *> $null
+      if ($LASTEXITCODE -eq 0) { ULog "instalación alineada con $up"; Write-Host "Se alineó la instalación con $up."; return $true }
+    }
+    ULog "no se pudo alinear con $up"
+  }
+  Write-Host ($out | Out-String)
+  Write-Host "No se pudo actualizar. El detalle quedó en $log"
+  return $false
+}
+
 $cmd = if ($args.Count) { $args[0] } else { "" }
 switch ($cmd) {
   "update" {
     if (-not (Test-Path (Join-Path $Dir ".git"))) { Write-Host "Esta carpeta no es un clon de git; no se puede actualizar sola."; exit 1 }
     Write-Host "Actualizando brain…"
-    git -C $Dir pull --ff-only
+    if (-not (Pull-Code $Dir)) { exit 1 }
     & $Uv sync --quiet
-    Write-Host "Listo. Si el dashboard o Claude estaban abiertos, reinicialos para usar la versión nueva."
+    Write-Host ("Listo: brain está en " + ((Get-Content (Join-Path $Dir "VERSION") -ErrorAction SilentlyContinue) -join ""))
+    # un dashboard que ya estaba abierto sigue con el código viejo: si lo abrió este lanzador, se reinicia solo
+    $port = if ($env:BRAIN_PORT) { $env:BRAIN_PORT } else { "8765" }
+    try {
+      Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/version" -TimeoutSec 2 | Out-Null
+      $r = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$port/api/update/apply" -Headers @{ "X-Brain" = "1" } -ContentType "application/json" -Body "{}" -TimeoutSec 5
+      if ($r.ok) { Write-Host "El dashboard abierto se reinicia con la versión nueva." }
+      else { Write-Host "El dashboard que está abierto sigue con la versión anterior: cerralo y abrilo de nuevo." }
+    } catch { }
+    Write-Host "Si Claude u otro agente estaba abierto, reinicialo para usar la versión nueva."
   }
   "app" {
     # la app de escritorio (la instala install.ps1): ícono en la bandeja, avisos del sistema y notch
@@ -80,8 +124,7 @@ brain: tu base de conocimiento local para Claude, ChatGPT y otros agentes.
       if ($LASTEXITCODE -ne 75) { exit $LASTEXITCODE }
       Write-Host "Actualizando brain…"
       Remove-Item Env:BRAIN_UPDATE_FAILED -ErrorAction SilentlyContinue
-      git -C $Dir pull --ff-only
-      if ($LASTEXITCODE -ne 0) {
+      if (-not (Pull-Code $Dir)) {
         Write-Host "No se pudo actualizar; vuelvo a abrir la versión instalada."; $env:BRAIN_UPDATE_FAILED = "pull"
       } else {
         & $Uv sync --quiet

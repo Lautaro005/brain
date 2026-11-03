@@ -27,14 +27,15 @@ from urllib.parse import urlparse
 
 import requests
 
-from . import history
+from . import history, vault
 
 log = logging.getLogger(__name__)
 
 DATA = history.DATA
 CONFIG = DATA / "family.json"
 LUMINA_URL = "http://127.0.0.1:47770"
-APPS = ("opencue", "lumina", "workstudio")
+APPS = ("opencue", "lumina", "workstudio", "openblocks")
+OPENBLOCKS_URL = "http://127.0.0.1:47880"
 OPENCUE_PREFIX = "opencue:"
 MAX_AGENT_CONTEXT = 24000  # caracteres de contexto de brain que se le mandan a un agente de OpenCue
 START_WAIT = 25            # segundos que se espera a que abra la app de OpenCue
@@ -55,7 +56,8 @@ def load() -> dict:
     except (OSError, ValueError):
         data = {}
     return {"lumina_url": _valid_url(data.get("lumina_url")) or LUMINA_URL,
-            "opencue_agents": bool(data.get("opencue_agents", True))}
+            "opencue_agents": bool(data.get("opencue_agents", True)),
+            "openblocks": bool(data.get("openblocks", True))}
 
 
 def _valid_url(url) -> str:
@@ -75,6 +77,8 @@ def save(data: dict) -> dict:
         cfg["lumina_url"] = _valid_url(data["lumina_url"]) or LUMINA_URL
     if "opencue_agents" in data:
         cfg["opencue_agents"] = bool(data["opencue_agents"])
+    if "openblocks" in data:
+        cfg["openblocks"] = bool(data["openblocks"])
     DATA.mkdir(parents=True, exist_ok=True)
     tmp = CONFIG.with_suffix(".tmp")
     tmp.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
@@ -300,8 +304,123 @@ def workstudio_status() -> dict:
     return {"installed": installed, "running": _process_running("workstudio") or _process_running("AI WorkStudio")}
 
 
+# ---------- OpenBlocks (v0.03.4) ----------
+# Notas locales (editor por bloques sobre un vault Markdown). brain la usa como las otras apps de la familia: instalada,
+# por su comando y su servidor MCP (`openblocks mcp`, tool `search_pages`), sin copiar código ni tocar su vault.
+
+def openblocks_cli() -> str | None:
+    exe = shutil.which("openblocks")
+    if exe:
+        return exe
+    for c in (Path.home() / ".local" / "bin" / "openblocks", Path("/usr/local/bin/openblocks"),
+              Path("/Applications/OpenBlocks.app/Contents/MacOS/openblocks"),
+              Path.home() / "Applications" / "OpenBlocks.app" / "Contents" / "MacOS" / "openblocks"):
+        if c.exists():
+            return str(c)
+    return None
+
+
+def openblocks_url() -> str:
+    port = os.environ.get("OPENBLOCKS_PORT", "").strip()
+    return f"http://127.0.0.1:{int(port)}" if port.isdigit() else OPENBLOCKS_URL
+
+
+def openblocks_status(timeout: float = 1.5) -> dict:
+    out = {"installed": bool(openblocks_cli() or (_home() / ".openblocks").exists()), "running": False, "version": "",
+           "url": openblocks_url(), "enabled": load()["openblocks"]}
+    try:
+        r = requests.get(openblocks_url() + "/api/status", timeout=timeout)
+        if r.ok and "openblocks" in r.text.lower():
+            out.update(running=True, installed=True)
+            try:
+                out["version"] = str(r.json().get("version") or "")
+            except ValueError:
+                pass
+    except requests.RequestException:
+        pass
+    return out
+
+
+def _tool_args(tool, query: str, limit: int) -> dict:
+    """Arma los argumentos de una tool de búsqueda según su esquema (el campo del texto se llama distinto en cada app)."""
+    schema = getattr(tool, "inputSchema", None) or getattr(tool, "input_schema", None) or {}
+    props = schema.get("properties", {})
+    args: dict = {}
+    for k in ("query", "q", "text", "search", "term"):
+        if k in props:
+            args[k] = query
+            break
+    else:
+        args[next(iter(props), "query")] = query
+    for k in ("limit", "k", "top_k", "max_results"):
+        if k in props:
+            args[k] = limit
+            break
+    return args
+
+
+async def _openblocks_call(exe: str, query: str, limit: int, timeout: float, prefix: tuple = ()) -> str:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    params = StdioServerParameters(command=exe, args=[*prefix, "mcp", "--read-only"], env={**os.environ})
+    async with stdio_client(params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await asyncio.wait_for(session.initialize(), 20)
+            tools = (await asyncio.wait_for(session.list_tools(), 20)).tools
+            tool = next((t for t in tools if t.name == "search_pages"), None)
+            if tool is None:
+                raise FamilyError("openblocks_error", "search_pages")
+            res = await asyncio.wait_for(session.call_tool("search_pages", _tool_args(tool, query, limit)), timeout)
+    text = "\n".join(getattr(c, "text", "") for c in res.content if getattr(c, "text", None)).strip()
+    if res.is_error:
+        raise FamilyError("openblocks_error", text[:300])
+    return text
+
+
+def openblocks_search(query: str, limit: int = 6, timeout: float = 30) -> str:
+    """Busca en las páginas del vault de OpenBlocks (título, ruta y fragmento) y devuelve el texto que contesta su
+    herramienta `search_pages`. Solo lee: se abre con `--read-only` y nunca crea ni edita páginas."""
+    if not load()["openblocks"]:
+        raise FamilyError("openblocks_off")
+    exe = openblocks_cli()
+    if not exe:
+        raise FamilyError("openblocks_missing")
+    q = (query or "").strip()
+    if not q:
+        raise FamilyError("empty")
+    try:
+        return asyncio.run(_openblocks_call(exe, q, max(1, min(int(limit), 15)), timeout))
+    except asyncio.TimeoutError as e:
+        raise FamilyError("openblocks_error", "timeout") from e
+    except FamilyError:
+        raise
+    except Exception as e:
+        raise FamilyError("openblocks_error", str(e)[:300]) from e
+
+
+def openblocks_block(text: str, lang: str = "es") -> str:
+    if not text.strip():
+        return ""
+    head = ("# OpenBlocks (notas del usuario)\nEstas páginas del vault de OpenBlocks coinciden con el mensaje. Usalas como "
+            "contexto y nombrá la página cuando la uses:\n\n") if lang != "en" else \
+           ("# OpenBlocks (user notes)\nThese pages from the user's OpenBlocks vault match the message. Use them as context "
+            "and name the page when you use it:\n\n")
+    return head + text[:6000]
+
+
 def open_app(name: str) -> dict:
     """Abre una app de la familia: Lumina en el navegador, las otras con su comando."""
+    if name == "openblocks":
+        exe = openblocks_cli()
+        if not exe and platform.system() == "Darwin" and (Path("/Applications/OpenBlocks.app").exists() or (Path.home() / "Applications" / "OpenBlocks.app").exists()):
+            subprocess.Popen(["open", "-a", "OpenBlocks"])
+            return {}
+        if not exe:
+            raise FamilyError("not_installed", name)
+        if not openblocks_status()["running"]:
+            subprocess.Popen([exe], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        return {"url": openblocks_url()}
     if name == "lumina":
         if not lumina_status()["running"]:
             exe = shutil.which("lumina")
@@ -319,5 +438,16 @@ def open_app(name: str) -> dict:
     return {}
 
 
+def agents_status() -> dict:
+    """Dónde guarda OpenCue la memoria de sus agentes en el vault: `agents/` (v0.03.4). Si quedó la carpeta vieja
+    `projects/opencue-agents` (la escribía como un proyecto), `legacy` avisa y migrate_agents la mueve."""
+    return {"legacy": vault.legacy_agents(), "folder": (vault.VAULT / "agents").is_dir()}
+
+
+def migrate_agents() -> dict:
+    return vault.migrate_agents()
+
+
 def status() -> dict:
-    return {"settings": load(), "lumina": lumina_status(), "opencue": opencue_status(), "workstudio": workstudio_status()}
+    return {"settings": load(), "lumina": lumina_status(), "opencue": opencue_status(), "workstudio": workstudio_status(),
+            "openblocks": openblocks_status(), "agents": agents_status()}

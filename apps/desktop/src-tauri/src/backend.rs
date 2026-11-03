@@ -275,6 +275,15 @@ impl Backend {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .process_group(0);
+        // macOS: the update replaces this very bundle (not a copy in ~/Applications next to an old one in /Applications)
+        #[cfg(target_os = "macos")]
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(bundle) = exe.ancestors().nth(3) {
+                if bundle.extension().is_some_and(|e| e == "app") {
+                    c.env("BRAIN_APP_TARGET", bundle);
+                }
+            }
+        }
         c.spawn().map(|_| ()).map_err(|e| e.to_string())
     }
 
