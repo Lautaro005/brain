@@ -15,7 +15,7 @@
     /* monocromo: cada tipo se distingue por relleno, contorno y trazo, no por color */
     --hub-fill: #0a0a0a; --hub-stroke: #0a0a0a; --profile-fill: #ffffff; --profile-stroke: #0a0a0a;
     --memory-fill: #ffffff; --memory-stroke: #5e5e5e; --project-fill: #0a0a0a; --project-stroke: #0a0a0a;
-    --subproject-fill: #ffffff; --subproject-stroke: #0a0a0a; --file-fill: #e8e8e5; --file-stroke: #5e5e5e;
+    --agent-fill: #e8e8e5; --agent-stroke: #0a0a0a; --subproject-fill: #ffffff; --subproject-stroke: #0a0a0a; --file-fill: #e8e8e5; --file-stroke: #5e5e5e;
     --skill-fill: #5e5e5e; --skill-stroke: #5e5e5e; --source-fill: #d6d6d2; --source-stroke: #5e5e5e;
     --note-fill: #9a9a95; --note-stroke: #9a9a95; --folder-fill: #cfcfcc; --folder-stroke: #cfcfcc; --tag-fill: #ffffff; --tag-stroke: #9a9a95;
     --entity-fill: #ffffff; --entity-stroke: #0a0a0a; --core-fill: #5e5e5e; --core-stroke: #0a0a0a;
@@ -28,7 +28,7 @@
       --edge: #3a3a38; --edge-hi: #f2f2f0;
       --hub-fill: #f2f2f0; --hub-stroke: #f2f2f0; --profile-fill: #191918; --profile-stroke: #f2f2f0;
       --memory-fill: #191918; --memory-stroke: #9a9a95; --project-fill: #f2f2f0; --project-stroke: #f2f2f0;
-      --subproject-fill: #191918; --subproject-stroke: #f2f2f0; --file-fill: #2a2a28; --file-stroke: #9a9a95;
+      --agent-fill: #2a2a28; --agent-stroke: #f2f2f0; --subproject-fill: #191918; --subproject-stroke: #f2f2f0; --file-fill: #2a2a28; --file-stroke: #9a9a95;
       --skill-fill: #9a9a95; --skill-stroke: #9a9a95; --source-fill: #3a3a38; --source-stroke: #9a9a95;
       --note-fill: #6b6b67; --note-stroke: #6b6b67; --folder-fill: #3a3a38; --folder-stroke: #3a3a38; --tag-fill: #191918; --tag-stroke: #6b6b67;
       --entity-fill: #191918; --entity-stroke: #f2f2f0; --core-fill: #9a9a95; --core-stroke: #f2f2f0;
@@ -41,7 +41,7 @@
       --edge: #3a3a38; --edge-hi: #f2f2f0;
       --hub-fill: #f2f2f0; --hub-stroke: #f2f2f0; --profile-fill: #191918; --profile-stroke: #f2f2f0;
       --memory-fill: #191918; --memory-stroke: #9a9a95; --project-fill: #f2f2f0; --project-stroke: #f2f2f0;
-      --subproject-fill: #191918; --subproject-stroke: #f2f2f0; --file-fill: #2a2a28; --file-stroke: #9a9a95;
+      --agent-fill: #2a2a28; --agent-stroke: #f2f2f0; --subproject-fill: #191918; --subproject-stroke: #f2f2f0; --file-fill: #2a2a28; --file-stroke: #9a9a95;
       --skill-fill: #9a9a95; --skill-stroke: #9a9a95; --source-fill: #3a3a38; --source-stroke: #9a9a95;
       --note-fill: #6b6b67; --note-stroke: #6b6b67; --folder-fill: #3a3a38; --folder-stroke: #3a3a38; --tag-fill: #191918; --tag-stroke: #6b6b67;
       --entity-fill: #191918; --entity-stroke: #f2f2f0; --core-fill: #9a9a95; --core-stroke: #f2f2f0;
@@ -228,7 +228,7 @@ const I18N = {
     edManaged: "Este archivo lo mantiene brain. Si cambiás el contenido, queda como tuyo (managed: user) y brain deja de actualizarlo solo.",
     edReleased: "Guardado. Desde ahora brain no lo reescribe en las actualizaciones (managed: user).",
     edKeys: "Ctrl/⌘ + S guarda · Esc cierra",
-    kinds: { hub: "Brain", core: "Archivos de brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", subproject: "Subproyectos", file: "Archivos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
+    kinds: { hub: "Brain", core: "Archivos de brain", profile: "Perfil", memory: "Memoria", project: "Proyectos", subproject: "Subproyectos", agent: "Agentes", file: "Archivos", skill: "Skills", source: "Fuentes", note: "Notas", folder: "Carpetas", tag: "Tags", entity: "Entidades" },
     rel: { core: "estructura", folder: "carpeta", part: "parte de", link: "link", mention: "mención", related: "relacionado", tag: "tag", memory: "memoria", entity: "entidad" },
   },
   en: {
@@ -247,7 +247,7 @@ const I18N = {
     edManaged: "brain maintains this file. If you change its content it becomes yours (managed: user) and brain stops updating it.",
     edReleased: "Saved. From now on brain won't rewrite it on updates (managed: user).",
     edKeys: "Ctrl/⌘ + S saves · Esc closes",
-    kinds: { hub: "Brain", core: "brain files", profile: "Profile", memory: "Memory", project: "Projects", subproject: "Sub-projects", file: "Files", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
+    kinds: { hub: "Brain", core: "brain files", profile: "Profile", memory: "Memory", project: "Projects", subproject: "Sub-projects", agent: "Agents", file: "Files", skill: "Skills", source: "Sources", note: "Notes", folder: "Folders", tag: "Tags", entity: "Entities" },
     rel: { core: "structure", folder: "folder", part: "part of", link: "link", mention: "mention", related: "related", tag: "tag", memory: "memory", entity: "entity" },
   },
 }[LANG];
@@ -379,7 +379,7 @@ function render() {
   });
   g.attr("class", n => `node ${n.kind}`);
   g.select("circle").attr("r", radius).attr("fill", n => fill(n.kind)).attr("stroke", n => stroke(n.kind))
-    .attr("stroke-width", n => n.kind === "profile" ? 3 : n.kind === "subproject" ? 2.6 : n.kind === "memory" || n.kind === "tag" || n.kind === "entity" ? 1.6 : 1.4)
+    .attr("stroke-width", n => n.kind === "profile" ? 3 : n.kind === "subproject" || n.kind === "agent" ? 2.6 : n.kind === "memory" || n.kind === "tag" || n.kind === "entity" ? 1.6 : 1.4)
     .attr("stroke-dasharray", n => n.kind === "source" ? "2.5 2" : n.kind === "entity" ? "1.2 1.8" : null);
   g.select("text").attr("x", n => radius(n) + 5).text(n => n.label);
 

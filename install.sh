@@ -54,7 +54,19 @@ fi
 # ---------- código ----------
 if [ -d "$DIR/.git" ]; then
   say "Actualizando brain en $DIR"
-  git -C "$DIR" pull --ff-only --quiet
+  if ! git -C "$DIR" pull --ff-only --quiet 2>/dev/null; then
+    # v0.03.4: no quedarse trabado en un cambio local o una rama que no sigue a main (ver brain.sh → pull_code)
+    synced=0
+    if [ -n "$(git -C "$DIR" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+      git -C "$DIR" stash push --quiet -m "brain-install $(date '+%Y-%m-%d %H:%M:%S')" >/dev/null 2>&1 || true
+      git -C "$DIR" pull --ff-only --quiet 2>/dev/null && synced=1
+    fi
+    if [ "$synced" = 0 ] && { [ -f "$DIR/data/.brain-install" ] || [ "$DIR" = "$HOME/.brain" ]; }; then
+      up="$(git -C "$DIR" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"; [ -n "$up" ] || up="origin/$BRANCH"
+      git -C "$DIR" fetch --quiet origin "${up#origin/}" && git -C "$DIR" reset --hard --quiet "$up" && synced=1
+    fi
+    [ "$synced" = 1 ] || fail "No se pudo actualizar $DIR (git pull falló). Mirá: git -C $DIR status"
+  fi
 elif [ -e "$DIR" ]; then
   fail "$DIR ya existe y no es una instalación de brain. Movelo o usá BRAIN_HOME=/otra/carpeta."
 else
@@ -62,6 +74,7 @@ else
   git clone --quiet --depth 1 --branch "$BRANCH" "$REPO" "$DIR"
 fi
 cd "$DIR"
+mkdir -p data && : > data/.brain-install  # marca: esta carpeta es una instalación (no un clon de desarrollo)
 
 say "Instalando dependencias (la primera vez tarda un par de minutos)…"
 "$UV" sync --quiet
@@ -121,13 +134,19 @@ fi
 # Best-effort: si algo falla se avisa y brain sigue funcionando en la terminal. Los datos no se tocan.
 APP_REPO="${BRAIN_APP_REPO:-Lautaro005/brain}"
 app_installed=0
+# data/app_install.json: cómo salió el último intento de bajar la app (lo muestra Ajustes → Versión)
+record_app() {  # $1 ok (true|false), $2 tag, $3 motivo (sin comillas)
+  mkdir -p "$DIR/data" 2>/dev/null || return 0
+  printf '{"ok": %s, "tag": "%s", "reason": "%s", "at": %s}\n' "$1" "$2" "$3" "$(date +%s)" > "$DIR/data/app_install.json" 2>/dev/null || true
+}
+vnum() { printf '%s' "$1" | awk -F'[^0-9]+' '{printf "%05d%05d%05d%05d", $2, $3, $4, $5}'; }
 install_app() {
-  local json urls url tmp app_dir app tag
+  local json urls url tmp app_dir app tag code
   if [ "$OS" = Linux ]; then
     case "$(uname -m)" in x86_64|amd64) ;; *) warn "No hay app de escritorio para $(uname -m) todavía; brain sigue andando en la terminal."; return 0 ;; esac
   fi
   json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$APP_REPO/releases/latest")" \
-    || { warn "No pude consultar el último release; sin app de escritorio (volvé a correr este instalador más tarde)."; return 0; }
+    || { warn "No pude consultar el último release; sin app de escritorio (volvé a correr este instalador más tarde)."; record_app false "" "no se pudo consultar el ultimo release"; return 0; }
   # con `set -e` y `pipefail`, un grep sin resultados (release sin archivos) mataría el instalador en silencio: de ahí los `|| true`
   tag="$(printf '%s' "$json" | grep -o '"tag_name": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/' || true)"
   urls="$(printf '%s' "$json" | grep -o '"browser_download_url": *"[^"]*"' | sed 's/.*"\(https[^"]*\)"$/\1/' || true)"
@@ -136,12 +155,17 @@ install_app() {
   else
     url="$(printf '%s\n' "$urls" | grep -i 'amd64\.AppImage$' | head -n1 || true)"
   fi
-  [ -n "$url" ] || { warn "El release $tag todavía no trae la app para $OS; brain sigue andando en la terminal."; return 0; }
+  [ -n "$url" ] || { warn "El release $tag todavía no trae la app para $OS; brain sigue andando en la terminal."; record_app false "$tag" "el release no trae la app para este sistema"; return 0; }
   tmp="$(mktemp -d)"
   say "Descargando la app de escritorio ($tag)…"
-  if ! curl -fL --progress-bar "$url" -o "$tmp/download"; then warn "No se pudo bajar la app."; rm -rf "$tmp"; return 0; fi
+  if ! curl -fL --progress-bar "$url" -o "$tmp/download"; then warn "No se pudo bajar la app."; record_app false "$tag" "no se pudo bajar la app"; rm -rf "$tmp"; return 0; fi
   if [ "$OS" = Darwin ]; then
     app_dir="$HOME/Applications"; app="$app_dir/brain.app"
+    # la app abierta le pasa su propia ruta (brain app-update): se reemplaza ahí mismo, así no queda una copia vieja en
+    # /Applications y otra nueva en ~/Applications (el Dock abriría la vieja)
+    if [ -n "${BRAIN_APP_TARGET:-}" ] && [ "${BRAIN_APP_TARGET##*.}" = app ] && [ -w "$(dirname "$BRAIN_APP_TARGET")" ]; then
+      app="$BRAIN_APP_TARGET"; app_dir="$(dirname "$app")"
+    fi
     mkdir -p "$app_dir" "$tmp/mnt"
     if hdiutil attach -nobrowse -readonly -quiet -mountpoint "$tmp/mnt" "$tmp/download" >/dev/null 2>&1 && [ -d "$tmp/mnt/brain.app" ]; then
       rm -rf "$app"; cp -R "$tmp/mnt/brain.app" "$app"
@@ -149,6 +173,7 @@ install_app() {
       app_installed=1
     else
       warn "No pude abrir el .dmg; instalalo a mano desde https://github.com/$APP_REPO/releases/latest"
+      record_app false "$tag" "no se pudo abrir el .dmg"
     fi
     hdiutil detach -quiet "$tmp/mnt" >/dev/null 2>&1 || true
   else
@@ -170,6 +195,15 @@ ENTRY
     app_installed=1
   fi
   rm -rf "$tmp"
+  if [ "$app_installed" = 1 ]; then
+    code="$(cat "$DIR/VERSION" 2>/dev/null || true)"
+    if [ -n "$code" ] && [ "$(vnum "$tag")" \< "$(vnum "$code")" ]; then
+      # la app bajada es más vieja que el código: falta publicar el release nuevo (la app se vuelve a ofrecer sola)
+      record_app false "$tag" "el ultimo release ($tag) es anterior al codigo ($code): falta publicar el release nuevo"
+    else
+      record_app true "$tag" ""
+    fi
+  fi
 }
 if [ -z "${BRAIN_NO_APP:-}" ]; then install_app; fi
 if [ -n "${BRAIN_APP_ONLY:-}" ]; then exit 0; fi

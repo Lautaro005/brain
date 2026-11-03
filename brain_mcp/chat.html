@@ -355,6 +355,9 @@ const I18N = {
       down: "Lumina no está corriendo: abrila (comando lumina o AI WorkStudio) y volvé a probar. Respondí sin ella.",
       notReady: "Lumina todavía no tiene listo su modelo de búsqueda. Respondí sin ella.", error: "No pude buscar en Lumina. Respondí sin ella.",
       statusUp: "corriendo", statusDown: "no está corriendo", statusMissing: "no está instalada", statusUnknown: "" },
+    openblocks: { title: "Buscar en OpenBlocks", sub: "Tus páginas de notas", chip: "OpenBlocks", chipOff: "Quitar la búsqueda en OpenBlocks",
+      missing: "OpenBlocks no está instalada. Respondí sin ella.", off: "La búsqueda en OpenBlocks está apagada en Ajustes. Respondí sin ella.",
+      error: "No pude buscar en OpenBlocks. Respondí sin ella.", statusUp: "abierta", statusDown: "instalada", statusMissing: "no está instalada" },
     prop: { title: "Conector propuesto", add: "Agregar", discard: "Descartar", added: n => `Agregado: ${n} tools disponibles.`,
       discarded: "Descartado.", gone: "Esta propuesta ya no está pendiente.", needsAuth: "Agregado. Este servicio pide iniciar sesión.",
       login: "Iniciar sesión", loginWait: "Terminá de iniciar sesión en la pestaña que se abrió…", popup: "El navegador bloqueó la pestaña del login.",
@@ -415,6 +418,9 @@ const I18N = {
       down: "Lumina isn't running: open it (the lumina command or AI WorkStudio) and try again. I answered without it.",
       notReady: "Lumina doesn't have its search model ready yet. I answered without it.", error: "I couldn't search Lumina. I answered without it.",
       statusUp: "running", statusDown: "not running", statusMissing: "not installed", statusUnknown: "" },
+    openblocks: { title: "Search OpenBlocks", sub: "Your notes pages", chip: "OpenBlocks", chipOff: "Turn off OpenBlocks search",
+      missing: "OpenBlocks isn't installed. I answered without it.", off: "OpenBlocks search is turned off in Settings. I answered without it.",
+      error: "I couldn't search OpenBlocks. I answered without it.", statusUp: "open", statusDown: "installed", statusMissing: "not installed" },
     prop: { title: "Proposed connector", add: "Add", discard: "Discard", added: n => `Added: ${n} tools available.`,
       discarded: "Discarded.", gone: "This proposal is no longer pending.", needsAuth: "Added. This service asks you to sign in.",
       login: "Sign in", loginWait: "Finish signing in in the tab that opened…", popup: "The browser blocked the sign-in tab.",
@@ -906,7 +912,7 @@ async function send() {
   controller = new AbortController();
   try {
     const r = await fetch("/api/chat/send", { method: "POST", signal: controller.signal,
-      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang, system: store.get("brain-chat-system") || "", lumina: luminaOn }) });
+      headers: { "Content-Type": "application/json", "X-Brain": "1" }, body: JSON.stringify({ text, model, chat_id: current, lang, system: store.get("brain-chat-system") || "", lumina: luminaOn, openblocks: openblocksOn }) });
     if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = "";
@@ -939,7 +945,8 @@ function handle(ev, reply) {
     if (t) { t.ok = ev.ok; t.result = ev.result ?? ev.preview ?? ""; }
   }
   else if (ev.type === "notice") reply.notes.push({ text: ev.code === "text_tools" || ev.code === "no_tools" ? T.textTools : ev.code === "auto_compact" ? T.autoCompact
-    : ev.code === "lumina_down" ? T.lumina.down : ev.code === "lumina_not_ready" ? T.lumina.notReady : ev.code === "lumina_error" ? T.lumina.error : T.maxRounds });
+    : ev.code === "lumina_down" ? T.lumina.down : ev.code === "lumina_not_ready" ? T.lumina.notReady : ev.code === "lumina_error" ? T.lumina.error
+    : ev.code === "openblocks_missing" ? T.openblocks.missing : ev.code === "openblocks_off" ? T.openblocks.off : ev.code === "openblocks_error" ? T.openblocks.error : T.maxRounds });
   else if (ev.type === "compact_progress") reply.progress = T.compactProgress(ev.part, ev.total);
   else if (ev.type === "compacted") {
     // auto-compact: el resumen va antes del mensaje que se está respondiendo, como un /compact
@@ -1006,7 +1013,11 @@ function pickCmd(c) {
 }
 
 // ================= botón +: skills y búsqueda en Lumina =================
-let luminaOn = store.get("brain-chat-lumina") === "1", fam = null, pmFilter = "";
+let luminaOn = store.get("brain-chat-lumina") === "1", openblocksOn = store.get("brain-chat-openblocks") === "1", fam = null, pmFilter = "";
+function setOpenblocks(on) {
+  openblocksOn = !!on; store.set("brain-chat-openblocks", openblocksOn ? "1" : "0");
+  renderChips(); if (!$("#pmenu").hidden) renderPlus();
+}
 async function loadFamily() { try { fam = await api("/api/family"); } catch (e) { fam = null; } }
 function setLumina(on) {
   luminaOn = !!on; store.set("brain-chat-lumina", luminaOn ? "1" : "0");
@@ -1014,9 +1025,17 @@ function setLumina(on) {
 }
 function renderChips() {
   const c = $("#chips");
-  c.hidden = !luminaOn;
-  c.innerHTML = luminaOn ? `<button class="chip" type="button" id="chip-lumina" title="${esc(T.lumina.chipOff)}" aria-label="${esc(T.lumina.chipOff)}"><span>${esc(T.lumina.chip)}</span>${ICON.x}</button>` : "";
+  c.hidden = !luminaOn && !openblocksOn;
+  const chip = (id, t) => `<button class="chip" type="button" id="${id}" title="${esc(t.chipOff)}" aria-label="${esc(t.chipOff)}"><span>${esc(t.chip)}</span>${ICON.x}</button>`;
+  c.innerHTML = (luminaOn ? chip("chip-lumina", T.lumina) : "") + (openblocksOn ? chip("chip-openblocks", T.openblocks) : "");
   if (luminaOn) $("#chip-lumina").onclick = () => setLumina(false);
+  if (openblocksOn) $("#chip-openblocks").onclick = () => setOpenblocks(false);
+}
+function openblocksStatus() {
+  const o = fam && fam.openblocks;
+  if (!o) return { text: T.openblocks.sub, warn: false };
+  if (o.running) return { text: `${T.openblocks.sub} · ${T.openblocks.statusUp}`, warn: false };
+  return { text: `${T.openblocks.sub} · ${o.installed ? T.openblocks.statusDown : T.openblocks.statusMissing}`, warn: openblocksOn && !o.installed };
 }
 function luminaStatus() {
   const l = fam && fam.lumina;
@@ -1026,16 +1045,18 @@ function luminaStatus() {
 }
 function renderPlus() {
   const box = $("#pmenu"), q = pmFilter.trim().toLowerCase();
-  const st = luminaStatus();
+  const st = luminaStatus(), ob = openblocksStatus();
   const cmds = COMMANDS.filter(c => c !== "new" && (!q || c.includes(q))).map(c => ({ name: c, skill: false, desc: T.cmds[c] }));
   const own = skills.filter(k => !q || k.name.toLowerCase().includes(q)).map(k => ({ name: k.name, skill: true, desc: k.description || T.skillNoDesc }));
   const row = c => `<button class="pm-row cmd" type="button" role="menuitem" data-n="${esc(c.name)}" data-s="${c.skill ? 1 : 0}"><b>/${esc(c.name)}${c.skill ? ` <em class="skill-tag">${esc(T.skillTag)}</em>` : ""}</b><span>${esc(c.desc)}</span></button>`;
   box.innerHTML = `<button class="pm-row" type="button" role="menuitemcheckbox" id="pm-lumina" aria-checked="${luminaOn}"><b>${esc(T.lumina.title)}</b><span class="${st.warn ? "pm-warn" : ""}">${esc(st.text)}</span><i class="pm-sw"></i></button>`
+    + `<button class="pm-row" type="button" role="menuitemcheckbox" id="pm-openblocks" aria-checked="${openblocksOn}"><b>${esc(T.openblocks.title)}</b><span class="${ob.warn ? "pm-warn" : ""}">${esc(ob.text)}</span><i class="pm-sw"></i></button>`
     + `<input class="pm-filter" id="pm-filter" type="search" placeholder="${esc(T.pmFilter)}" aria-label="${esc(T.pmFilter)}" value="${esc(pmFilter)}">`
     + (cmds.length ? `<span class="pm-h">${esc(T.cmdsTitle)}</span>` + cmds.map(row).join("") : "")
     + (own.length ? `<span class="pm-h">${esc(T.skillsTitle)}</span>` + own.map(row).join("") : "")
     + (!cmds.length && !own.length ? `<div class="pm-empty">${esc(T.pmNone)}</div>` : "");
   $("#pm-lumina").onclick = () => setLumina(!luminaOn);
+  $("#pm-openblocks").onclick = () => setOpenblocks(!openblocksOn);
   const f = $("#pm-filter");
   f.oninput = () => { pmFilter = f.value; const pos = f.selectionStart; renderPlus(); const g = $("#pm-filter"); g.focus(); g.setSelectionRange(pos, pos); };
   box.querySelectorAll(".pm-row.cmd").forEach(b => b.onclick = () => { closePlus(); pickCmd({ name: b.dataset.n, skill: b.dataset.s === "1" }); });
@@ -1052,7 +1073,7 @@ $("#plus").onclick = () => $("#pmenu").hidden ? openPlus() : closePlus();
 document.addEventListener("mousedown", e => { if (!$("#pmenu").hidden && !e.target.closest("#pmenu, #plus")) closePlus(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#pmenu").hidden) { closePlus(); $("#plus").focus(); } });
 renderChips();
-if (luminaOn) loadFamily();
+if (luminaOn || openblocksOn) loadFamily();
 
 // ================= título editable =================
 function currentTitle() {

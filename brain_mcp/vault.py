@@ -22,8 +22,8 @@ VAULT = (ROOT / "vault").resolve()
 # profile.md. Los tres archivos centrales y las carpetas base no los puede tocar ninguna IA (ver agent_guard):
 # los edita solo el usuario, desde el editor del grafo.
 CORE_FILES = ("BRAIN.md", "FORMAT.md", "FACT-CHECK.md")
-TEMPLATE_DIRS = ("projects", "skills", "memory", "knowledge/sources")
-BASE_DIRS = ("projects", "skills", "memory", "knowledge", "knowledge/sources")
+TEMPLATE_DIRS = ("projects", "agents", "skills", "memory", "knowledge/sources")
+BASE_DIRS = ("projects", "agents", "skills", "memory", "knowledge", "knowledge/sources")
 
 TEMPLATE_BRAIN = """---
 type: Index
@@ -43,7 +43,7 @@ las IAs lo leen pero no lo pueden cambiar.
 """
 
 CORE_START, CORE_END = "<!-- brain:core:start -->", "<!-- brain:core:end -->"
-CORE_VERSION = "1"
+CORE_VERSION = "2"
 CORE_BLOCK = """<!-- brain:core:start -->
 <!-- brain:core v{version} · lo mantiene brain -->
 Empezá por acá. De este índice sale todo el vault:
@@ -52,6 +52,7 @@ Empezá por acá. De este índice sale todo el vault:
 - [FACT-CHECK.md](FACT-CHECK.md): qué hacer cuando lo que hay en el vault no alcanza y hay que buscar en internet.
 - [profile.md](profile.md): quién es el usuario (leelo primero). Lo que brain sabe de él está en `memory/` (guardá hechos nuevos con `add_memory`).
 - `projects/`: un proyecto por nota o carpeta, con sus archivos y subproyectos.
+- `agents/`: lo que recuerdan y escriben los agentes de IA (OpenCue y otros): una carpeta por agente, grupo o compartida. No son proyectos.
 - `skills/`: instrucciones reutilizables (usá `list_skills` antes de tareas complejas).
 - `knowledge/sources/`: páginas guardadas con `save_url` (buscá con `search_knowledge`).
 
@@ -82,7 +83,7 @@ class VaultError(ValueError):
     pass
 
 
-FORMAT_VERSION = "3"
+FORMAT_VERSION = "4"
 TEMPLATE_FORMAT = """---
 type: Reference
 name: format
@@ -115,6 +116,13 @@ BRAIN.md              Index      raíz: de acá sale todo (solo el usuario lo ed
 │       └── <subproyecto>/
 │           ├── index.md         SubProject
 │           └── <archivo>.md     File
+├── agents/                      lo que recuerdan y escriben los agentes de IA (no son proyectos)
+│   ├── index.md                 Index (mapa de las carpetas de agentes, si el agente lo escribe)
+│   └── <agente>/                (o un grupo: groups/<grupo>/, o la memoria compartida: shared/)
+│       ├── index.md             Agent (la nota principal del agente)
+│       ├── profile.md           File
+│       ├── memory.md            File
+│       └── <nota>.md            File
 ├── skills/           Skill      instrucciones reutilizables
 └── knowledge/
     ├── sources/      Source     páginas guardadas con save_url
@@ -127,7 +135,7 @@ proyecto tiene sus carpetas y archivos ("parte de"), y los archivos y proyectos 
 ## Lo que no podés tocar
 
 `BRAIN.md`, `FORMAT.md` y `FACT-CHECK.md` (no se pueden escribir, mover ni borrar con las tools) y las carpetas
-base (`projects/`, `skills/`, `memory/`, `knowledge/`, `knowledge/sources/`), que no se renombran ni se mueven.
+base (`projects/`, `agents/`, `skills/`, `memory/`, `knowledge/`, `knowledge/sources/`), que no se renombran ni se mueven.
 Si hace falta un cambio en esos archivos, pedíselo al usuario: los edita él desde el grafo. Todo lo demás (notas
 dentro de las carpetas) se crea y edita normalmente, y cada cambio queda en el historial.
 
@@ -137,6 +145,8 @@ dentro de las carpetas) se crea y edita normalmente, y cada cambio queda en el h
 2. ¿Es de un proyecto? → dentro de `projects/<proyecto>/` (si el proyecto era una sola nota `projects/<p>.md`,
    creá la carpeta `projects/<p>/` para sus archivos). Una parte grande (módulo, app, etapa) → subcarpeta con su
    `index.md`.
+2b. ¿Es lo que recuerda o escribe un agente de IA (OpenCue u otro)? → `agents/<agente>/` (un grupo va en
+   `agents/groups/<grupo>/` y lo compartido en `agents/shared/`). Un agente **no es un proyecto**: nunca va en `projects/`.
 3. ¿Son instrucciones para repetir una tarea? → `skills/<nombre>.md`.
 4. ¿Es una página web? → `save_url` (no la copies a mano).
 5. Lo demás → una nota suelta (`Note`) en la raíz o donde la agrupe el usuario.
@@ -149,7 +159,8 @@ Antes de crear, buscá si ya existe (`list_vault`, `search_knowledge`): mejor co
 |---|---|---|
 | `Project` | Un proyecto: objetivo, estado, decisiones, pendientes. | `projects/<nombre>.md`, o la nota principal de `projects/<nombre>/` (`index.md`, `README.md` o la que se llama como la carpeta). |
 | `SubProject` | Una parte de un proyecto con entidad propia (un módulo, una app, una etapa). | La nota principal de una subcarpeta: `projects/<proyecto>/<subproyecto>/index.md`. |
-| `File` | Un archivo de un proyecto que no es el proyecto en sí: documentación, apuntes, actas, entregables, specs. | Cualquier otra nota dentro de `projects/<proyecto>/…`. |
+| `File` | Un archivo de un proyecto que no es el proyecto en sí (documentación, apuntes, actas, entregables, specs), o una nota de la carpeta de un agente (perfil, memoria, apuntes). | Cualquier otra nota dentro de `projects/<proyecto>/…` o `agents/<agente>/…`. |
+| `Agent` | Un agente de IA (o un grupo de agentes, o la memoria compartida): quién es, qué hace y el mapa de sus notas. | `agents/<agente>.md`, o la nota principal de `agents/<agente>/` (`index.md`, `README.md` o la que se llama como la carpeta). |
 | `Memory` | Hechos sobre el usuario, uno por viñeta, con fecha. | `memory/<categoría>.md` (con `add_memory`). |
 | `Skill` | Instrucciones reutilizables para una tarea. | `skills/`. |
 | `Source` | Una página web guardada, con su URL (`resource`), autor y fecha. | `knowledge/sources/` (con `save_url`). |
@@ -480,7 +491,7 @@ def check_frontmatter(text: str, path: str = "") -> str:
 # solo en cada escritura, tocando únicamente esas líneas del YAML (no reformatea el resto del frontmatter).
 # OKF (Open Knowledge Format v0.2) solo exige `type`; el resto de los campos de brain son extensiones válidas.
 
-TYPES = {"projects": "Project", "skills": "Skill", "memory": "Memory", "knowledge": "Source"}
+TYPES = {"projects": "Project", "agents": "Agent", "skills": "Skill", "memory": "Memory", "knowledge": "Source"}
 STAMP_FIELDS = ("type", "created", "updated")
 
 
@@ -511,6 +522,23 @@ def project_type(rel: str) -> str | None:
     return "File"
 
 
+def agent_type(rel: str) -> str | None:
+    """Tipo de una nota dentro de agents/ (v0.03.4), con la misma idea que project_type pero sin proyectos:
+    - Agent: agents/<nombre>.md, o la nota principal de cualquier carpeta de agents/ (index, readme, main, overview
+      o la que se llama como la carpeta): un agente, un grupo (agents/groups/<g>/) o lo compartido (agents/shared/);
+    - File: cualquier otra nota de la carpeta de un agente (perfil, memoria, apuntes);
+    - Index: agents/index.md. None si no está en agents/."""
+    parts = rel.split("/")
+    if parts[0] != "agents" or len(parts) < 2:
+        return None
+    stem = parts[-1][:-3] if parts[-1].endswith(".md") else parts[-1]
+    if len(parts) == 2:
+        return "Index" if stem.lower() == "index" else "Agent"
+    if stem.lower() in PROJECT_MAIN or _slugish(stem) == _slugish(parts[-2]):
+        return "Agent"
+    return "File"
+
+
 def effective_type(rel: str, meta: dict) -> str:
     """El type que vale para una nota: el del frontmatter, salvo el `Project` que v0.03.1 completó solo en
     todo projects/ (también en los archivos de adentro); ahí manda la ubicación (project_type)."""
@@ -520,11 +548,13 @@ def effective_type(rel: str, meta: dict) -> str:
         return rule
     if t == "Project" and rule in ("SubProject", "File"):
         return rule
+    if rel.startswith("agents/") and t in ("Project", "SubProject"):  # carpetas que OpenCue escribió como proyecto
+        return rule
     return t
 
 
 def note_type(rel: str) -> str:
-    pt = project_type(rel)
+    pt = project_type(rel) or agent_type(rel)
     if pt:
         return pt
     if rel in ("FORMAT.md", "FACT-CHECK.md"):
@@ -903,3 +933,59 @@ def restore_version(path: str, version_id: int) -> str:
             p.write_text(ch["after"], encoding="utf-8")
         history.record("restore", _rel(p), before, ch["after"])
     return _rel(p)
+
+
+# ---------- carpetas de agentes (v0.03.4) ----------
+# OpenCue guardaba la memoria de sus agentes como un proyecto (`projects/opencue-agents/…`). Un agente no es un
+# proyecto: vive en `agents/`. Esto mueve lo viejo (con historial, restaurable) y actualiza el tipo y las rutas.
+LEGACY_AGENT_ROOT = "projects/opencue-agents"
+
+
+def legacy_agents() -> bool:
+    return (VAULT / f"{LEGACY_AGENT_ROOT}.md").is_file() or (VAULT / LEGACY_AGENT_ROOT).is_dir()
+
+
+def _agents_text(text: str, is_main: bool) -> str:
+    text = text.replace(f"{LEGACY_AGENT_ROOT}.md", "agents/index.md").replace(f"{LEGACY_AGENT_ROOT}/", "agents/")
+    head = re.match(r"---\n.*?\n---\n", text, re.S)
+    if head:
+        h = re.sub(r"(?m)^type:\s*(Project|SubProject)\s*$", "type: Agent" if is_main else "type: File", head.group(0), count=1)
+        text = h + text[head.end():]
+    return text
+
+
+def migrate_agents() -> dict:
+    """Mueve projects/opencue-agents(.md) a agents/: el mapa pasa a agents/index.md, cada carpeta a agents/<carpeta>/.
+    No pisa nada (si el destino existe, lo deja y lo cuenta en `skipped`) y cada archivo queda en el historial."""
+    pairs: list[tuple[str, str]] = []
+    if (VAULT / f"{LEGACY_AGENT_ROOT}.md").is_file():
+        pairs.append((f"{LEGACY_AGENT_ROOT}.md", "agents/index.md"))
+    root = VAULT / LEGACY_AGENT_ROOT
+    if root.is_dir():
+        for f in sorted(root.rglob("*.md")):
+            rel = _rel(f)
+            pairs.append((rel, "agents/" + rel[len(LEGACY_AGENT_ROOT) + 1:]))
+    moved, skipped = [], []
+    for src, dst in pairs:
+        if (VAULT / dst).exists():
+            skipped.append(dst)
+            continue
+        text = (VAULT / src).read_text(encoding="utf-8", errors="replace")
+        move_file(src, dst)
+        main = agent_type(dst) == "Agent"
+        new = _agents_text(text, main)
+        if new != text:
+            write_file(dst, new, op="migrate", stamp_meta=False)
+        moved.append(dst)
+    # el resto de las notas que nombraban la ruta vieja (links por ruta); los links por nombre no se rompen
+    if moved:
+        for f in list_files():
+            rel = f["path"]
+            if rel in CORE_FILES or rel in moved or not (VAULT / rel).is_file():
+                continue
+            t = (VAULT / rel).read_text(encoding="utf-8", errors="replace")
+            new = re.sub(r"\]\(%s(\.md|/)" % re.escape(LEGACY_AGENT_ROOT),
+                         lambda m: "](agents/index.md" if m.group(1) == ".md" else "](agents/", t)  # solo links por ruta
+            if new != t:
+                write_file(rel, new, op="migrate", stamp_meta=False)
+    return {"moved": len(moved), "skipped": skipped, "from": LEGACY_AGENT_ROOT, "to": "agents"}

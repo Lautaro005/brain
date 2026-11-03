@@ -101,7 +101,8 @@ INSTRUCTIONS = (
     "resultado se guarda solo en knowledge/ y después se puede buscar con search_knowledge. "
     "Al escribir notas, conectalas: usá [[nombre]] o [texto](ruta.md) para linkear otros archivos del vault, y en el "
     "frontmatter 'tags: [a, b]' y 'related: [nombre]' — así aparecen relacionadas en la vista de grafo. "
-    "lumina_search busca en Lumina (las reuniones, archivos y notas del usuario) cuando esa app está corriendo en su compu. "
+    "lumina_search busca en Lumina (las reuniones, archivos y notas del usuario) cuando esa app está corriendo en su compu; "
+    "openblocks_search busca en sus páginas de OpenBlocks (app de notas). "
     "Para ordenar el vault, vault_overview muestra lo desordenado y move_file mueve o renombra notas "
     "(preguntale al usuario antes de mover o borrar). Para sumar un server MCP que pida el usuario, "
     "leé su documentación con read_url y proponelo con propose_connection: el usuario lo aprueba. "
@@ -109,7 +110,7 @@ INSTRUCTIONS = (
     "aprueba); no edites `related` directo. Para verificar un dato, fact_check (busca primero en brain y usa "
     "las preferencias de Fact check del usuario). "
     "Estructura del vault y formato de las notas: leé FORMAT.md (de BRAIN.md salen FORMAT.md, FACT-CHECK.md, "
-    "profile.md y las carpetas base projects/, skills/, memory/ y knowledge/; cada proyecto tiene sus archivos y "
+    "profile.md y las carpetas base projects/, agents/, skills/, memory/ y knowledge/; cada proyecto tiene sus archivos y "
     "subcarpetas, y los archivos y proyectos se unen con el tag del proyecto). BRAIN.md, FORMAT.md, FACT-CHECK.md y "
     "las carpetas base son del usuario: las tools no los pueden escribir, mover ni borrar (si hace falta un cambio, "
     "pedíselo: los edita desde el grafo). Cuando lo que hay en brain no alcanza y hay que buscar en internet, seguí "
@@ -117,7 +118,9 @@ INSTRUCTIONS = (
     "Cada nota lleva type: Project (un proyecto: projects/<nombre>.md o la "
     "nota principal de projects/<nombre>/), SubProject (la nota principal de una subcarpeta dentro de un "
     "proyecto), File (cualquier otra nota dentro de un proyecto: documentación, apuntes, entregables), Memory, "
-    "Skill, Source, Reference, Profile, Index o Note (nota suelta). brain completa solo type, created y updated."
+    "Skill, Source, Reference, Profile, Index o Note (nota suelta). Lo que recuerda o escribe un agente de IA va en "
+    "agents/<agente>/ con type: Agent (la nota principal) y File (el resto): un agente no es un proyecto. "
+    "brain completa solo type, created y updated."
 )
 # Preferencia del usuario (Fact check → "Que el chat y los agentes verifiquen solo…"): si está prendida, todos
 # los agentes reciben la instrucción. Se lee al arrancar (instrucciones del server) y en cada search_knowledge.
@@ -390,6 +393,26 @@ async def lumina_search(query: str, limit: int = 6, scope: str = "all") -> dict 
             return "Error: Lumina no está corriendo (abrila con `lumina` o desde AI WorkStudio) o no está en 127.0.0.1:47770."
         if code == "lumina_not_ready":
             return "Error: Lumina todavía no tiene listo el modelo de búsqueda (embeddings); esperá a que termine de descargarlo."
+        return _err(e)
+
+
+@mcp.tool()
+async def openblocks_search(query: str, limit: int = 6) -> str:
+    """Busca en las páginas de OpenBlocks (la app de notas local del usuario, con su vault de Markdown): devuelve
+    las páginas que coinciden con su título, ruta y un fragmento. Solo lee (abre `openblocks mcp --read-only`) y no
+    hace falta que la app esté abierta, solo instalada. Para responder, nombrá la página."""
+    try:
+        from brain_mcp import family
+
+        import anyio
+
+        return await anyio.to_thread.run_sync(lambda: family.openblocks_search(query, limit)) or "(sin resultados)"
+    except Exception as e:
+        code = getattr(e, "code", "")
+        if code == "openblocks_missing":
+            return "Error: OpenBlocks no está instalada (comando `openblocks`)."
+        if code == "openblocks_off":
+            return "Error: el usuario apagó la búsqueda en OpenBlocks (Ajustes → WorkStudio family)."
         return _err(e)
 
 

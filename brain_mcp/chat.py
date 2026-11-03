@@ -132,8 +132,9 @@ y los índices, el historial y los ajustes en data/.
   en español e inglés) y Logs. El engranaje abre Ajustes.
 - Familia de apps: si el usuario tiene OpenCue, sus agentes aparecen en el selector de modelo del chat («OpenCue ·
   nombre») y responden con el perfil y la memoria de brain; el botón + de la caja de mensaje lista los comandos y
-  skills y tiene un interruptor para buscar en la base de Lumina (reuniones, archivos y notas); Ajustes → Familia de
-  apps muestra OpenCue, Lumina y AI WorkStudio y las abre.
+  skills y tiene interruptores para buscar en la base de Lumina (reuniones, archivos y notas) y en las páginas de
+  OpenBlocks (la app de notas); Ajustes → Familia WorkStudio muestra AI WorkStudio, OpenCue, Lumina y OpenBlocks con
+  su logo y las abre. La memoria de los agentes (de OpenCue y otros) va en la carpeta agents/ (type Agent), no en projects/.
 - Ajustes: versión y actualizaciones (con «Actualizar y reiniciar» cuando hay una versión nueva), orden del
   menú, modelo y contexto del chat (Ollama y, si está configurado, LM Studio con su URL local; en el selector
   del chat cada modelo muestra «Proveedor · nombre»), instrucciones propias para el chat, notificaciones del
@@ -200,8 +201,9 @@ vault/ and the indexes, history and settings in data/.
   Settings.
 - App family: if the user has OpenCue, its agents show up in the chat model picker ("OpenCue · name") and answer
   with brain's profile and memory; the + button in the message box lists the commands and skills and has a switch
-  to search Lumina's knowledge base (meetings, files and notes); Settings → App family shows OpenCue, Lumina and
-  AI WorkStudio and opens them.
+  to search Lumina's knowledge base (meetings, files and notes) and the pages of OpenBlocks (the notes app);
+  Settings → WorkStudio family shows AI WorkStudio, OpenCue, Lumina and OpenBlocks with their logo and opens them.
+  The memory of agents (OpenCue's and others) goes in the agents/ folder (type Agent), not in projects/.
 - Settings: version and updates (with "Update and restart" when a new version is out), menu order, chat model
   and context (Ollama and, when configured, LM Studio with its local server URL; the chat picker shows
   "Provider · name" for each model), custom chat instructions, system notifications, backup and restore, note
@@ -976,6 +978,27 @@ def _lumina_prefetch(text: str, lang: str):
     return block, [{"name": LUMINA_TOOL, "args": args, "ok": True, "result": summary}]
 
 
+OPENBLOCKS_TOOL = "openblocks_search"
+
+
+def _openblocks_prefetch(text: str, lang: str, i: int = 0):
+    """Igual que _lumina_prefetch pero con las páginas de OpenBlocks (la app de notas del usuario)."""
+    query = text.strip()[:500]
+    args = {"query": query}
+    yield {"type": "tool", "i": i, "name": OPENBLOCKS_TOOL, "args": args}
+    try:
+        found = family.openblocks_search(query, 6)
+    except family.FamilyError as e:
+        yield {"type": "tool_result", "i": i, "name": OPENBLOCKS_TOOL, "ok": False, "result": f"Error: {e.code}"}
+        yield {"type": "notice", "code": e.code if e.code in ("openblocks_missing", "openblocks_off") else "openblocks_error"}
+        return "", [{"name": OPENBLOCKS_TOOL, "args": args, "ok": False, "result": f"Error: {e.code}"}]
+    summary = found[:1500] or "(sin resultados)"
+    yield {"type": "tool_result", "i": i, "name": OPENBLOCKS_TOOL, "ok": True, "result": summary}
+    block = family.openblocks_block(found, lang) or ("# OpenBlocks\nEl usuario habilitó la búsqueda en OpenBlocks y no encontró "
+                                                   "páginas para este mensaje: no inventes el contenido de sus notas.")
+    return block, [{"name": OPENBLOCKS_TOOL, "args": args, "ok": True, "result": summary}]
+
+
 def _agent_brain_context(lang: str, user_system: str = "") -> str:
     """Lo que brain le cuenta a un agente de OpenCue en el primer mensaje del chat: quién es el usuario (perfil y
     memoria), el índice del vault y cómo está organizado, para que el agente hable con todo el contexto de brain."""
@@ -1005,7 +1028,7 @@ def _agent_error(e: "family.FamilyError") -> dict:
     return {"type": "error", "code": f"agent_{e.code}" if not e.code.startswith(("agent_", "opencue_")) else e.code, "detail": e.detail}
 
 
-def _run_agent(text: str, model: str, chat_id: str | None, lang: str, user_system: str, lumina: bool):
+def _run_agent(text: str, model: str, chat_id: str | None, lang: str, user_system: str, lumina: bool, openblocks: bool = False):
     """Responde con un agente de OpenCue (modelo `opencue:<nombre>`). El agente corre en la app de OpenCue, con sus
     tools, su memoria y sus permisos; brain le pasa su contexto (perfil, memoria, índice) en el primer mensaje del
     chat y, si el usuario lo habilitó, lo que encuentre en Lumina. La respuesta llega entera (OpenCue no la va
@@ -1033,6 +1056,11 @@ def _run_agent(text: str, model: str, chat_id: str | None, lang: str, user_syste
             parts.append(_agent_brain_context(lang, user_system))
         if lumina:
             block, used = yield from _lumina_prefetch(text, lang)
+            if block:
+                parts.append(block)
+        if openblocks:
+            block, used_ob = yield from _openblocks_prefetch(text, lang, len(used))
+            used = used + [dict(u) for u in used_ob]
             if block:
                 parts.append(block)
         parts.append(("# Mensaje del usuario\n" if parts else "") + text)
@@ -1072,7 +1100,8 @@ def _run_agent(text: str, model: str, chat_id: str | None, lang: str, user_syste
     yield {"type": "done", "chat_id": chat_id, "title": title, "saved": saved_ok}
 
 
-def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", user_system: str = "", lumina: bool = False):
+def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", user_system: str = "", lumina: bool = False,
+        openblocks: bool = False):
     """Genera los eventos de una respuesta (para mandar como NDJSON):
     start · token · rewrite · tool · tool_result · usage · notice · done · error.
     `lumina`: el usuario habilitó la búsqueda en Lumina para este mensaje. Un modelo `opencue:<agente>` va por
@@ -1085,7 +1114,7 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
         yield {"type": "error", "code": "no_model"}
         return
     if family.is_agent_ref(model):
-        yield from _run_agent(text, model, chat_id, lang, user_system, lumina)
+        yield from _run_agent(text, model, chat_id, lang, user_system, lumina, openblocks)
         return
 
     _names: list = []
@@ -1135,7 +1164,7 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
         log.warning("sin tools para el chat: %s", e)
         mcp_tools = []
     # lumina_search solo está en el chat cuando el usuario habilitó Lumina (botón +): ahí además se busca de entrada
-    mcp_tools = [t for t in mcp_tools if lumina or t.name != LUMINA_TOOL]
+    mcp_tools = [t for t in mcp_tools if (lumina or t.name != LUMINA_TOOL) and (openblocks or t.name != OPENBLOCKS_TOOL)]
     valid = {t.name for t in mcp_tools}
     mode = _MODE.get(model, "native") if mcp_tools else "none"
 
@@ -1177,6 +1206,11 @@ def run(text: str, model: str, chat_id: str | None = None, lang: str = "es", use
     prefetched = []
     if lumina and not cmd:
         block, prefetched = yield from _lumina_prefetch(text, lang)
+        if block:
+            past = (past + "\n\n" + block).strip()
+    if openblocks and not cmd:
+        block, found = yield from _openblocks_prefetch(text, lang, len(prefetched))
+        prefetched = list(prefetched) + found
         if block:
             past = (past + "\n\n" + block).strip()
     msgs = build(mode)

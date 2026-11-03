@@ -137,6 +137,7 @@
   var KIND = {
     project: { r: 7, fill: "#f4f4f0", stroke: "#f4f4f0" },
     subproject: { r: 5, fill: "none", stroke: "#f4f4f0" },
+    agent: { r: 5.5, fill: "#d6d6d0", stroke: "#f4f4f0" },
     profile: { r: 6.5, fill: "#f4f4f0", stroke: "#f4f4f0" },
     memory: { r: 4, fill: "none", stroke: "#c8c8c2" },
     skill: { r: 4.5, fill: "#d6d6d0", stroke: "#d6d6d0" },

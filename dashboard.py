@@ -8,6 +8,7 @@ import atexit
 import json
 import logging
 import os
+import re
 import shutil
 import signal
 import sys
@@ -67,6 +68,27 @@ def _chunks(chroma_up: bool) -> int | None:
     elif time.time() - _chunks_cache["at"] > 10 or _chunks_cache["value"] is None:
         _chunks_cache.update(at=time.time(), value=stats.chroma_count())
     return _chunks_cache["value"]
+
+
+RUNNING_VERSION = updates.current()  # la versión del código que este proceso cargó (VERSION puede cambiar en disco después)
+
+
+def _update_diag() -> dict:
+    """Para Ajustes (v0.03.4): qué versión corre de verdad, qué dejó el último intento de actualizar y cómo salió la app."""
+    cur = updates.current()
+    out = {"running": RUNNING_VERSION, "stale": updates.parse(cur) != updates.parse(RUNNING_VERSION),
+           "app_install": None, "last_update": None}
+    try:  # lo escribe install.sh / install.ps1 al bajar la app de escritorio
+        out["app_install"] = json.loads((history.DATA / "app_install.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    try:
+        lines = (history.DATA / "logs" / "update.log").read_text(encoding="utf-8", errors="replace").splitlines()
+        fails = [ln for ln in lines if "falló" in ln or "no se pudo" in ln]
+        out["last_update"] = {"line": lines[-1][:240] if lines else "", "failed": fails[-1][:240] if fails else ""}
+    except OSError:
+        pass
+    return out
 
 
 def _can_self_update() -> bool:
@@ -368,6 +390,12 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == oauth.CALLBACK_PATH:
                 ok, who = oauth.callback(u.query)
                 self._send(200, _oauth_page(ok, who).encode(), "text/html; charset=utf-8")
+            elif u.path.startswith("/assets/family/") and re.fullmatch(r"/assets/family/[a-z]+\.svg", u.path):
+                f = HERE / "assets" / "family" / u.path.rsplit("/", 1)[1]  # logos de la familia WorkStudio (Ajustes)
+                if not f.is_file():
+                    self._send(404, b"not found", "text/plain")
+                else:
+                    self._send(200, f.read_bytes(), "image/svg+xml")
             elif u.path == "/ui.js":
                 self._send(200, (HERE / "ui.js").read_bytes(), "text/javascript; charset=utf-8")
             elif u.path == "/api/prompts":  # prompts para agentes (brain_mcp/prompts.json)
@@ -465,7 +493,7 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/version":
                 self._json({"current": updates.current(), "releases": updates.RELEASES_URL,
                             "can_update": _can_self_update(), "update_failed": os.environ.get("BRAIN_UPDATE_FAILED") or None,
-                            "app": appmode.active()})
+                            "app": appmode.active(), **_update_diag()})
             elif u.path == "/api/app":  # ajustes que lee la app de escritorio (avisos, notch, cerrar a la bandeja)
                 self._json({"ok": True, **appmode.load(), "active": appmode.active(), "installed": appmode.installed_path() is not None,
                             "version": updates.current()})
@@ -616,6 +644,11 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": True, **family.status()})
                 except family.FamilyError as e:
                     self._json({"ok": False, "code": e.code, "detail": e.detail})
+            elif u.path == "/api/family/migrate_agents":  # projects/opencue-agents → agents/ (v0.03.4)
+                try:
+                    self._json({"ok": True, **family.migrate_agents(), **family.agents_status()})
+                except vault.VaultError as e:
+                    self._json({"ok": False, "code": "vault", "detail": str(e)})
             elif u.path == "/api/family/open":
                 try:
                     self._json({"ok": True, **family.open_app(str(body.get("app", "")))})
@@ -746,7 +779,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         gen = chat.run(str(body.get("text", "")), str(body.get("model", "")),
                        str(body.get("chat_id") or "") or None, "en" if body.get("lang") == "en" else "es",
-                       str(body.get("system") or ""), bool(body.get("lumina")))
+                       str(body.get("system") or ""), bool(body.get("lumina")), bool(body.get("openblocks")))
         try:
             for ev in gen:
                 self.wfile.write((json.dumps(ev, ensure_ascii=False, default=str) + "\n").encode())

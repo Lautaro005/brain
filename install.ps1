@@ -49,7 +49,26 @@ if (-not (Test-Path $Uv)) {
 # ---------- código ----------
 if (Test-Path (Join-Path $Dir ".git")) {
   Say "Actualizando brain en $Dir"
-  git -C $Dir pull --ff-only --quiet
+  $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"  # PowerShell 5.1 tira error si un comando nativo escribe en stderr
+  git -C $Dir pull --ff-only --quiet *> $null
+  if ($LASTEXITCODE -ne 0) {
+    # v0.03.4: no quedarse trabado en un cambio local o una rama que no sigue a main (ver Pull-Code en brain.ps1)
+    $synced = $false
+    if (git -C $Dir status --porcelain --untracked-files=no) {
+      git -C $Dir stash push --quiet -m "brain-install" *> $null
+      git -C $Dir pull --ff-only --quiet *> $null
+      if ($LASTEXITCODE -eq 0) { $synced = $true }
+    }
+    if (-not $synced -and ((Test-Path (Join-Path $Dir "data\.brain-install")) -or ($Dir -eq (Join-Path $env:USERPROFILE ".brain")))) {
+      $up = (git -C $Dir rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>$null)
+      if (-not $up) { $up = "origin/$Branch" }
+      git -C $Dir fetch --quiet origin ($up -replace "^origin/", "") *> $null
+      if ($LASTEXITCODE -eq 0) { git -C $Dir reset --hard --quiet $up *> $null; if ($LASTEXITCODE -eq 0) { $synced = $true } }
+    }
+    $ErrorActionPreference = $prevEap
+    if (-not $synced) { Fail "No se pudo actualizar $Dir (git pull falló). Mirá: git -C $Dir status" }
+  }
+  $ErrorActionPreference = $prevEap
 } elseif (Test-Path $Dir) {
   Fail "$Dir ya existe y no es una instalación de brain. Movelo o usá `$env:BRAIN_HOME con otra carpeta."
 } else {
@@ -57,6 +76,7 @@ if (Test-Path (Join-Path $Dir ".git")) {
   git clone --quiet --depth 1 --branch $Branch $Repo $Dir
 }
 Set-Location $Dir
+New-Item -ItemType Directory -Force -Path (Join-Path $Dir "data") | Out-Null; New-Item -ItemType File -Force -Path (Join-Path $Dir "data\.brain-install") | Out-Null  # marca: es una instalación
 
 Say "Instalando dependencias (la primera vez tarda un par de minutos)…"
 & $Uv sync --quiet
