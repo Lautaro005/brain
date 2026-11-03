@@ -940,3 +940,7 @@ Dependencias actualizadas (`uv.lock`) y revisadas con `pip-audit`. `pytest` 119 
 Logo, docs, README, changelog, CLAUDE.md. `VERSION` v0.03.4; Tauri/Cargo `0.3.4`.
 
 **Verificado**: `pytest -q tests` (nuevo `tests/test_v034.py`: pull_code sobre repos reales, agentes, migración, OpenBlocks por stdio real con un server falso, API y logos), `check_site.py`, captura de la tarjeta en Chromium. **No probado**: OpenBlocks, OpenCue y WorkStudio reales; el flujo de actualización en la máquina del usuario; la compilación de Rust.
+
+## 2026-11-03 — v0.03.4: arreglo del CI en Windows
+
+`tests/test_v034.py`: las dos pruebas de `pull_code` (brain.sh) corren solo en macOS/Linux (`skipif win32`): en Windows `bash` es el de WSL y el equivalente es `Pull-Code` de brain.ps1. Solo cambia el test.

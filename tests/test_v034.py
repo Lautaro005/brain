@@ -24,6 +24,9 @@ def _post(base, path, body):
 
 
 # ---------- brain.sh: pull_code ----------
+# brain.sh es de macOS/Linux; en Windows el equivalente es Pull-Code de brain.ps1 (y `bash` ahí puede ser el de WSL):
+# estas pruebas corren en los dos sistemas Unix del CI.
+unix_only = pytest.mark.skipif(sys.platform == "win32", reason="brain.sh es de macOS/Linux")
 
 def _git(cwd, *a):
     return subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True,
@@ -59,6 +62,7 @@ def _release(origin, version="v2", lock="b\n"):
     _git(origin, "commit", "-qam", version)
 
 
+@unix_only
 def test_pull_code_plain_and_with_local_changes(repos):
     origin, clone = repos
     _release(origin)
@@ -73,6 +77,7 @@ def test_pull_code_plain_and_with_local_changes(repos):
     assert "pull falló" in (clone / "data/logs/update.log").read_text(encoding="utf-8")
 
 
+@unix_only
 def test_pull_code_diverged_install_is_aligned_but_dev_clone_is_not(repos):
     origin, clone = repos
     (clone / "local.txt").write_text("x")
