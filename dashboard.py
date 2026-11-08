@@ -174,6 +174,11 @@ def _remote_post(action: str, body: dict) -> dict:
             t = SERVICES["tunnel"]
             if remote.load()["enabled"] and not (t.ours() and t.healthy() and t.connected() is not False):
                 _remote_reconnect()  # el túnel estaba caído: una URL nueva sin túnel no sirve de nada
+        elif action == "test":
+            info = _remote_info()
+            if not info.get("url"):
+                return {"ok": False, "code": "no_url"}
+            return {**info, "test": remote.selftest(info["url"])}
         elif action == "install":
             remote.install_cloudflared()
         else:

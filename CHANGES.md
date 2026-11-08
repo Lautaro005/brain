@@ -944,3 +944,15 @@ Logo, docs, README, changelog, CLAUDE.md. `VERSION` v0.03.4; Tauri/Cargo `0.3.4`
 ## 2026-11-03 — v0.03.4: arreglo del CI en Windows
 
 `tests/test_v034.py`: las dos pruebas de `pull_code` (brain.sh) corren solo en macOS/Linux (`skipif win32`): en Windows `bash` es el de WSL y el equivalente es `Pull-Code` de brain.ps1. Solo cambia el test.
+
+## 2026-11-08 — v0.03.4.1: acceso remoto con la nube por el túnel de Cloudflare
+
+**Síntoma**: Claude Code en la nube mostraba «Couldn't reach brain (cloud)» con la URL del túnel; por stdio local andaba. El POST a la URL contestaba bien (probado con curl y con el cliente MCP del SDK contra `server.py --http`), pero con `stateless_http=False` el server abría sesiones y el cliente, después de `initialize`, abría el `GET` de eventos (SSE) que los túneles rápidos de Cloudflare no soportan. No se pudo probar con un túnel real desde el sandbox: la causa es la más probable, no confirmada.
+
+**Cambios**
+- `brain_mcp/remote.py`: `stateless_http=True` + `405` para `GET`/`DELETE` en `protect()`; la barra final de la URL se normaliza en vez de dar un 307 a `http://127.0.0.1:8770/mcp`; `selftest()`.
+- `server.py`: `serverInfo.version` = `VERSION` (iba vacío).
+- `dashboard.py` / `dashboard.html`: acción `test` y botón «Probar la URL» (es/en).
+- Docs (página «Acceso remoto por URL»), changelog, CLAUDE.md. `VERSION` v0.03.4.1; Tauri/Cargo `0.3.4-1`.
+
+**Verificado**: `pytest -q tests` (nuevo `tests/test_v03401.py`: POST sin sesión, barra final, 405, reglas del token, `selftest` contra servers falsos), `scripts/smoke_mcp.py`, cliente MCP del SDK por HTTP contra el server real. **No probado**: el túnel real de Cloudflare ni el conector de Claude en la nube.
