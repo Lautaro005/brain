@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # si no, una línea por ca
 import frontmatter  # noqa: E402
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 
-from brain_mcp import chroma_store, clients, connectors, entities, graph_proposals, keyword_store, memory, organize, remote, vault  # noqa: E402
+from brain_mcp import chroma_store, clients, connectors, entities, graph_proposals, keyword_store, memory, organize, remote, updates, vault  # noqa: E402
 from brain_mcp.summarize import summarize  # noqa: E402
 from brain_mcp.chunking import chunk_sections, chunk_text  # noqa: E402
 from brain_mcp.chroma_store import ChromaUnavailable  # noqa: E402
@@ -141,7 +141,7 @@ def _factcheck_auto() -> bool:
         return False
 
 
-mcp = BrainServer("brain", instructions=INSTRUCTIONS + (" " + FACTCHECK_AUTO if _factcheck_auto() else ""))
+mcp = BrainServer("brain", version=updates.current().lstrip("v"), instructions=INSTRUCTIONS + (" " + FACTCHECK_AUTO if _factcheck_auto() else ""))
 
 
 def _err(e: Exception) -> str:

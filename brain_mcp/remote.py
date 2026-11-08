@@ -159,6 +159,17 @@ def protect(app):
     """Envuelve la app ASGI del SDK: sin el token, 404. /<token>/mcp se reescribe a /mcp."""
     from starlette.responses import PlainTextResponse
 
+    def target(path: str) -> str | None:
+        """La ruta interna (/mcp) si el pedido trae el token en la ruta, si no None. Una barra final (`/mcp/`) se
+        saca: Starlette la contestaría con un 307 hacia http://127.0.0.1:8770/mcp, o sea a una dirección local y
+        sin el token, que un cliente remoto no puede seguir (pasa cuando el conector normaliza la URL)."""
+        tok = load()["token"].encode()
+        seg, _, rest = path.lstrip("/").partition("/")
+        if tok and hmac.compare_digest(seg.encode(), tok):
+            inner = ("/" + rest).rstrip("/") or "/"
+            return inner if inner.startswith(MCP_PATH) else None
+        return None
+
     async def wrapped(scope, receive, send):
         if scope["type"] == "lifespan":
             return await app(scope, receive, send)
@@ -166,17 +177,72 @@ def protect(app):
             return
         tok = load()["token"].encode()
         path = scope.get("path", "")
-        seg, _, rest = path.lstrip("/").partition("/")
-        if tok and hmac.compare_digest(seg.encode(), tok) and ("/" + rest).startswith(MCP_PATH):
-            new = "/" + rest
-            scope = {**scope, "path": new, "raw_path": new.encode()}
-            return await app(scope, receive, send)
-        auth = dict(scope.get("headers") or []).get(b"authorization", b"")
-        if path.startswith(MCP_PATH) and tok and auth[:7].lower() == b"bearer " and hmac.compare_digest(auth[7:].strip(), tok):
-            return await app(scope, receive, send)
-        await PlainTextResponse("not found", status_code=404)(scope, receive, send)
+        new = target(path)
+        if new is None:
+            auth = dict(scope.get("headers") or []).get(b"authorization", b"")
+            bare = path.rstrip("/") or "/"
+            if bare.startswith(MCP_PATH) and tok and auth[:7].lower() == b"bearer " and hmac.compare_digest(auth[7:].strip(), tok):
+                new = bare
+        if new is None:
+            await PlainTextResponse("not found", status_code=404)(scope, receive, send)
+            return
+        if scope.get("method") in ("GET", "DELETE"):
+            # el GET abre un stream SSE de larga duración y el DELETE cierra una sesión: no hay ni lo uno ni lo otro
+            # (los túneles rápidos de Cloudflare no soportan SSE). 405 es lo que la especificación MCP pide en ese caso.
+            await PlainTextResponse("method not allowed", status_code=405, headers={"Allow": "POST"})(scope, receive, send)
+            return
+        return await app({**scope, "path": new, "raw_path": new.encode()}, receive, send)
 
     return wrapped
+
+
+def selftest(url: str, timeout: float = 15) -> dict:
+    """Prueba la URL pública como la prueba un conector de la nube: un `initialize` y un `tools/list` por POST, a
+    través del túnel. Devuelve {ok, status, tools, ms, code, detail}; `code` dice dónde se corta (dns, connect,
+    timeout, tunnel_down, bad_token, http, bad_body)."""
+    import time
+
+    import requests
+
+    t0 = time.time()
+    hdr = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
+    init = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "brain-selftest", "version": "1"}}}
+
+    def post(body):
+        return requests.post(url, json=body, headers=hdr, timeout=timeout, allow_redirects=False)
+
+    def fail(code, detail="", status=None):
+        return {"ok": False, "code": code, "detail": str(detail)[:200], "status": status, "ms": int((time.time() - t0) * 1000)}
+
+    try:
+        r = post(init)
+        if r.status_code in (301, 302, 307, 308):
+            return fail("redirect", r.headers.get("location", ""), r.status_code)
+        if r.status_code == 404:
+            return fail("bad_token", "", 404)
+        if r.status_code in (502, 503, 530) or r.status_code >= 1000:
+            return fail("tunnel_down", r.text[:120], r.status_code)
+        if r.status_code != 200:
+            return fail("http", r.text[:120], r.status_code)
+        try:
+            result = r.json()["result"]
+        except (ValueError, KeyError, TypeError):
+            return fail("bad_body", r.text[:120], 200)
+        r2 = post({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+        tools = len(r2.json()["result"]["tools"]) if r2.status_code == 200 else 0
+        return {"ok": r2.status_code == 200 and tools > 0, "status": 200, "tools": tools, "ms": int((time.time() - t0) * 1000),
+                "server": (result.get("serverInfo") or {}).get("name", ""), "code": "" if tools else "http", "detail": ""}
+    except requests.exceptions.SSLError as e:
+        return fail("tls", e)
+    except requests.exceptions.ConnectTimeout as e:
+        return fail("timeout", e)
+    except requests.exceptions.ReadTimeout as e:
+        return fail("timeout", e)
+    except requests.exceptions.ConnectionError as e:
+        return fail("dns" if "Name or service" in str(e) or "getaddrinfo" in str(e) or "nodename" in str(e) else "connect", e)
+    except requests.RequestException as e:
+        return fail("connect", e)
 
 
 def serve(mcp, port: int = PORT) -> None:
@@ -187,8 +253,13 @@ def serve(mcp, port: int = PORT) -> None:
     token()  # que exista antes del primer pedido
     # el Host llega con el dominio público del túnel: la protección contra DNS rebinding del SDK lo
     # rechazaría. Acá la protección es el token (una página web no lo conoce) y escuchar solo en 127.0.0.1.
+    # sin sesiones (`stateless_http`) y con respuestas JSON: cada pedido es independiente y no hay ningún stream SSE.
+    # Los túneles rápidos de Cloudflare (*.trycloudflare.com) no soportan Server-Sent Events: con sesiones, el cliente
+    # abre el GET de eventos justo después de `initialize` y se queda colgado (el conector de la nube decía «Couldn't
+    # reach» aunque el POST andaba). Sin sesiones el GET da 405 enseguida, que los clientes MCP toleran.
     app = mcp.streamable_http_app(
         json_response=True,
+        stateless_http=True,
         transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     )
     # access_log apagado: las líneas de acceso llevarían el token de la URL a los logs

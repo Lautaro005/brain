@@ -1545,6 +1545,8 @@ const I18N = {
       text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Manus en la web, Claude.ai → Conectores, ChatGPT en modo desarrollador…). Usa un túnel de Cloudflare: no abre puertos en tu router.",
       on: "Prender", off: "Apagar", st: { off: "Apagado", starting: "Abriendo el túnel…", reconnecting: "Reconectando…", on: "Publicado", error: "Error" },
       reconnect: "Reconectar", reconnecting: "Reabriendo el túnel…",
+      test: "Probar la URL", testing: "Probando la URL pública…", testOk: (n, ms) => `Anda: la URL contesta como un agente remoto (${n} tools, ${ms} ms).`,
+      testErr: t => ({ dns: "Esa dirección no se resuelve todavía: probá de nuevo en unos segundos.", connect: "No se pudo conectar con la URL pública: el túnel no está respondiendo (probá Reconectar).", timeout: "La URL no contestó a tiempo: el túnel está lento o caído (probá Reconectar).", tunnel_down: "Cloudflare llega, pero el túnel no tiene a brain atrás (Reconectar).", bad_token: "El token de la URL no coincide: copiá la URL de nuevo.", redirect: "La URL redirige a otra dirección (" + (t.detail || "") + "): actualizá brain.", tls: "Error de certificado al llegar a la URL.", bad_body: "La URL contesta, pero no es el server MCP de brain." }[t.code] || `La URL contestó HTTP ${t.status || "?"}. ${t.detail || ""}`).trim(),
       reconnectingNote: "cloudflared perdió la conexión con Cloudflare (pasa cuando la compu se duerme o cambia de red). Se reconecta solo con la misma URL; si en un minuto no puede, brain reabre el túnel.",
       urlChanged: "El túnel se reabrió después de que la compu se durmió.",
       urlChangedQuick: "La URL cambió: el túnel rápido se cerró mientras la compu dormía y brain abrió otro. Pegá la URL nueva en tus agentes (o usá un túnel con nombre para que no cambie nunca).",
@@ -1564,7 +1566,7 @@ const I18N = {
       noCf: "Falta cloudflared, el programa de Cloudflare que abre el túnel.", install: "Instalar cloudflared", installing: "Bajando cloudflared del release oficial y verificando su SHA256…",
       installed: "cloudflared instalado.", cfAt: p => `cloudflared: ${p}`,
       local: "Local (sin túnel)", logs: "Logs",
-      err: { no_cloudflared: "Falta cloudflared: instalalo con el botón.", named_incomplete: "Para el túnel con nombre hacen falta el hostname y el token.",
+      err: { no_url: "Todavía no hay una URL pública: prendé el acceso remoto y esperá a que abra el túnel.", no_cloudflared: "Falta cloudflared: instalalo con el botón.", named_incomplete: "Para el túnel con nombre hacen falta el hostname y el token.",
         bad_hostname: "Ese hostname no es válido.", bad_tunnel_token: "Ese token no parece un token de túnel de Cloudflare.", bad_mode: "Tipo de túnel desconocido.",
         no_checksum: "No pude leer el SHA256 publicado por Cloudflare, así que no instalé nada. Probá más tarde o instalalo vos (brew install cloudflared / winget install Cloudflare.cloudflared).",
         checksum: "El archivo bajado no coincide con el SHA256 publicado: no se instaló.", download: "No se pudo bajar cloudflared:", unsupported_os: "Sistema no soportado:",
@@ -1911,6 +1913,8 @@ const I18N = {
     remote: { title: "Remote access by URL", sub: "Cloudflare tunnel",
       text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Manus on the web, Claude.ai → Connectors, ChatGPT in developer mode…). It uses a Cloudflare tunnel: no ports are opened on your router.",
       reconnect: "Reconnect", reconnecting: "Reopening the tunnel…",
+      test: "Test the URL", testing: "Testing the public URL…", testOk: (n, ms) => `Works: the URL answers like a remote agent would (${n} tools, ${ms} ms).`,
+      testErr: t => ({ dns: "That address doesn't resolve yet: try again in a few seconds.", connect: "Couldn't connect to the public URL: the tunnel isn't answering (try Reconnect).", timeout: "The URL didn't answer in time: the tunnel is slow or down (try Reconnect).", tunnel_down: "Cloudflare answers, but the tunnel has no brain behind it (Reconnect).", bad_token: "The URL's token doesn't match: copy the URL again.", redirect: "The URL redirects to another address (" + (t.detail || "") + "): update brain.", tls: "Certificate error reaching the URL.", bad_body: "The URL answers, but it isn't brain's MCP server." }[t.code] || `The URL answered HTTP ${t.status || "?"}. ${t.detail || ""}`).trim(),
       reconnectingNote: "cloudflared lost its connection to Cloudflare (this happens when the computer sleeps or changes networks). It reconnects by itself with the same URL; if it can't within a minute, brain reopens the tunnel.",
       urlChanged: "The tunnel was reopened after the computer slept.",
       urlChangedQuick: "The URL changed: the quick tunnel closed while the computer was asleep and brain opened a new one. Paste the new URL in your agents (or use a named tunnel so it never changes).",
@@ -1931,7 +1935,7 @@ const I18N = {
       noCf: "cloudflared is missing: Cloudflare's program that opens the tunnel.", install: "Install cloudflared", installing: "Downloading cloudflared from the official release and checking its SHA256…",
       installed: "cloudflared installed.", cfAt: p => `cloudflared: ${p}`,
       local: "Local (no tunnel)", logs: "Logs",
-      err: { no_cloudflared: "cloudflared is missing: install it with the button.", named_incomplete: "A named tunnel needs both the hostname and the token.",
+      err: { no_url: "There is no public URL yet: turn remote access on and wait for the tunnel to open.", no_cloudflared: "cloudflared is missing: install it with the button.", named_incomplete: "A named tunnel needs both the hostname and the token.",
         bad_hostname: "That hostname isn't valid.", bad_tunnel_token: "That doesn't look like a Cloudflare tunnel token.", bad_mode: "Unknown tunnel type.",
         no_checksum: "Couldn't read the SHA256 Cloudflare publishes, so nothing was installed. Try later or install it yourself (brew install cloudflared / winget install Cloudflare.cloudflared).",
         checksum: "The downloaded file doesn't match the published SHA256: it wasn't installed.", download: "Couldn't download cloudflared:", unsupported_os: "Unsupported system:",
@@ -3290,7 +3294,7 @@ function renderRemote() {
     <div class="remote-warn">${esc(T.remote.warn)}</div>
     <label class="check"><input type="checkbox" id="remote-ro" ${r.read_only ? "checked" : ""}> <span>${esc(T.remote.readOnly)}</span></label>
     <label class="check"><input type="checkbox" id="remote-awake" ${r.keep_awake ? "checked" : ""}> <span>${esc(T.remote.keepAwake)}${r.enabled && r.keep_awake ? ` <span class="muted">· ${esc(r.awake ? T.remote.awakeOn : T.remote.awakeNo)}</span>` : ""}</span></label>
-    <div class="remote-row"><button class="btn" type="button" id="remote-regen">${esc(T.remote.regenerate)}</button></div>
+    <div class="remote-row">${r.url && st === "on" ? `<button class="btn" type="button" id="remote-test">${esc(T.remote.test)}</button>` : ""}<button class="btn" type="button" id="remote-regen">${esc(T.remote.regenerate)}</button></div>
     <details class="remote-adv" ${advOpen ? "open" : ""}><summary>${esc(T.remote.adv)}</summary>
       <p class="form-hint">${esc(T.remote.quickNote)}</p>
       <div class="form-grid">
@@ -3314,6 +3318,16 @@ function renderRemote() {
   $("#remote-awake").onchange = e => remoteAction("settings", { keep_awake: e.target.checked }, null, T.remote.saved);
   if ($("#remote-reconnect")) $("#remote-reconnect").onclick = () => remoteAction("reconnect", {}, T.remote.reconnecting, null);
   if ($("#remote-seen")) $("#remote-seen").onclick = () => { try { localStorage.setItem("brain-remote-seen", r.url); } catch (e) {} renderRemote(); };
+  if ($("#remote-test")) $("#remote-test").onclick = async () => {
+    remoteBusy = true; remoteMsg = { kind: "info", text: T.remote.testing }; renderRemote();
+    try {
+      const x = await api("/api/remote/test", {});
+      const t = x.test;
+      remoteMsg = !x.ok ? { kind: "err", text: remoteErr(x) }
+        : t.ok ? { kind: "ok", text: T.remote.testOk(t.tools, t.ms) } : { kind: "err", text: T.remote.testErr(t) };
+    } catch (e) { remoteMsg = { kind: "err", text: e.message }; }
+    remoteBusy = false; renderRemote();
+  };
   $("#remote-regen").onclick = async () => {
     if (!(await ask(T.remote.regenConfirm, { ok: T.remote.regenerate, danger: true }))) return;
     remoteAction("regenerate", {}, null, T.remote.regenerated);

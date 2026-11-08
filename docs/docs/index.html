@@ -955,6 +955,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>The URL and its token</h2>
   <p>The URL looks like <code>https://…/&lt;token&gt;/mcp</code>. Without the token every request gets a <code>404</code>. Apps that prefer a header can use <code>https://…/mcp</code> with <code>Authorization: Bearer &lt;token&gt;</code> (the card shows both). Treat the URL like a password:</p>
   <ul>
+    <li><b>Test the URL</b> (shown while it is published) makes the same two requests a cloud agent makes, through the tunnel, and says where it breaks: unresolved address, tunnel down, wrong token or a server that isn't brain. The server answers without sessions or event streams (<code>GET</code> gets a <code>405</code>), which is what Cloudflare's free quick tunnels support, and a trailing slash in the URL (<code>…/mcp/</code>) works.</li>
     <li><b>Generate a new URL</b> changes the token: the old URL stops working right away, without restarting anything.</li>
     <li><b>Read-only</b> leaves agents using the URL with the tools that read and search (<code>read_file</code>, <code>search_knowledge</code>, <code>list_vault</code>…); writing, deleting and your connections' tools are hidden and refused.</li>
     <li>Through the URL, <code>save_url</code> and <code>read_url</code> only fetch public addresses, never your computer or local network.</li>
@@ -979,6 +980,7 @@ restore_file("projects/tienda-online.md", 41)</pre>
   <h2>La URL y su token</h2>
   <p>La URL tiene la forma <code>https://…/&lt;token&gt;/mcp</code>. Sin el token, todo pedido recibe un <code>404</code>. Las apps que prefieren un header pueden usar <code>https://…/mcp</code> con <code>Authorization: Bearer &lt;token&gt;</code> (la tarjeta muestra las dos). Tratá la URL como una contraseña:</p>
   <ul>
+    <li><b>Probar la URL</b> (aparece mientras está publicada) hace desde el túnel los mismos dos pedidos que hace un agente en la nube y dice dónde se corta: dirección que no resuelve, túnel caído, token que no coincide o un server que no es brain. El server contesta sin sesiones ni streams de eventos (el <code>GET</code> da <code>405</code>), que es lo que soportan los túneles rápidos gratis de Cloudflare, y una barra final en la URL (<code>…/mcp/</code>) también anda.</li>
     <li><b>Generar otra URL</b> cambia el token: la URL vieja deja de andar en el acto, sin reiniciar nada.</li>
     <li><b>Solo lectura</b> deja a los agentes por URL con las tools que leen y buscan (<code>read_file</code>, <code>search_knowledge</code>, <code>list_vault</code>…); escribir, borrar y las tools de tus conexiones quedan ocultas y se rechazan.</li>
     <li>Por la URL, <code>save_url</code> y <code>read_url</code> solo leen direcciones públicas, nunca tu computadora ni tu red local.</li>
