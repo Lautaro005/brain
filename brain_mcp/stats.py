@@ -67,6 +67,7 @@ def vault_stats() -> dict:
         "tags": kinds.get("tag", 0),
         "links": len(real_links),
         "words": sum(n.get("words", 0) for n in files),
+        "skipped": len(g.get("skipped") or []),  # notas que el grafo no pudo leer (se ven en el Grafo)
         "sources": sources,
         "domains": [{"label": d, "value": n}
                     for d, n in Counter(s["domain"] for s in sources).most_common(8)],

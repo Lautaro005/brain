@@ -1359,7 +1359,8 @@ const I18N = {
       addManualText: "Las apps donde agregaste brain con un formulario (LM Studio, Msty, Raycast, Zed…) aparecen solas en esta lista la primera vez que lo usan. Si todavía no lo usaste, podés anotarla acá.",
       addManualBtn: "Anotar", addManualPh: "Nombre de la app",
       here: "Apunta a esta instalación", elsewhereLong: "Apunta a otra carpeta de brain (quizás una instalación vieja). Reconectalo para usar esta." },
-    panel: { title: "Panel", sub: "Servicios, contenido y actividad del vault", services: "Servicios", content: "Contenido", stats: "Estadísticas" },
+    panel: { title: "Panel", sub: "Servicios, contenido y actividad del vault", services: "Servicios", content: "Contenido", stats: "Estadísticas",
+      statsErr: "No pude leer tu vault para las estadísticas:", skipped: n => `${n} ${n === 1 ? "nota no se pudo leer y quedó afuera" : "notas no se pudieron leer y quedaron afuera"} (detalle en el Grafo y en Logs → Dashboard).` },
     updated: t => `actualizado ${t}`, offline: "sin conexión con el dashboard", connecting: "conectando…",
     svc: {
       chroma: ["Chroma", "Base vectorial compartida por todos los clientes MCP"],
@@ -1742,7 +1743,8 @@ const I18N = {
       addManualText: "Apps where you added brain with a form (LM Studio, Msty, Raycast, Zed…) show up in this list on their own the first time they use it. If you haven't used it yet, you can note it here.",
       addManualBtn: "Add", addManualPh: "App name",
       here: "Points to this installation", elsewhereLong: "Points to another brain folder (maybe an old install). Reconnect it to use this one." },
-    panel: { title: "Dashboard", sub: "Services, content and vault activity", services: "Services", content: "Content", stats: "Statistics" },
+    panel: { title: "Dashboard", sub: "Services, content and vault activity", services: "Services", content: "Content", stats: "Statistics",
+      statsErr: "Couldn't read your vault for the statistics:", skipped: n => `${n} ${n === 1 ? "note couldn't be read and was left out" : "notes couldn't be read and were left out"} (details in Graph and Logs → Dashboard).` },
     updated: t => `updated ${t}`, offline: "can't reach the dashboard", connecting: "connecting…",
     svc: {
       chroma: ["Chroma", "Vector database shared by every MCP client"],
@@ -2965,8 +2967,10 @@ function renderKpis() {
     [T.kpi.chunks, chunks == null ? null : fmt(chunks), chunks == null ? T.kpi.chromaOff : T.kpi.inChroma],
     [T.kpi.links, fmt(stats.links), T.kpi.tags(fmt(stats.tags))],
   ];
+  const sk = stats.skipped || 0;
   $("#kpis").innerHTML = items.map(([l, v, f]) =>
-    `<div class="card kpi"><div class="label">${esc(l)}</div><div class="value ${v == null ? "na" : ""}">${v == null ? "—" : v}</div><div class="foot">${esc(f)}</div></div>`).join("");
+    `<div class="card kpi"><div class="label">${esc(l)}</div><div class="value ${v == null ? "na" : ""}">${v == null ? "—" : v}</div><div class="foot">${esc(f)}</div></div>`).join("")
+    + (sk ? `<div class="remote-warn" style="grid-column:1/-1">${esc(T.panel.skipped(sk))}</div>` : "");
 }
 function renderHealth() {
   const h = status.health, ok = h.filter(x => x.ok).length;
@@ -3124,7 +3128,9 @@ async function loadStats() {
     const sig = JSON.stringify(s);
     if (sig === statsSig) return;
     statsSig = sig; stats = s; renderStats();
-  } catch (e) { /* reintenta en el próximo ciclo */ }
+  } catch (e) {  // reintenta en el próximo ciclo, pero sin quedar en blanco: se dice qué pasó
+    if (!stats) $("#kpis").innerHTML = `<div class="src-err" style="grid-column:1/-1">${esc(T.panel.statsErr)} ${esc(e.message)}</div>`;
+  }
 }
 let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => stats && renderStats(), 150); });
 

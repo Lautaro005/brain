@@ -975,3 +975,17 @@ Logo, docs, README, changelog, CLAUDE.md. `VERSION` v0.03.4; Tauri/Cargo `0.3.4`
 **Otros**: `chat.APP_GUIDE` (es/en) con las pestañas y los servicios del túnel; README (tabla de servicios), SECURITY.md (credenciales de túneles por env, Tailscale/ngrok no se bajan, versión), docs (página Acceso remoto, privacidad, seguridad), landing y política de privacidad (ya no dicen solo Cloudflare), changelog. `VERSION` v0.03.4.2; Tauri/Cargo `0.3.4-2`.
 
 **Verificado**: `pytest -q tests` (nuevo `tests/test_v03402.py`: ajustes de ngrok, comandos sin secretos en argv, parseo de URLs, espera de Funnel, error fatal sin reintentos, proceso real con un `tailscale` falso, error `no_tailscale`), `scripts/check_site.py`, capturas de cada vista y pestaña con Playwright (1440 px y 390 px, sin errores de consola ni scroll horizontal). **No probado**: Tailscale y ngrok reales, el conector de Claude por esas URLs, y la app de escritorio compilada (el cambio en `lib.rs` es solo el texto JS de dos ítems; compila en el CI).
+
+## 2026-11-23 — v0.03.4.3: el grafo y el Panel no quedan en blanco por una nota
+
+**Por qué**: después de v0.03.4.2 el usuario veía el Grafo en blanco y el Panel sin contenido ni estadísticas. `stats.vault_stats()` usa `graph.build_graph()`, así que un error en el grafo vaciaba las dos vistas, y el dashboard se tragaba el error (los `catch` de `loadStats` y de `graph.html` no mostraban nada). Causa encontrada y reproducida: un link `[[…]]`, `[…](….md)`, una mención entre backticks o un `related` con un tramo de más de 255 bytes hace que `Path.is_dir()` levante `OSError: [Errno 36] File name too long` en Python 3.12, y `build_graph` se cae entero. No se pudo confirmar contra el vault real del usuario (el conector no estaba disponible), pero es un fallo real y queda cubierto junto con otras notas raras.
+
+**Cambios**:
+- `brain_mcp/graph.py`: `_is_dir()` que nunca levanta; lectura de cada nota con `f.is_file()` (una carpeta `x.md` no es nota) y en su propio try (no UTF-8 → `errors="replace"`, frontmatter que no es un dict → `{}`); `_note_node()` y `_note_links()` separados y protegidos por nota: lo que falla se saltea y se devuelve en `skipped` (`[{path, error}]`) y en el log `brain.graph`; `_as_list` acepta escalares e ignora `null`; `url` solo si es texto.
+- `brain_mcp/stats.py`: `skipped` (cantidad) en `/api/stats`.
+- `brain_mcp/graph.html`: aviso `#gmsg` (error de `/api/graph`, librerías que no cargaron, notas salteadas), es/en.
+- `brain_mcp/dashboard.html`: si `/api/stats` falla, el Panel muestra el error; si hubo notas salteadas, una línea debajo de los KPIs. es/en.
+- `brain_mcp/vendor/`: d3 7.9.0, marked 12.0.2 y DOMPurify 3.5.0 (de npm, verificados con `dist.integrity`, con sus licencias y un README). `dashboard.py` los sirve en `/vendor/<archivo>` (`VENDOR`, lista blanca). `graph.html` y `chat.html` ya no cargan nada de jsdelivr: sin internet o con el CDN caído el grafo quedaba en blanco.
+- CLAUDE.md, changelog, SECURITY.md (versión). `VERSION` v0.03.4.3; Tauri/Cargo `0.3.4-3`.
+
+**Verificado**: `pytest -q tests` (156; nuevo `tests/test_v03403.py`, que falla con el `graph.py` anterior: 6 de 7), prueba en el navegador con una nota con un wikilink de 300 caracteres (el grafo se dibuja, con d3 local) y sin errores de consola.

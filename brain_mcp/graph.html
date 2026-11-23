@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brain Graph</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="/vendor/d3.min.js"></script>
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
 <style>
   :root {
     --bg: #f5f5f3; --panel: #ffffff; --line: #e3e3e0; --text: #0a0a0a; --muted: #5e5e5e;
@@ -71,6 +71,12 @@
   .chip .dot { width: 8px; height: 8px; border-radius: 50%; }
   .chip:not(.on) .dot { opacity: .3; }
   .stats { position: absolute; bottom: 14px; left: 16px; color: var(--muted); font-size: 12px; }
+  .gmsg { position: absolute; top: 76px; left: 16px; right: 16px; max-width: 560px; background: var(--panel, #fff); border: 1px solid currentColor;
+    border-left-width: 3px; padding: 10px 12px; font-size: 13px; line-height: 1.45; z-index: 5; }
+  .gmsg.err { color: #b42318; }
+  .gmsg.warn { color: inherit; }
+  .gmsg code { font-size: 12px; overflow-wrap: anywhere; }
+  .gmsg[hidden] { display: none; }
   /* controles fijos de zoom/centrado: siempre a mano aunque el grafo se haya ido lejos */
   .controls { position: absolute; right: 16px; bottom: 16px; display: flex; flex-direction: column;
     background: var(--panel); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); overflow: hidden; }
@@ -177,6 +183,7 @@
     </div>
     <svg id="svg"></svg>
     <div class="stats" id="stats"></div>
+    <div class="gmsg" id="gmsg" role="status" hidden></div>
     <button class="back" id="back" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span id="back-t"></span></button>
     <div class="controls">
       <button id="zin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -216,6 +223,8 @@ const I18N = {
     brand: "· conexiones", search: "Buscar…", empty: "Hacé click en un nodo para ver su contenido y conexiones",
     connections: "Conexiones", none: "Sin conexiones todavía", cut: "… (recortado, el archivo completo está en el vault)",
     stats: (f, l) => `${f} archivos · ${l} conexiones`,
+    loadErr: "No pude cargar el grafo de tu vault:", libErr: "No se cargaron las librerías del grafo (d3). Cerrá y volvé a abrir brain; si sigue, actualizalo.",
+    skipped: n => `${n} ${n === 1 ? "nota no se pudo leer y quedó" : "notas no se pudieron leer y quedaron"} afuera del grafo:`,
     zin: "Acercar", zout: "Alejar", back: "Atrás", zfit: "Volver al centro (tecla 0 o doble click en el fondo)",
     edit: "Editar el Markdown", lockTitle: "Archivo central de brain: las IAs no lo pueden cambiar. Editalo vos.",
     lockNote: "Archivo central: las IAs lo leen pero no lo pueden cambiar. Lo editás vos.",
@@ -235,6 +244,8 @@ const I18N = {
     brand: "· connections", search: "Search…", empty: "Click a node to see its content and connections",
     connections: "Connections", none: "No connections yet", cut: "… (truncated, the full file is in the vault)",
     stats: (f, l) => `${f} files · ${l} connections`,
+    loadErr: "Couldn't load your vault's graph:", libErr: "The graph libraries (d3) didn't load. Close and reopen brain; if it persists, update it.",
+    skipped: n => `${n} ${n === 1 ? "note couldn't be read and was" : "notes couldn't be read and were"} left out of the graph:`,
     zin: "Zoom in", zout: "Zoom out", back: "Back", zfit: "Back to center (key 0 or double-click the background)",
     edit: "Edit the Markdown", lockTitle: "Core brain file: AIs can't change it. You edit it.",
     lockNote: "Core file: AIs read it but can't change it. You edit it.",
@@ -254,6 +265,9 @@ const I18N = {
 const KINDS = I18N.kinds, REL = I18N.rel;
 document.getElementById("t-brand").textContent = I18N.brand;
 document.getElementById("q").placeholder = I18N.search;
+if (typeof d3 === "undefined") {  // sin d3 no se puede dibujar nada: decirlo en vez de quedar en blanco
+  const m = document.getElementById("gmsg"); m.hidden = false; m.className = "gmsg err"; m.textContent = I18N.libErr;
+}
 document.getElementById("side").innerHTML = `<div class="empty">${I18N.empty}</div>`;
 for (const id of ["zin", "zout", "zfit"]) {
   const b = document.getElementById(id); b.title = I18N[id]; b.setAttribute("aria-label", I18N[id]);
@@ -600,16 +614,36 @@ document.addEventListener("keydown", e => {
 new ResizeObserver(() => { if (sim && !fitted && svg.node().clientWidth > 50) { fitted = true; fit(false); } }).observe(svg.node());
 document.getElementById("q").addEventListener("input", () => { if (selected) select(null); else highlight(); });
 
+// un aviso arriba del grafo en vez de dejarlo en blanco: error al cargar, o notas que el server salteó
+function graphMsg(kind, html) {
+  const el = document.getElementById("gmsg");
+  el.hidden = !html; el.className = `gmsg ${kind}`; el.innerHTML = html || "";
+}
 async function load() {
+  let d;
   try {
-    const d = await fetch("/api/graph").then(r => r.json());
-    const sig = JSON.stringify(d);
-    if (sig === lastSig) return;
-    lastSig = sig; data = d;
+    const r = await fetch("/api/graph");
+    d = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+    if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+  } catch (e) {  // server caído o error del server: se muestra y reintenta
+    lastSig = null;
+    graphMsg("err", `${esc(I18N.loadErr)} <code>${esc(e.message)}</code>`);
+    return;
+  }
+  const sig = JSON.stringify(d);
+  if (sig === lastSig) return;
+  lastSig = sig; data = d;
+  const sk = d.skipped || [];
+  graphMsg("warn", sk.length ? `${esc(I18N.skipped(sk.length))} ${sk.slice(0, 5).map(x => `<code>${esc(x.path)}</code>`).join(", ")}` : "");
+  if (typeof d3 === "undefined") { graphMsg("err", esc(I18N.libErr)); return; }
+  try {
     buildFilters(); render();
     if (selected && !data.nodes.some(n => n.id === selected)) select(null);
     else if (selected) select(selected);
-  } catch (e) { /* server caído: reintenta */ }
+  } catch (e) {
+    lastSig = null;
+    graphMsg("err", `${esc(I18N.loadErr)} <code>${esc(e.message)}</code>`);
+  }
 }
 load();
 setInterval(load, 3000);  // se actualiza solo cuando el vault cambia
