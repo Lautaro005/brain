@@ -1,4 +1,5 @@
 """Construye el grafo de relaciones del vault (nodos + links) para la vista web."""
+import logging
 import re
 import unicodedata
 from pathlib import Path
@@ -7,6 +8,8 @@ from urllib.parse import unquote, urlparse
 from . import vault
 
 from .vault import VAULT
+
+log = logging.getLogger("brain.graph")
 
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
 MDLINK = re.compile(r"\]\(([^)\s]+?\.md)\)")
@@ -74,13 +77,52 @@ def _as_list(v) -> list[str]:
         return []
     if isinstance(v, str):
         return [s.strip() for s in v.split(",") if s.strip()]
-    return [str(x) for x in v]
+    if not isinstance(v, (list, tuple, set)):
+        return [str(v)]  # `tags: 5` o un objeto: un solo valor, no algo para recorrer
+    return [str(x) for x in v if x is not None]
+
+
+def _note_node(rel: str, stem: str, meta: dict, body: str) -> dict:
+    """El nodo de una nota (etiqueta, tipo, descripción…)."""
+    label = str(meta.get("name") or stem)
+    kind = _kind(rel, meta)
+    if kind == "core":
+        label = rel
+    elif kind == "source":
+        label = short_label(meta, stem)
+    if rel == "profile.md":
+        label = str(meta.get("display_name") or "profile")
+    elif rel.startswith("memory/"):
+        label = str(meta.get("category") or label)
+    url = meta.get("url")
+    return {
+        "id": rel,
+        "label": label,
+        "kind": kind,
+        "path": rel,
+        "title": str(meta.get("title") or ""),
+        "core": rel in vault.CORE_FILES,
+        "description": str(meta.get("description") or ""),
+        "url": url if isinstance(url, str) else None,
+        "words": len(body.split()),
+    }
+
+
+def _is_dir(p: Path) -> bool:
+    """`Path.is_dir()` que nunca levanta: con un nombre de más de 255 bytes (un link o una mención larga en una
+    nota) Python 3.12 tira OSError «File name too long», y un solo link así dejaba en blanco el grafo y el Panel."""
+    try:
+        return p.is_dir()
+    except (OSError, ValueError):
+        return False
 
 
 def build_graph() -> dict:
     files = sorted(
-        f for f in VAULT.rglob("*.md") if not any(x.startswith(".") for x in f.relative_to(VAULT).parts)
+        f for f in VAULT.rglob("*.md")
+        if not any(x.startswith(".") for x in f.relative_to(VAULT).parts) and f.is_file()  # una carpeta "x.md" no es una nota
     )
+    skipped: list[dict] = []  # notas que no se pudieron leer o procesar: se saltean, no rompen todo el grafo
     nodes: dict[str, dict] = {}
     links: set[tuple[str, str, str]] = set()
     docs: dict[str, tuple[dict, str]] = {}
@@ -98,31 +140,24 @@ def build_graph() -> dict:
     for f in files:
         rel = f.relative_to(VAULT).as_posix()
         try:
-            meta, body = vault.parse(f.read_text(encoding="utf-8"))
-        except Exception:
-            meta, body = {}, f.read_text(encoding="utf-8", errors="replace")
+            try:
+                meta, body = vault.parse(f.read_text(encoding="utf-8"))
+            except UnicodeDecodeError:
+                meta, body = vault.parse(f.read_text(encoding="utf-8", errors="replace"))
+            if not isinstance(meta, dict):
+                meta = {}
+        except Exception as e:  # sin permiso, symlink roto, archivo que desapareció…
+            log.warning("grafo: no pude leer %s: %s", rel, e)
+            skipped.append({"path": rel, "error": f"{type(e).__name__}: {e}"[:200]})
+            continue
+        try:
+            nodes[rel] = _note_node(rel, f.stem, meta, body)
+        except Exception as e:
+            log.warning("grafo: salteé %s: %s", rel, e)
+            skipped.append({"path": rel, "error": f"{type(e).__name__}: {e}"[:200]})
+            continue
         docs[rel] = (meta, body)
-        label = str(meta.get("name") or f.stem)
-        kind = _kind(rel, meta)
-        if kind == "core":
-            label = rel
-        elif kind == "source":
-            label = short_label(meta, f.stem)
-        if rel == "profile.md":
-            label = str(meta.get("display_name") or "profile")
-        elif rel.startswith("memory/"):
-            label = str(meta.get("category") or label)
-        nodes[rel] = {
-            "id": rel,
-            "label": label,
-            "kind": kind,
-            "path": rel,
-            "title": str(meta.get("title") or ""),
-            "core": rel in vault.CORE_FILES,
-            "description": str(meta.get("description", "")),
-            "url": meta.get("url"),
-            "words": len(body.split()),
-        }
+        label = nodes[rel]["label"]
         for key in {label.lower(), f.stem.lower(), rel.lower(), rel[:-3].lower()}:
             by_name.setdefault(key, rel)
 
@@ -132,7 +167,7 @@ def build_graph() -> dict:
     # la estructura base siempre se ve (v0.03.2): de BRAIN.md salen FORMAT.md, FACT-CHECK.md, profile.md y las
     # carpetas base, aunque todavía estén vacías
     for d in vault.BASE_DIRS:
-        if (VAULT / d).is_dir():
+        if _is_dir(VAULT / d):
             add_dir(d)
     for core in vault.CORE_FILES[1:]:
         if core in docs:
@@ -176,41 +211,16 @@ def build_graph() -> dict:
             cand = (Path(base) / t).as_posix().lstrip("./")
             if cand in docs:
                 return cand
-            if (VAULT / cand).is_dir():
+            if _is_dir(VAULT / cand):
                 return add_dir(cand)
         return None
 
     for rel, (meta, body) in docs.items():
-        text = body
-        if rel == "BRAIN.md":  # el bloque de brain ya está como enlaces de estructura (core/folder)
-            i, j = text.find(vault.CORE_START), text.find(vault.CORE_END)
-            if i >= 0 and j > i:
-                text = text[:i] + text[j + len(vault.CORE_END):]
-        targets = [(m, "link") for m in WIKILINK.findall(text)]
-        targets += [(m, "link") for m in MDLINK.findall(text)]
-        if meta.get("managed") != "brain" and rel not in vault.CORE_FILES:  # las guías nombran todas las carpetas: no son menciones reales
-            targets += [(m, "mention") for m in CODEPATH.findall(text)]
-        targets += [(r, "related") for r in _as_list(meta.get("related"))]
-        for t, kind in targets:
-            dst = resolve(t, rel)
-            if rel == "BRAIN.md" and kind == "mention" and dst and dst.startswith("dir:"):
-                continue  # las carpetas que nombra el índice ya cuelgan de él como estructura
-            if dst in vault.CORE_FILES and rel not in vault.CORE_FILES:
-                continue  # los archivos centrales (bloqueados) no se enlazan desde otras notas: solo cuelgan de BRAIN.md
-            if dst and dst != rel:
-                links.add((rel, dst, kind))
-        for tag in _as_list(meta.get("tags")):
-            tid = f"tag:{tag.lower()}"
-            nodes.setdefault(tid, {"id": tid, "label": f"#{tag}", "kind": "tag", "path": None})
-            links.add((rel, tid, "tag"))
-        # entidades extraídas por el modelo local (brain_mcp/entities.py): dos notas que nombran lo
-        # mismo quedan unidas por el nodo compartido aunque nadie las haya linkeado
-        for ent in _as_list(meta.get("entities")):
-            eid = f"entity:{_slug(ent)}"
-            if eid == "entity:":
-                continue
-            nodes.setdefault(eid, {"id": eid, "label": ent, "kind": "entity", "path": None})
-            links.add((rel, eid, "entity"))
+        try:
+            _note_links(rel, meta, body, resolve, nodes, links)
+        except Exception as e:  # una nota rara no deja al grafo (ni al Panel, que lo usa) en blanco
+            log.warning("grafo: salteé los enlaces de %s: %s", rel, e)
+            skipped.append({"path": rel, "error": f"{type(e).__name__}: {e}"[:200]})
 
     # una sola línea por par de nodos, quedándose con la relación más fuerte
     rank = {"core": 0, "link": 0, "part": 1, "memory": 1, "related": 2, "entity": 3, "mention": 4, "tag": 5, "folder": 6}
@@ -223,4 +233,40 @@ def build_graph() -> dict:
     return {
         "nodes": list(nodes.values()),
         "links": [{"source": s, "target": t, "kind": k} for s, t, k in sorted(best.values())],
+        "skipped": skipped,
     }
+
+
+def _note_links(rel: str, meta: dict, body: str, resolve, nodes: dict, links: set) -> None:
+    """Enlaces, menciones, related, tags y entidades de una nota."""
+    text = body
+    if rel == "BRAIN.md":  # el bloque de brain ya está como enlaces de estructura (core/folder)
+        i, j = text.find(vault.CORE_START), text.find(vault.CORE_END)
+        if i >= 0 and j > i:
+            text = text[:i] + text[j + len(vault.CORE_END):]
+    targets = [(m, "link") for m in WIKILINK.findall(text)]
+    targets += [(m, "link") for m in MDLINK.findall(text)]
+    if meta.get("managed") != "brain" and rel not in vault.CORE_FILES:  # las guías nombran todas las carpetas: no son menciones reales
+        targets += [(m, "mention") for m in CODEPATH.findall(text)]
+    targets += [(r, "related") for r in _as_list(meta.get("related"))]
+    for t, kind in targets:
+        dst = resolve(t, rel)
+        if rel == "BRAIN.md" and kind == "mention" and dst and dst.startswith("dir:"):
+            continue  # las carpetas que nombra el índice ya cuelgan de él como estructura
+        if dst in vault.CORE_FILES and rel not in vault.CORE_FILES:
+            continue  # los archivos centrales (bloqueados) no se enlazan desde otras notas: solo cuelgan de BRAIN.md
+        if dst and dst != rel:
+            links.add((rel, dst, kind))
+    for tag in _as_list(meta.get("tags")):
+        tid = f"tag:{tag.lower()}"
+        nodes.setdefault(tid, {"id": tid, "label": f"#{tag}", "kind": "tag", "path": None})
+        links.add((rel, tid, "tag"))
+    # entidades extraídas por el modelo local (brain_mcp/entities.py): dos notas que nombran lo
+    # mismo quedan unidas por el nodo compartido aunque nadie las haya linkeado
+    for ent in _as_list(meta.get("entities")):
+        eid = f"entity:{_slug(ent)}"
+        if eid == "entity:":
+            continue
+        nodes.setdefault(eid, {"id": eid, "label": ent, "kind": "entity", "path": None})
+        links.add((rel, eid, "entity"))
+

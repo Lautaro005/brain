@@ -373,6 +373,8 @@ def _factcheck_post(action: str, body: dict) -> dict:
     return {"ok": False, "code": "unknown_action"}
 
 
+VENDOR = {f"/vendor/{n}": n for n in ("d3.min.js", "marked.min.js", "purify.min.js")}
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -406,6 +408,8 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(404, b"not found", "text/plain")
                 else:
                     self._send(200, f.read_bytes(), "image/svg+xml")
+            elif u.path in VENDOR:  # d3, marked y DOMPurify incluidos (brain_mcp/vendor): el grafo anda sin internet
+                self._send(200, (HERE / "vendor" / VENDOR[u.path]).read_bytes(), "text/javascript; charset=utf-8")
             elif u.path == "/ui.js":
                 self._send(200, (HERE / "ui.js").read_bytes(), "text/javascript; charset=utf-8")
             elif u.path == "/api/prompts":  # prompts para agentes (brain_mcp/prompts.json)
