@@ -234,7 +234,7 @@ TUNNEL_GONE = ("Tunnel not found", "Unauthorized: Tunnel", "tunnel not found")
 
 
 class Tunnel(Service):
-    """cloudflared: publica el server MCP por HTTP en internet (ver remote.py).
+    """El túnel (cloudflared, tailscale funnel o ngrok): publica el server MCP por HTTP en internet (ver remote.py).
 
     La URL se toma de los logs cuando aparece y se guarda: antes se buscaba en los últimos 500 renglones, y
     cuando la compu se dormía cloudflared llenaba los logs de reintentos, la URL se perdía y la tarjeta quedaba
@@ -255,11 +255,22 @@ class Tunnel(Service):
         self.seen_conn = False                # vimos al menos un "Registered…": el formato de log es el esperado
         self.down_since: float | None = None  # desde cuándo no hay ninguna conexión activa
         self.gone = False
+        self.action_url: str | None = None   # Tailscale: página donde activar Funnel
+        self.fatal: str | None = None        # un error que reintentar no arregla (falta login, token inválido…)
 
     def on_line(self, line: str) -> None:
-        m = remote.QUICK_URL.search(line)
-        if m and "api.trycloudflare.com" not in m.group(0):
-            self.url = m.group(0)
+        mode = remote.load()["mode"]
+        url = remote.url_in(line, mode)
+        if url:
+            self.url = url
+        if mode == "tailscale":
+            m = remote.TS_ACTION.search(line)
+            if m:  # Funnel o HTTPS sin activar en la tailnet: tailscale espera a que el usuario lo active en esa página
+                self.action_url = m.group(0)
+            elif self.url and self.action_url:
+                self.action_url = None
+        if remote.is_fatal(line, mode):
+            self.fatal = line.strip()[-300:]
         idx = CONN_INDEX.search(line)
         if CONN_UP in line:
             self.conns.add(idx.group(1) if idx else "0")
@@ -285,12 +296,15 @@ class Tunnel(Service):
         cfg = remote.load()
         if cfg["mode"] == "named":
             return f"https://{cfg['hostname']}" if self.seen_conn and cfg["hostname"] else None
+        if cfg["mode"] == "tailscale" and self.action_url:
+            return None  # todavía no está publicado: falta activar Funnel
         return self.url or remote.tunnel_url(self.logs)
 
     def info(self) -> dict:
         d = super().info()
         d.update(reconnecting=self.ours() and self.connected() is False, restarts=self.restarts,
-                 url_changed_at=self.url_changed_at, prev_url=self.prev_url)
+                 url_changed_at=self.url_changed_at, prev_url=self.prev_url,
+                 action_url=self.action_url if self.ours() else None, fatal=self.fatal)
         return d
 
     def start(self) -> None:
@@ -338,7 +352,7 @@ SERVICES: dict[str, Service] = {
                   env={"MCP_AUTO_OPEN_ENABLED": "false"}),
         RemoteMCP("remote_mcp", "MCP por URL", "El server MCP por HTTP, solo en esta máquina", remote.PORT,
                   ["uv", "run", "python", "server.py", "--http"], env={"BRAIN_REMOTE": "1"}),
-        Tunnel("tunnel", "Túnel de Cloudflare", "Publica el MCP por URL en internet", remote.PORT, _tunnel_cmd, env=_tunnel_env),
+        Tunnel("tunnel", "Túnel", "Publica el MCP por URL en internet (Tailscale, ngrok o Cloudflare)", remote.PORT, _tunnel_cmd, env=_tunnel_env),
     )
 }
 
@@ -493,6 +507,8 @@ class RemoteWatchdog:
                 log.warning("acceso remoto: no se pudo volver a prender el server MCP: %s", e)
                 return "mcp_failed"
         t = self.tunnel
+        if t.fatal and not t.ours():
+            return did  # no se arregla reabriéndolo (falta el login, el token no sirve…): lo dice la tarjeta
         if not t.ours():
             if now - self.last_restart >= (self.BACKOFF if self.fails >= 3 else self.MIN_GAP):
                 try:
@@ -518,6 +534,8 @@ class RemoteWatchdog:
         if up is False and t.down_since and now - t.down_since > self.GRACE:
             self._restart_tunnel("sin conexión con Cloudflare" + (" después de dormir" if self.woke_at else ""), now)
             return "tunnel_restarted"
+        if t.action_url:
+            return did  # Tailscale espera a que el usuario active Funnel: reabrirlo no ayuda
         if up is None and not t.link() and now - started > self.NO_URL:
             self._restart_tunnel("no apareció la URL", now)
             return "tunnel_restarted"
