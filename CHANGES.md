@@ -956,3 +956,22 @@ Logo, docs, README, changelog, CLAUDE.md. `VERSION` v0.03.4; Tauri/Cargo `0.3.4`
 - Docs (página «Acceso remoto por URL»), changelog, CLAUDE.md. `VERSION` v0.03.4.1; Tauri/Cargo `0.3.4-1`.
 
 **Verificado**: `pytest -q tests` (nuevo `tests/test_v03401.py`: POST sin sesión, barra final, 405, reglas del token, `selftest` contra servers falsos), `scripts/smoke_mcp.py`, cliente MCP del SDK por HTTP contra el server real. **No probado**: el túnel real de Cloudflare ni el conector de Claude en la nube.
+
+## 2026-11-23 — v0.03.4.2: túneles con URL fija (Tailscale Funnel, ngrok) y vistas en pestañas
+
+**Por qué**: con el túnel rápido de Cloudflare la URL cambia en cada arranque y Claude en la nube no se conectaba (otras IAs sí; la causa no está confirmada). El usuario pidió una alternativa integrada que no rote la URL. Además, Perfil, Conectar agente, Conexiones, Conocimiento y Ajustes tenían bloques largos y mucho scroll.
+
+**Túnel a elección** (`brain_mcp/remote.py`, `brain_mcp/services.py`, `dashboard.py`):
+- `mode` acepta `tailscale` (Tailscale Funnel, URL fija `https://<compu>.<tailnet>.ts.net`, recomendado) y `ngrok` (dominio fijo de la cuenta), además de `quick` y `named`. Nuevos ajustes `ngrok_token` (por env `NGROK_AUTHTOKEN`, nunca en argv; `public()` solo dice `has_ngrok_token`) y `ngrok_domain`.
+- `tunnel_command`, `url_in`, `tunnel_url` por modo; `tool_path`/`missing_code`; `tailscale_path`/`tailscale_url` (`tailscale status --json`, cache 60 s); `ngrok_path`; `is_fatal`/`FATAL`.
+- brain no instala Tailscale ni ngrok: los detecta. Tailscale es una app del sistema con login; ngrok no publica checksums (misma regla que cloudflared: sin checksum no se instala).
+- `Tunnel`: `action_url` (Tailscale pide activar Funnel con un link y espera; no hay URL hasta entonces y el watchdog no lo reabre) y `fatal` (error que reintentar no arregla: el watchdog no reabre; Reintentar/`start()` lo limpia). `info()` los expone. Etiqueta del servicio: «Túnel».
+- `dashboard._remote_start` valida la herramienta del modo elegido; cambiar ajustes del túnel con el acceso prendido lo reabre o, si había fallado, lo vuelve a prender; el error de la tarjeta usa `fatal` si está.
+
+**Tarjeta de acceso remoto** (`dashboard.html`): dos columnas (estado/URL/seguridad · servicio del túnel). Cuatro opciones con su etiqueta (URL fija o no), «en uso», pasos de cada servicio, si está instalado (ruta), links de descarga, campos de ngrok y de Cloudflare con nombre, «Activar Funnel» cuando Tailscale lo pide, aviso del error fatal y botón Reintentar. Textos es/en.
+
+**Vistas en pestañas** (`dashboard.html`): componente genérico `.tabs[data-panes]` + `.pane`, `showPane()`, última pestaña en `brain-pane-<vista>`, `go("vista/pestaña")`. Perfil (Sobre vos · Tu memoria · Importar memoria; «Lo que brain sabe de vos» pasó a su propia tarjeta), Conectar agente (Apps y agentes · Por URL (nube) · Configuración manual · Mis conexiones), Conexiones (Tus conexiones · Agregar conexión con Composio al lado), Conocimiento (Buscar · Fuentes guardadas con «Guardar una URL») y Ajustes (General · Chat y modelos · Datos y backup · Familia WorkStudio · Apariencia). Contadores en las pestañas. El engranaje con actualización pendiente y los avisos de actualización abren Ajustes → General. `apps/desktop/src-tauri/src/lib.rs`: los ítems Notifications y Updates de la bandeja abren antes la pestaña General.
+
+**Otros**: `chat.APP_GUIDE` (es/en) con las pestañas y los servicios del túnel; README (tabla de servicios), SECURITY.md (credenciales de túneles por env, Tailscale/ngrok no se bajan, versión), docs (página Acceso remoto, privacidad, seguridad), landing y política de privacidad (ya no dicen solo Cloudflare), changelog. `VERSION` v0.03.4.2; Tauri/Cargo `0.3.4-2`.
+
+**Verificado**: `pytest -q tests` (nuevo `tests/test_v03402.py`: ajustes de ngrok, comandos sin secretos en argv, parseo de URLs, espera de Funnel, error fatal sin reintentos, proceso real con un `tailscale` falso, error `no_tailscale`), `scripts/check_site.py`, capturas de cada vista y pestaña con Playwright (1440 px y 390 px, sin errores de consola ni scroll horizontal). **No probado**: Tailscale y ngrok reales, el conector de Claude por esas URLs, y la app de escritorio compilada (el cambio en `lib.rs` es solo el texto JS de dos ítems; compila en el CI).

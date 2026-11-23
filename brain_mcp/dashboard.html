@@ -567,9 +567,30 @@
   .manual-form { grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 14px; }
   .manual-form > div { min-width: 0; }
   #log-tabs { max-width: 100%; overflow-x: auto; }
-  @media (max-width: 760px) { .remote-top { flex-direction: column; } .manual-form { grid-template-columns: 1fr; } }
+  .remote-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .remote-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .remote-provs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .remote-prov { text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 4px; padding: 10px 12px; cursor: pointer; display: grid; gap: 3px; font: inherit; }
+  .remote-prov b { font-size: 13.5px; }
+  .remote-prov span { font-size: 12px; color: var(--text-2); }
+  .remote-prov.on { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+  .remote-prov .remote-cur { font-family: "Courier Prime", ui-monospace, monospace; font-size: 11px; font-weight: 400; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); }
+  .remote-setup { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .remote-steps { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-2); display: grid; gap: 4px; }
+  .remote-setup .remote-row .muted { font-size: 13px; }
+  .remote-found { font-size: 12px; margin: 0; overflow-wrap: anywhere; }
+  .remote-found svg { width: 12px; height: 12px; vertical-align: -1px; }
+  @media (max-width: 1000px) { .remote-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .remote-top { flex-direction: column; } .manual-form { grid-template-columns: 1fr; } .remote-provs { grid-template-columns: 1fr; } }
+  /* pestañas dentro de una vista (data-panes): cada pestaña es un .pane hijo directo de la vista */
+  .tabs[data-panes] { margin-bottom: 16px; flex-wrap: wrap; max-width: 100%; }
+  .pane[hidden] { display: none !important; }
+  .pane:not(.grid) > .card + .card, .pane:not(.grid) > .grid + .card, .pane:not(.grid) > .card + .grid { margin-top: 16px; }
+  .remote-prov .remote-cur { margin-left: 6px; }
+  .pane-narrow { max-width: 860px; }
   /* "Sobre mí" automático */
   .auto-about { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
+  .auto-about.solo { margin-top: 0; border-top: 0; padding-top: 0; }
   .auto-about-h { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
   .auto-about-h .muted { font-size: 12px; }
   .auto-about-text { font-size: 13.5px; color: var(--text-2); white-space: pre-wrap; }
@@ -713,8 +734,12 @@
     <!-- PERFIL -->
     <section class="view" id="view-perfil">
       <header class="page"><div><h1 data-i18n="profile.title"></h1><p data-i18n="profile.sub"></p></div></header>
-      <div class="grid two">
-        <div class="grid" style="align-content:start">
+      <div class="tabs" data-panes="perfil" role="tablist">
+        <button class="tab" type="button" data-pane="about" data-i18n="profile.tabAbout"></button>
+        <button class="tab" type="button" data-pane="memory"><span data-i18n="profile.tabMemory"></span><span class="count" id="mem-count">0</span></button>
+        <button class="tab" type="button" data-pane="import" data-i18n="profile.tabImport"></button>
+      </div>
+      <div class="pane grid two" data-pane="about" style="align-items:start">
           <div class="card"><div class="card-h"><h2 data-i18n="profile.about"></h2><span class="sub">profile.md</span></div>
             <div class="card-b">
               <div class="profile-head"><div class="avatar" id="avatar">?</div><div><div class="n" id="p-name-view"></div><div class="h" id="p-head-view"></div></div></div>
@@ -725,16 +750,20 @@
                 <button class="btn primary" type="submit" id="p-save" data-i18n="profile.save"></button>
               </form>
               <div class="result" id="profile-result"></div>
-              <div class="auto-about" id="auto-about">
-                <div class="auto-about-h"><b data-i18n="profile.autoTitle"></b><span class="muted" id="auto-about-when"></span></div>
+              
+            </div></div>
+          <div class="card"><div class="card-h"><h2 data-i18n="profile.autoTitle"></h2><span class="sub" id="auto-about-when"></span></div>
+            <div class="card-b"><div class="auto-about solo" id="auto-about">
+                
                 <div class="auto-about-text" id="auto-about-text"></div>
                 <div class="auto-about-row">
                   <label class="check"><input type="checkbox" id="auto-about-on"> <span data-i18n="profile.autoOn"></span></label>
                   <button class="btn" type="button" id="auto-about-refresh" data-i18n="profile.autoRefresh"></button>
                 </div>
                 <p class="form-hint" style="margin:6px 0 0" data-i18n="profile.autoHint"></p>
-              </div>
-            </div></div>
+              </div></div></div>
+      </div>
+      <div class="pane grid two" data-pane="memory" style="align-items:start">
           <div class="card"><div class="card-h"><h2 data-i18n="mem.yours"></h2><span class="sub" id="mem-sub"></span></div>
             <div class="card-b">
               <input class="input full" id="mem-filter" style="margin-bottom:8px">
@@ -747,8 +776,9 @@
               <div class="result" id="reflect-result"></div>
               <div id="reflect-list" class="reflect-list"></div>
             </div></div>
-        </div>
-        <div class="card" style="align-self:start"><div class="card-h"><h2 data-i18n="mem.import"></h2><span class="sub" data-i18n="mem.importSub"></span></div>
+      </div>
+      <div class="pane pane-narrow" data-pane="import">
+        <div class="card"><div class="card-h"><h2 data-i18n="mem.import"></h2><span class="sub" data-i18n="mem.importSub"></span></div>
           <div class="card-b steps">
             <div><div class="step-t"><span class="step-n">1</span><span data-i18n="mem.step1"></span></div>
               <div class="seg" id="mem-source"></div></div>
@@ -771,23 +801,28 @@
     <!-- CONECTAR AGENTE -->
     <section class="view" id="view-agentes">
       <header class="page"><div><h1 data-i18n="agents.title"></h1><p data-i18n="agents.sub"></p></div></header>
-      <div class="tabs" id="agent-tabs">
-        <button class="tab active" data-tab="connect" data-i18n="agents.tabConnect"></button>
-        <button class="tab" data-tab="mine"><span data-i18n="agents.tabMine"></span><span class="count" id="agents-count">0</span></button>
+      <div class="tabs" data-panes="agentes" role="tablist">
+        <button class="tab" type="button" data-pane="apps" data-i18n="agents.tabApps"></button>
+        <button class="tab" type="button" data-pane="url" data-i18n="agents.tabUrl"></button>
+        <button class="tab" type="button" data-pane="manual" data-i18n="agents.tabManual"></button>
+        <button class="tab" type="button" data-pane="mine"><span data-i18n="agents.tabMine"></span><span class="count" id="agents-count">0</span></button>
       </div>
-      <div id="agents-connect">
+      <div class="pane" data-pane="apps">
         <div class="section-title" data-i18n="agents.desktop"></div>
         <div class="grid agents" id="agents-desktop"></div>
         <div class="section-title" data-i18n="agents.others"></div>
         <div class="grid agents" id="agents-other"></div>
-        <div class="section-title" id="remote-section" data-i18n="agents.remoteSection"></div>
+      </div>
+      <div class="pane" data-pane="url">
         <div class="card remote-card" id="remote-card"></div>
-        <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="agents.manualTitle"></h2><span class="sub" data-i18n="agents.manualSub"></span></div>
+      </div>
+      <div class="pane" data-pane="manual">
+        <div class="card"><div class="card-h"><h2 data-i18n="agents.manualTitle"></h2><span class="sub" data-i18n="agents.manualSub"></span></div>
           <div class="card-b"><p class="muted" style="margin:0 0 10px;font-size:13px" data-i18n="agents.manualText"></p><div id="agents-manual"></div></div></div>
       </div>
-      <div id="agents-mine" hidden>
+      <div class="pane grid two" data-pane="mine" style="align-items:start">
         <div class="card"><div class="card-b" id="agents-list"></div></div>
-        <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="agents.addManualTitle"></h2><span class="sub" data-i18n="agents.addManualSub"></span></div>
+        <div class="card"><div class="card-h"><h2 data-i18n="agents.addManualTitle"></h2><span class="sub" data-i18n="agents.addManualSub"></span></div>
           <div class="card-b">
             <p class="muted" style="margin:0 0 10px;font-size:13px" data-i18n="agents.addManualText"></p>
             <form id="client-add-form" class="form-row" autocomplete="off">
@@ -801,13 +836,16 @@
     <!-- CONEXIONES -->
     <section class="view" id="view-conexiones">
       <header class="page"><div><h1 data-i18n="conn.title"></h1><p data-i18n="conn.sub"></p></div></header>
-      <div class="grid two" style="align-items:start">
-        <div class="grid" style="align-content:start">
-          <div class="card"><div class="card-h"><h2 data-i18n="conn.yours"></h2><span class="sub" id="conn-count"></span></div>
+      <div class="tabs" data-panes="conexiones" role="tablist">
+        <button class="tab" type="button" data-pane="list"><span data-i18n="conn.tabList"></span><span class="count" id="conn-tab-count">0</span></button>
+        <button class="tab" type="button" data-pane="add" id="conn-tab-add" data-i18n="conn.tabAdd"></button>
+      </div>
+      <div class="pane" data-pane="list">
+        <div class="card"><div class="card-h"><h2 data-i18n="conn.yours"></h2><span class="sub" id="conn-count"></span></div>
             <div class="card-b"><div class="conns-list" id="conns"></div></div></div>
-        </div>
-        <div class="grid" style="align-content:start">
-          <div class="card" id="conn-form-card"><div class="card-h"><h2 id="conn-form-title"></h2><span class="sub" data-i18n="conn.formSub"></span></div>
+      </div>
+      <div class="pane grid two" data-pane="add" style="align-items:start">
+        <div class="card" id="conn-form-card"><div class="card-h"><h2 id="conn-form-title"></h2><span class="sub" data-i18n="conn.formSub"></span></div>
             <div class="card-b">
               <div class="seg" id="conn-kind" style="margin-bottom:14px">
                 <button type="button" data-kind="stdio" class="on" data-i18n="conn.kindStdio"></button>
@@ -828,7 +866,7 @@
               </form>
               <div class="result" id="conn-result"></div>
             </div></div>
-          <div class="card"><div class="card-h"><h2>Composio</h2><span class="sub" data-i18n="conn.optional"></span></div>
+        <div class="card"><div class="card-h"><h2>Composio</h2><span class="sub" data-i18n="conn.optional"></span></div>
             <div class="card-b">
               <div class="notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg><span data-i18n="conn.composioNote"></span></div>
               <form id="cmp-form" class="form-grid" style="margin-top:14px" autocomplete="off">
@@ -844,7 +882,6 @@
               <div id="cmp-apps"></div>
               <div class="result" id="cmp-result"></div>
             </div></div>
-        </div>
       </div>
     </section>
 
@@ -858,16 +895,11 @@
     <!-- CONOCIMIENTO -->
     <section class="view" id="view-conocimiento">
       <header class="page"><div><h1 data-i18n="know.title"></h1><p data-i18n="know.sub"></p></div></header>
-      <div class="grid two">
-        <div class="card"><div class="card-h"><h2 data-i18n="know.save"></h2><span class="sub" data-i18n="know.saveSub"></span></div>
-          <div class="card-b">
-            <form id="save-form" class="form-row">
-              <input class="input" id="save-url" type="url" placeholder="https://…" required>
-              <button class="btn primary" id="save-btn" type="submit" data-i18n="know.saveBtn"></button>
-            </form>
-            <label class="check" style="margin-top:10px"><input type="checkbox" id="save-js"> <span data-i18n="know.forceJs"></span></label>
-            <div class="result" id="save-result"></div>
-          </div></div>
+      <div class="tabs" data-panes="conocimiento" role="tablist">
+        <button class="tab" type="button" data-pane="search" data-i18n="know.tabSearch"></button>
+        <button class="tab" type="button" data-pane="sources"><span data-i18n="know.tabSources"></span><span class="count" id="sources-count">0</span></button>
+      </div>
+      <div class="pane" data-pane="search">
         <div class="card"><div class="card-h"><h2 data-i18n="know.search"></h2><span class="sub" data-i18n="know.searchSub"></span></div>
           <div class="card-b">
             <form id="search-form" class="form-row">
@@ -880,11 +912,22 @@
             <div class="result" id="reindex-result"></div>
           </div></div>
       </div>
-      <div class="card" style="margin-top:16px"><div class="card-h"><h2 data-i18n="know.sources"></h2><span class="sub" id="sources-sub"></span></div>
+      <div class="pane" data-pane="sources">
+        <div class="card"><div class="card-h"><h2 data-i18n="know.save"></h2><span class="sub" data-i18n="know.saveSub"></span></div>
+          <div class="card-b">
+            <form id="save-form" class="form-row">
+              <input class="input" id="save-url" type="url" placeholder="https://…" required>
+              <button class="btn primary" id="save-btn" type="submit" data-i18n="know.saveBtn"></button>
+            </form>
+            <label class="check" style="margin-top:10px"><input type="checkbox" id="save-js"> <span data-i18n="know.forceJs"></span></label>
+            <div class="result" id="save-result"></div>
+          </div></div>
+        <div class="card"><div class="card-h"><h2 data-i18n="know.sources"></h2><span class="sub" id="sources-sub"></span></div>
         <div class="card-b">
           <div class="src-bar"><button class="btn" type="button" id="refresh-all" data-i18n="know.refreshAll"></button><span class="muted mono" id="refresh-all-st"></span></div>
           <div id="sources"></div>
         </div></div>
+      </div>
     </section>
 
     <!-- FACT CHECK -->
@@ -985,9 +1028,16 @@
     <!-- AJUSTES -->
     <section class="view" id="view-ajustes">
       <header class="page"><div><h1 data-i18n="settings.title"></h1><p data-i18n="settings.sub"></p></div></header>
-      <div class="grid two">
+      <div class="tabs" data-panes="ajustes" role="tablist">
+        <button class="tab" type="button" data-pane="general" data-i18n="settings.tabGeneral"></button>
+        <button class="tab" type="button" data-pane="chat" data-i18n="settings.tabChat"></button>
+        <button class="tab" type="button" data-pane="data" data-i18n="settings.tabData"></button>
+        <button class="tab" type="button" data-pane="family" data-i18n="settings.tabFamily"></button>
+        <button class="tab" type="button" data-pane="look" data-i18n="settings.tabLook"></button>
+      </div>
+      <div class="pane grid two" data-pane="general">
         <div class="grid" style="align-content:start">
-          <div class="card"><div class="card-h"><h2 data-i18n="settings.version"></h2><span class="sub mono" id="ver-current"></span></div>
+<div class="card"><div class="card-h"><h2 data-i18n="settings.version"></h2><span class="sub mono" id="ver-current"></span></div>
             <div class="card-b">
               <div class="update-note" id="update-note" hidden></div>
               <div class="update-diag" id="update-diag" hidden></div>
@@ -998,52 +1048,7 @@
               </div>
               <div class="result" id="update-result"></div>
             </div></div>
-          <div class="card"><div class="card-h"><h2 data-i18n="settings.sidebar"></h2><span class="sub" data-i18n="settings.sidebarSub"></span></div>
-            <div class="card-b">
-              <ul class="nav-order" id="nav-order"></ul>
-              <button class="btn" type="button" id="nav-reset" data-i18n="settings.navReset" style="margin-top:12px"></button>
-            </div></div>
-          <div class="card"><div class="card-h"><h2 data-i18n="settings.chat"></h2><span class="sub" data-i18n="settings.chatSub"></span></div>
-            <div class="card-b">
-              <label class="code-label" for="default-model" data-i18n="settings.defaultModel"></label>
-              <select class="input full" id="default-model" style="margin-top:6px"></select>
-              <p class="form-hint" id="default-model-hint"></p>
-            </div></div>
-          <div class="card" id="ctx-card"><div class="card-h"><h2 data-i18n="settings.ctx"></h2><span class="sub" data-i18n="settings.ctxSub"></span></div>
-            <div class="card-b">
-              <p class="form-hint" style="margin-top:0" data-i18n="settings.ctxHint"></p>
-              <div class="ctx-modes" role="radiogroup">
-                <label class="check"><input type="radio" name="ctx-mode" value="cap"> <span data-i18n="settings.ctxCap"></span></label>
-                <span class="ctx-cap-row"><input class="input mono" id="ctx-cap" type="number" step="1024"> <span class="muted mono" id="ctx-cap-k"></span></span>
-                <label class="check"><input type="radio" name="ctx-mode" value="max"> <span data-i18n="settings.ctxMax"></span></label>
-              </div>
-              <div class="ctx-wrap"><table class="ctx-table" id="ctx-table"></table></div>
-              <p class="form-hint" id="ctx-note"></p>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-                <button class="btn primary" type="button" id="ctx-save" data-i18n="settings.ctxSave"></button>
-                <button class="btn" type="button" id="ctx-reset" data-i18n="settings.ctxReset"></button>
-              </div>
-              <div class="result" id="ctx-result"></div>
-            </div></div>
-        </div>
-        <div class="grid" style="align-content:start">
-          <div class="card"><div class="card-h"><h2 data-i18n="settings.system"></h2><span class="sub" data-i18n="settings.systemSub"></span></div>
-            <div class="card-b">
-              <p class="form-hint" style="margin-top:0" data-i18n="settings.systemHint"></p>
-              <textarea class="input full" id="system-prompt" rows="6" maxlength="4000"></textarea>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
-                <button class="btn primary" type="button" id="system-save" data-i18n="settings.systemSave"></button>
-                <button class="btn" type="button" id="system-clear" data-i18n="settings.systemClear"></button>
-                <span class="muted mono" id="system-count" style="margin-left:auto;font-size:12px"></span>
-              </div>
-              <div class="result" id="system-result"></div>
-              <details class="app-ctx" id="app-ctx">
-                <summary><span data-i18n="settings.appCtx"></span> <span class="muted" data-i18n="settings.appCtxSub"></span></summary>
-                <p class="form-hint" data-i18n="settings.appCtxHint"></p>
-                <pre class="mono app-ctx-text" id="app-ctx-text"></pre>
-              </details>
-            </div></div>
-          <div class="card" id="handoff-card" hidden><div class="card-h"><h2 data-i18n="settings.hoTitle"></h2><span class="sub" data-i18n="settings.hoSub"></span></div>
+<div class="card" id="handoff-card" hidden><div class="card-h"><h2 data-i18n="settings.hoTitle"></h2><span class="sub" data-i18n="settings.hoSub"></span></div>
             <div class="card-b">
               <p class="form-hint" style="margin-top:0" id="ho-hint"></p>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -1052,7 +1057,9 @@
               </div>
               <div class="result" id="ho-result"></div>
             </div></div>
-          <div class="card" id="notify-card"><div class="card-h"><h2 data-i18n="settings.notify"></h2><span class="sub" data-i18n="settings.notifySub"></span></div>
+        </div>
+        <div class="grid" style="align-content:start">
+<div class="card" id="notify-card"><div class="card-h"><h2 data-i18n="settings.notify"></h2><span class="sub" data-i18n="settings.notifySub"></span></div>
             <div class="card-b">
               <p class="form-hint" style="margin-top:0" id="notify-hint" data-i18n="settings.notifyHint"></p>
               <label class="check"><input type="checkbox" id="notify-on"> <span data-i18n="settings.notifyOn"></span></label>
@@ -1077,7 +1084,67 @@
               </div>
               <div class="result" id="notify-result"></div>
             </div></div>
-          <div class="card" id="backup-card"><div class="card-h"><h2 data-i18n="settings.backup"></h2><span class="sub" data-i18n="settings.backupSub"></span></div>
+        </div>
+      </div>
+      <div class="pane grid two" data-pane="chat">
+        <div class="grid" style="align-content:start">
+<div class="card"><div class="card-h"><h2 data-i18n="settings.chat"></h2><span class="sub" data-i18n="settings.chatSub"></span></div>
+            <div class="card-b">
+              <label class="code-label" for="default-model" data-i18n="settings.defaultModel"></label>
+              <select class="input full" id="default-model" style="margin-top:6px"></select>
+              <p class="form-hint" id="default-model-hint"></p>
+            </div></div>
+<div class="card" id="ctx-card"><div class="card-h"><h2 data-i18n="settings.ctx"></h2><span class="sub" data-i18n="settings.ctxSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.ctxHint"></p>
+              <div class="ctx-modes" role="radiogroup">
+                <label class="check"><input type="radio" name="ctx-mode" value="cap"> <span data-i18n="settings.ctxCap"></span></label>
+                <span class="ctx-cap-row"><input class="input mono" id="ctx-cap" type="number" step="1024"> <span class="muted mono" id="ctx-cap-k"></span></span>
+                <label class="check"><input type="radio" name="ctx-mode" value="max"> <span data-i18n="settings.ctxMax"></span></label>
+              </div>
+              <div class="ctx-wrap"><table class="ctx-table" id="ctx-table"></table></div>
+              <p class="form-hint" id="ctx-note"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="ctx-save" data-i18n="settings.ctxSave"></button>
+                <button class="btn" type="button" id="ctx-reset" data-i18n="settings.ctxReset"></button>
+              </div>
+              <div class="result" id="ctx-result"></div>
+            </div></div>
+        </div>
+        <div class="grid" style="align-content:start">
+<div class="card"><div class="card-h"><h2 data-i18n="settings.system"></h2><span class="sub" data-i18n="settings.systemSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.systemHint"></p>
+              <textarea class="input full" id="system-prompt" rows="6" maxlength="4000"></textarea>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="system-save" data-i18n="settings.systemSave"></button>
+                <button class="btn" type="button" id="system-clear" data-i18n="settings.systemClear"></button>
+                <span class="muted mono" id="system-count" style="margin-left:auto;font-size:12px"></span>
+              </div>
+              <div class="result" id="system-result"></div>
+              <details class="app-ctx" id="app-ctx">
+                <summary><span data-i18n="settings.appCtx"></span> <span class="muted" data-i18n="settings.appCtxSub"></span></summary>
+                <p class="form-hint" data-i18n="settings.appCtxHint"></p>
+                <pre class="mono app-ctx-text" id="app-ctx-text"></pre>
+              </details>
+            </div></div>
+<div class="card" id="lmstudio-card"><div class="card-h"><h2 data-i18n="settings.lmTitle"></h2><span class="sub" data-i18n="settings.lmSub"></span></div>
+            <div class="card-b">
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.lmHint"></p>
+              <label class="check"><input type="checkbox" id="lm-enabled"> <span data-i18n="settings.lmOn"></span></label>
+              <label class="code-label" for="lm-url" data-i18n="settings.lmUrl"></label>
+              <input class="input full mono" id="lm-url" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:1234" style="margin-top:6px">
+              <p class="form-hint" id="lm-status"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="button" id="lm-save" data-i18n="settings.lmSave"></button>
+              </div>
+              <div class="result" id="lm-result"></div>
+            </div></div>
+        </div>
+      </div>
+      <div class="pane grid two" data-pane="data">
+        <div class="grid" style="align-content:start">
+<div class="card" id="backup-card"><div class="card-h"><h2 data-i18n="settings.backup"></h2><span class="sub" data-i18n="settings.backupSub"></span></div>
             <div class="card-b">
               <p class="form-hint" style="margin-top:0" data-i18n="settings.backupHint"></p>
               <label class="check"><input type="checkbox" id="backup-secrets"> <span data-i18n="settings.backupSecrets"></span></label>
@@ -1125,19 +1192,21 @@
               <div class="result" id="backup-result"></div>
               <ul class="backup-list" id="backup-list"></ul>
             </div></div>
-          <div class="card" id="lmstudio-card"><div class="card-h"><h2 data-i18n="settings.lmTitle"></h2><span class="sub" data-i18n="settings.lmSub"></span></div>
+        </div>
+        <div class="grid" style="align-content:start">
+<div class="card" id="format-card"><div class="card-h"><h2 data-i18n="settings.format"></h2><span class="sub" data-i18n="settings.formatSub"></span></div>
             <div class="card-b">
-              <p class="form-hint" style="margin-top:0" data-i18n="settings.lmHint"></p>
-              <label class="check"><input type="checkbox" id="lm-enabled"> <span data-i18n="settings.lmOn"></span></label>
-              <label class="code-label" for="lm-url" data-i18n="settings.lmUrl"></label>
-              <input class="input full mono" id="lm-url" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:1234" style="margin-top:6px">
-              <p class="form-hint" id="lm-status"></p>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-                <button class="btn primary" type="button" id="lm-save" data-i18n="settings.lmSave"></button>
+              <p class="form-hint" style="margin-top:0" data-i18n="settings.formatHint"></p>
+              <p class="muted" style="font-size:13px;margin:0" id="format-missing"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn" type="button" id="format-run" data-i18n="settings.formatRun"></button>
               </div>
-              <div class="result" id="lm-result"></div>
+              <div class="result" id="format-result"></div>
             </div></div>
-          <div class="card" id="family-card"><div class="card-h"><h2 data-i18n="settings.famTitle"></h2><span class="sub" data-i18n="settings.famSub"></span></div>
+        </div>
+      </div>
+      <div class="pane pane-narrow" data-pane="family" style="max-width:1000px">
+        <div class="card" id="family-card"><div class="card-h"><h2 data-i18n="settings.famTitle"></h2><span class="sub" data-i18n="settings.famSub"></span></div>
             <div class="card-b">
               <p class="form-hint" style="margin-top:0" data-i18n="settings.famHint"></p>
               <ul class="fam-apps" id="fam-list"></ul>
@@ -1153,16 +1222,17 @@
               </div>
               <div class="result" id="fam-result"></div>
             </div></div>
-          <div class="card" id="format-card"><div class="card-h"><h2 data-i18n="settings.format"></h2><span class="sub" data-i18n="settings.formatSub"></span></div>
+      </div>
+      <div class="pane grid two" data-pane="look">
+        <div class="grid" style="align-content:start">
+<div class="card"><div class="card-h"><h2 data-i18n="settings.sidebar"></h2><span class="sub" data-i18n="settings.sidebarSub"></span></div>
             <div class="card-b">
-              <p class="form-hint" style="margin-top:0" data-i18n="settings.formatHint"></p>
-              <p class="muted" style="font-size:13px;margin:0" id="format-missing"></p>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-                <button class="btn" type="button" id="format-run" data-i18n="settings.formatRun"></button>
-              </div>
-              <div class="result" id="format-result"></div>
+              <ul class="nav-order" id="nav-order"></ul>
+              <button class="btn" type="button" id="nav-reset" data-i18n="settings.navReset" style="margin-top:12px"></button>
             </div></div>
-        <div class="card"><div class="card-h"><h2 data-i18n="settings.graphColors"></h2></div>
+        </div>
+        <div class="grid" style="align-content:start">
+<div class="card"><div class="card-h"><h2 data-i18n="settings.graphColors"></h2></div>
           <div class="card-b">
             <p class="form-hint" style="margin:0 0 12px" data-i18n="settings.graphHint"></p>
             <div class="color-grid" id="color-grid"></div>
@@ -1210,7 +1280,7 @@ const I18N = {
       running: p => `Obsidian está abierto y todavía no conoce este vault: cerralo y volvé a tocar «Abrir en Obsidian» (brain lo agrega a su lista con la app cerrada). O, con Obsidian abierto, elegí «Open folder as vault» y esta carpeta:\n\n${p}`,
       tryAnyway: "Probar igual", badConfig: "No pude leer la config de Obsidian:" },
     nav: { panel: "Panel", chat: "Chat", profile: "Perfil", agents: "Conectar agente", connections: "Conexiones", graph: "Grafo", knowledge: "Conocimiento", factcheck: "Fact check", prompts: "Prompts", logs: "Logs", obsidian: "Abrir en Obsidian" },
-    conn: { proposed: "Propuesta", needsKeys: "pide", propAdd: "Agregar", propDiscard: "Descartar",
+    conn: { tabList: "Tus conexiones", tabAdd: "Agregar conexión", proposed: "Propuesta", needsKeys: "pide", propAdd: "Agregar", propDiscard: "Descartar",
       propWarn: "Un agente propuso esta conexión. Se va a ejecutar este comando en tu máquina: agregala solo si confiás en el paquete.",
       needsAuth: "Este servicio pide que inicies sesión para dar acceso a brain.", login: "Iniciar sesión", signedIn: "Sesión iniciada",
       signout: "Cerrar sesión", loginWaiting: "Terminá de iniciar sesión en la pestaña que se abrió…", loginOk: n => `Listo: ${n} tools disponibles.`,
@@ -1236,7 +1306,7 @@ const I18N = {
         composio_not_configured: "Cargá primero la API key de Composio.", composio_no_user: "Cargá el User ID de Composio.",
         composio_nothing_selected: "Elegí al menos una app.", composio_consumer_key: "Con una consumer key (ck_) no hace falta elegir apps: ya vienen las que conectaste en Composio.", composio_unreachable: "No se pudo contactar a Composio:", composio_http: "Composio respondió con un error:", other: "Error" } },
     agents: { title: "Conectar agente", sub: "Conectá brain a Claude, ChatGPT u otros agentes e IAs para que usen tu memoria y tus notas",
-      tabConnect: "Conectar", tabMine: "Mis conexiones", desktop: "Apps de escritorio", others: "Otros agentes e IAs",
+      tabConnect: "Conectar", tabApps: "Apps y agentes", tabUrl: "Por URL (nube)", tabManual: "Configuración manual", tabMine: "Mis conexiones", desktop: "Apps de escritorio", others: "Otros agentes e IAs",
       connected: "Conectado", notConnected: "No conectado", notInstalled: "No instalado", elsewhere: "Apunta a otra carpeta",
       connect: "Conectar", disconnect: "Desconectar", reconnect: "Reconectar", config: "Config",
       sharesWith: n => `Comparte la configuración con ${n}.`,
@@ -1277,7 +1347,7 @@ const I18N = {
         "Cuando Manus use brain por primera vez, esta tarjeta pasa a «Detectado»."],
       manualTitle: "Cualquier otro cliente MCP", manualSub: "configuración manual",
       manualText: "Si tu agente o IA soporta servers MCP locales (stdio), agregá brain con alguno de estos formatos. Usan paths absolutos, así que funcionan desde cualquier carpeta.",
-      formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» y completá cada campo con estos valores. Si la app solo acepta una URL, usá el acceso remoto de arriba.",
+      formLabel: "Apps con formulario «Add MCP server»", formHint: "Elegí «Run a command» y completá cada campo con estos valores. Si la app solo acepta una URL, usá la pestaña «Por URL (nube)».",
       fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (uno por línea)", fEnv: "Environment", fEnvEmpty: "(vacío: no hace falta nada)",
       installPath: p => `Estos valores son los de esta instalación de brain (${p}) y se adaptan solos a la carpeta y al usuario de cada Mac.`,
       jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini, OpenMausBot y la mayoría)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Comando", copy: "Copiar", copied: "Copiado ✓",
@@ -1319,7 +1389,7 @@ const I18N = {
         agents: "Al menos un agente conectado" },
       hints: { ollama: "Prendé el switch de Ollama o abrí la app", chroma: "Prendé el switch de Chroma", agents: "Conectalo desde Conectar agente" } },
     recent: { title: "Últimos cambios", sub: "historial del vault", none: "Sin cambios todavía" },
-    profile: { title: "Perfil", sub: "Contexto sobre vos y la memoria que Claude usa para conocerte", about: "Sobre vos",
+    profile: { tabAbout: "Sobre vos", tabMemory: "Tu memoria", tabImport: "Importar memoria", title: "Perfil", sub: "Contexto sobre vos y la memoria que Claude usa para conocerte", about: "Sobre vos",
       autoTitle: "Lo que brain sabe de vos", autoOn: "Actualizar solo con lo que va aprendiendo", autoRefresh: "Actualizar ahora",
       autoHint: "Un resumen de tu memoria que se reescribe solo cada vez que un agente, el chat o vos suman, cambian o borran un recuerdo. Va al final de profile.md, así lo leen todos tus agentes; tu texto de arriba nunca se toca.",
       autoNone: "Todavía no hay memorias para resumir.", autoOff: "Apagado.", autoWhen: w => `actualizado ${w}`, autoBusy: "Actualizando…", autoStale: "actualizándose…",
@@ -1395,7 +1465,7 @@ const I18N = {
       block: "No usar este dominio", blockConfirm: d => `¿No volver a usar ${d} en Fact check?`, blocked: d => `${d} quedó bloqueado.`,
       err: { empty: "Escribí algo para verificar.", no_brave_key: "Falta la clave de Brave Search API.", no_searxng: "Falta la URL de tu SearXNG.", bad_searxng: "La URL de SearXNG tiene que empezar con http:// o https://.", no_connection_tool: "Elegí qué tool de tus Conexiones usar.", bad_connection_args: "Los argumentos fijos tienen que ser un objeto JSON, por ejemplo {\"projectId\": \"abc\"}." } },
     graph: { title: "Grafo", sub: "Cómo se conectan perfil, memoria, proyectos, skills, fuentes, tags y entidades" },
-    know: { title: "Conocimiento", sub: "Guardar URLs y buscar en lo scrapeado", save: "Guardar una URL", saveSub: "scrapea, indexa y crea el .md",
+    know: { tabSearch: "Buscar", tabSources: "Fuentes guardadas", title: "Conocimiento", sub: "Guardar URLs y buscar en lo scrapeado", save: "Guardar una URL", saveSub: "scrapea, indexa y crea el .md",
       saveBtn: "Guardar", forceJs: "Forzar render con JS (Playwright)", working: "Scrapeando e indexando… (con Playwright puede tardar unos segundos)",
       search: "Buscar", searchSub: "semántica + por palabra", searchBtn: "Buscar", searchPh: "¿Qué querés encontrar?", searching: "Buscando…",
       kw: "por palabra", semDown: "La búsqueda semántica no está disponible (¿Ollama o Chroma apagados?): solo resultados por palabra exacta.",
@@ -1425,7 +1495,7 @@ const I18N = {
     theme: { system: "Tema: sistema", light: "Tema: claro", dark: "Tema: oscuro" },
     langTitle: "Cambiar idioma a inglés",
     side: { collapse: "Plegar el menú", expand: "Desplegar el menú" },
-    settings: { title: "Ajustes", sub: "Versión, sidebar, chat, notificaciones, backup, formato de las notas y colores del grafo.",
+    settings: { tabGeneral: "General", tabChat: "Chat y modelos", tabData: "Datos y backup", tabFamily: "Familia WorkStudio", tabLook: "Apariencia", title: "Ajustes", sub: "Versión, notificaciones, chat, backup, la familia WorkStudio y cómo se ve brain.",
       famTitle: "Familia WorkStudio", famSub: "AI WorkStudio · brain · OpenCue · Lumina · OpenBlocks",
       famHint: "brain trabaja con las otras apps de la familia que tengas instaladas, sin copiar sus datos: los agentes de OpenCue aparecen en el selector de modelo del chat, el botón + del chat busca en Lumina y en OpenBlocks, y los agentes conectados a brain tienen las tools lumina_search y openblocks_search. Con AI WorkStudio instalado, todas quedan juntas en su hub.",
       famAgents: "Mostrar los agentes de OpenCue en el selector del chat", famLumina: "URL de Lumina (solo esta compu)",
@@ -1541,8 +1611,20 @@ const I18N = {
       appTray: "Al cerrar la ventana, dejar brain en la barra de menú o la bandeja" },
     dlg: { cancel: "Cancelar", del: "Borrar", remove: "Quitar", restart: "Cerrar y conectar", disconnect: "Desconectar" },
     info: { title: "Servicios", manage: "Administrar en el Panel", err: "Hay un servicio con error" },
-    remote: { title: "Acceso remoto por URL", sub: "túnel de Cloudflare",
-      text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Manus en la web, Claude.ai → Conectores, ChatGPT en modo desarrollador…). Usa un túnel de Cloudflare: no abre puertos en tu router.",
+    remote: { title: "Acceso remoto por URL", sub: "Tailscale, ngrok o Cloudflare",
+      text: "Publica el server MCP de brain en una URL de internet, así se conectan agentes que corren en la nube o en otra computadora (Claude.ai → Conectores, Manus en la web, ChatGPT en modo desarrollador…). Ningún servicio abre puertos en tu router.",
+      svc: "Servicio del túnel", use: "Usar este servicio", current: "en uso", retry: "Reintentar",
+      fixed: "URL fija", changes: "la URL cambia al reiniciar",
+      prov: { tailscale: { name: "Tailscale Funnel", tag: "URL fija · gratis · recomendado" }, ngrok: { name: "ngrok", tag: "URL fija · gratis con cuenta" },
+        quick: { name: "Cloudflare rápido", tag: "sin cuenta · la URL cambia" }, named: { name: "Cloudflare con nombre", tag: "tu dominio · URL fija" } },
+      tsSteps: ["Instalá Tailscale y entrá con tu cuenta (es gratis).", "Elegí Tailscale acá y prendé el acceso remoto. La primera vez Tailscale te pide activar Funnel con un link.", "Tu URL queda fija para siempre: la pegás una vez en Claude y listo."],
+      tsDownload: "Bajar Tailscale", tsMissing: "No encontré Tailscale en esta compu.", tsWillBe: u => `Tu URL va a ser ${u}/… y no cambia.`,
+      tsAction: "Tailscale necesita que actives Funnel (y HTTPS) en tu tailnet. Abrí el link, activalo y brain sigue solo.", tsActionBtn: "Activar Funnel",
+      tsLinux: "En Linux, si aparece «Access denied», corré una vez en la terminal: sudo tailscale set --operator=$USER",
+      ngSteps: ["Creá una cuenta gratis en ngrok.com e instalá ngrok (brew install ngrok · winget install ngrok.ngrok · snap install ngrok).", "Copiá tu authtoken (dashboard.ngrok.com → Your Authtoken) y pegalo acá. También sirve el comando entero «ngrok config add-authtoken …».", "Opcional: tu dominio fijo (dashboard.ngrok.com → Domains). Sin él, ngrok usa el dominio gratis de tu cuenta."],
+      ngDownload: "Bajar ngrok", ngMissing: "No encontré ngrok en esta compu.", ngToken: "Authtoken de ngrok", ngDomain: "Dominio (opcional, ej. algo.ngrok-free.app)",
+      fatalHint: { tailscale: "Tailscale no pudo abrir el Funnel: revisá que la app esté abierta y con la sesión iniciada (en Linux puede faltar el permiso de operador). Después tocá Reintentar.",
+        ngrok: "ngrok rechazó la conexión: revisá el authtoken y el dominio, y que no haya otro ngrok abierto con la misma cuenta. Después tocá Reintentar." },
       on: "Prender", off: "Apagar", st: { off: "Apagado", starting: "Abriendo el túnel…", reconnecting: "Reconectando…", on: "Publicado", error: "Error" },
       reconnect: "Reconectar", reconnecting: "Reabriendo el túnel…",
       test: "Probar la URL", testing: "Probando la URL pública…", testOk: (n, ms) => `Anda: la URL contesta como un agente remoto (${n} tools, ${ms} ms).`,
@@ -1558,7 +1640,7 @@ const I18N = {
       warn: "La URL lleva un token secreto: quien la tenga puede leer y, si no está en solo lectura, cambiar tu vault. Tratala como una contraseña.",
       readOnly: "Solo lectura (los agentes por URL pueden leer y buscar, pero no escribir, borrar ni usar tus conexiones)",
       regenerate: "Generar otra URL", regenConfirm: "¿Generar una URL nueva? La actual deja de funcionar en el acto: vas a tener que pegar la nueva en cada agente.", regenerated: "Listo: URL nueva. La anterior ya no funciona.",
-      quickNote: "Sin cuenta de Cloudflare la URL es *.trycloudflare.com y cambia cada vez que se prende. Para una fija, usá tu cuenta:",
+      quickNote: "Sin cuenta: la URL es *.trycloudflare.com y cambia cada vez que se prende. Claude en la nube no logró conectarse por estas URLs: para Claude usá Tailscale o ngrok.",
       adv: "URL fija con tu cuenta de Cloudflare", mode: "Tipo de túnel", modeQuick: "Rápido (sin cuenta, la URL cambia)", modeNamed: "Con nombre (tu cuenta, URL fija)",
       namedHelp: "En Cloudflare: Zero Trust → Networks → Tunnels → Create a tunnel (cloudflared). Copiá el token y, en Public Hostname, apuntá tu dominio a http://localhost:{port}.",
       hostname: "Hostname público (ej. brain.tudominio.com)", tunnelToken: "Token del túnel", tokenSaved: "guardado: dejalo vacío para conservarlo",
@@ -1566,7 +1648,9 @@ const I18N = {
       noCf: "Falta cloudflared, el programa de Cloudflare que abre el túnel.", install: "Instalar cloudflared", installing: "Bajando cloudflared del release oficial y verificando su SHA256…",
       installed: "cloudflared instalado.", cfAt: p => `cloudflared: ${p}`,
       local: "Local (sin túnel)", logs: "Logs",
-      err: { no_url: "Todavía no hay una URL pública: prendé el acceso remoto y esperá a que abra el túnel.", no_cloudflared: "Falta cloudflared: instalalo con el botón.", named_incomplete: "Para el túnel con nombre hacen falta el hostname y el token.",
+      err: { no_url: "Todavía no hay una URL pública: prendé el acceso remoto y esperá a que abra el túnel.", no_cloudflared: "Falta cloudflared: instalalo con el botón.",
+        no_tailscale: "Falta Tailscale: instalalo y entrá con tu cuenta (o elegí otro servicio).", no_ngrok: "Falta ngrok: instalalo (o elegí otro servicio).",
+        bad_ngrok_token: "Ese no parece un authtoken de ngrok.", bad_ngrok_domain: "Ese dominio no es válido.", named_incomplete: "Para el túnel con nombre hacen falta el hostname y el token.",
         bad_hostname: "Ese hostname no es válido.", bad_tunnel_token: "Ese token no parece un token de túnel de Cloudflare.", bad_mode: "Tipo de túnel desconocido.",
         no_checksum: "No pude leer el SHA256 publicado por Cloudflare, así que no instalé nada. Probá más tarde o instalalo vos (brew install cloudflared / winget install Cloudflare.cloudflared).",
         checksum: "El archivo bajado no coincide con el SHA256 publicado: no se instaló.", download: "No se pudo bajar cloudflared:", unsupported_os: "Sistema no soportado:",
@@ -1579,7 +1663,7 @@ const I18N = {
       running: p => `Obsidian is open and doesn't know this vault yet: close it and click "Open in Obsidian" again (brain adds it to the list while the app is closed). Or, with Obsidian open, choose "Open folder as vault" and this folder:\n\n${p}`,
       tryAnyway: "Try anyway", badConfig: "I couldn't read Obsidian's settings:" },
     nav: { panel: "Dashboard", chat: "Chat", profile: "Profile", agents: "Connect agent", connections: "Connections", graph: "Graph", knowledge: "Knowledge", factcheck: "Fact check", prompts: "Prompts", logs: "Logs", obsidian: "Open in Obsidian" },
-    conn: { proposed: "Proposed", needsKeys: "needs", propAdd: "Add", propDiscard: "Discard",
+    conn: { tabList: "Your connections", tabAdd: "Add connection", proposed: "Proposed", needsKeys: "needs", propAdd: "Add", propDiscard: "Discard",
       propWarn: "An agent proposed this connection. This command will run on your machine: only add it if you trust the package.",
       needsAuth: "This service asks you to sign in to give brain access.", login: "Sign in", signedIn: "Signed in",
       signout: "Sign out", loginWaiting: "Finish signing in in the tab that opened…", loginOk: n => `Done: ${n} tools available.`,
@@ -1605,7 +1689,7 @@ const I18N = {
         composio_not_configured: "Save your Composio API key first.", composio_no_user: "Save your Composio User ID.",
         composio_nothing_selected: "Choose at least one app.", composio_consumer_key: "With a consumer key (ck_) there's nothing to choose: the apps you connected in Composio are already included.", composio_unreachable: "Couldn't reach Composio:", composio_http: "Composio returned an error:", other: "Error" } },
     agents: { title: "Connect agent", sub: "Connect brain to Claude, ChatGPT or other agents and AIs so they use your memory and notes",
-      tabConnect: "Connect", tabMine: "My connections", desktop: "Desktop apps", others: "Other agents and AIs",
+      tabConnect: "Connect", tabApps: "Apps and agents", tabUrl: "By URL (cloud)", tabManual: "Manual setup", tabMine: "My connections", desktop: "Desktop apps", others: "Other agents and AIs",
       connected: "Connected", notConnected: "Not connected", notInstalled: "Not installed", elsewhere: "Points to another folder",
       connect: "Connect", disconnect: "Disconnect", reconnect: "Reconnect", config: "Config",
       sharesWith: n => `Shares its configuration with ${n}.`,
@@ -1646,7 +1730,7 @@ const I18N = {
         "Once Manus uses brain for the first time, this card switches to “Detected”."],
       manualTitle: "Any other MCP client", manualSub: "manual configuration",
       manualText: "If your agent or AI supports local (stdio) MCP servers, add brain with one of these formats. They use absolute paths, so they work from any folder.",
-      formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” and fill each field with these values. If the app only takes a URL, use remote access above.",
+      formLabel: "Apps with an “Add MCP server” form", formHint: "Choose “Run a command” and fill each field with these values. If the app only takes a URL, use the “By URL (cloud)” tab.",
       fName: "Server name", fCommand: "Executable command", fArgs: "Arguments (one per line)", fEnv: "Environment", fEnvEmpty: "(empty: nothing needed)",
       installPath: p => `These values belong to this brain install (${p}) and adapt automatically to each Mac's folder and user.`,
       jsonLabel: "JSON (Claude, Cursor, Windsurf, Gemini, OpenMausBot and most others)", tomlLabel: "TOML (Codex / ChatGPT)", cmdLabel: "Command", copy: "Copy", copied: "Copied ✓",
@@ -1688,7 +1772,7 @@ const I18N = {
         agents: "At least one agent connected" },
       hints: { ollama: "Turn on the Ollama switch or open the app", chroma: "Turn on the Chroma switch", agents: "Connect one from Connect agent" } },
     recent: { title: "Recent changes", sub: "vault history", none: "No changes yet" },
-    profile: { title: "Profile", sub: "Context about you and the memory Claude uses to know you", about: "About you",
+    profile: { tabAbout: "About you", tabMemory: "Your memory", tabImport: "Import memory", title: "Profile", sub: "Context about you and the memory Claude uses to know you", about: "About you",
       autoTitle: "What brain knows about you", autoOn: "Keep it updated with what it learns", autoRefresh: "Update now",
       autoHint: "A summary of your memory that rewrites itself every time an agent, the chat or you add, change or delete a memory. It goes at the end of profile.md, so every agent reads it; your text above is never touched.",
       autoNone: "There are no memories to summarize yet.", autoOff: "Off.", autoWhen: w => `updated ${w}`, autoBusy: "Updating…", autoStale: "updating…",
@@ -1764,7 +1848,7 @@ const I18N = {
       block: "Don't use this domain", blockConfirm: d => `Stop using ${d} in Fact check?`, blocked: d => `${d} is now blocked.`,
       err: { empty: "Type something to check.", no_brave_key: "The Brave Search API key is missing.", no_searxng: "Your SearXNG URL is missing.", bad_searxng: "The SearXNG URL must start with http:// or https://.", no_connection_tool: "Pick which tool from your Connections to use.", bad_connection_args: "Fixed arguments must be a JSON object, e.g. {\"projectId\": \"abc\"}." } },
     graph: { title: "Graph", sub: "How profile, memory, projects, skills, sources, tags and entities connect" },
-    know: { title: "Knowledge", sub: "Save URLs and search what was scraped", save: "Save a URL", saveSub: "scrapes, indexes and creates the .md",
+    know: { tabSearch: "Search", tabSources: "Saved sources", title: "Knowledge", sub: "Save URLs and search what was scraped", save: "Save a URL", saveSub: "scrapes, indexes and creates the .md",
       saveBtn: "Save", forceJs: "Force JS rendering (Playwright)", working: "Scraping and indexing… (Playwright can take a few seconds)",
       search: "Search", searchSub: "semantic + keyword", searchBtn: "Search", searchPh: "What are you looking for?", searching: "Searching…",
       kw: "keyword", semDown: "Semantic search isn't available (Ollama or Chroma off?): showing exact-keyword results only.",
@@ -1794,7 +1878,7 @@ const I18N = {
     theme: { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" },
     langTitle: "Switch language to Spanish",
     side: { collapse: "Collapse the menu", expand: "Expand the menu" },
-    settings: { title: "Settings", sub: "Version, sidebar, chat, notifications, backup, note format and graph colors.",
+    settings: { tabGeneral: "General", tabChat: "Chat and models", tabData: "Data and backup", tabFamily: "WorkStudio family", tabLook: "Appearance", title: "Settings", sub: "Version, notifications, chat, backup, the WorkStudio family and how brain looks.",
       famTitle: "WorkStudio family", famSub: "AI WorkStudio · brain · OpenCue · Lumina · OpenBlocks",
       famHint: "brain works with the other family apps you have installed, without copying their data: OpenCue agents show up in the chat's model picker, the chat's + button searches Lumina and OpenBlocks, and agents connected to brain get the lumina_search and openblocks_search tools. With AI WorkStudio installed they all sit together in its hub.",
       famAgents: "Show OpenCue agents in the chat picker", famLumina: "Lumina URL (this computer only)",
@@ -1910,8 +1994,20 @@ const I18N = {
       appTray: "When the window is closed, keep brain in the menu bar or tray" },
     dlg: { cancel: "Cancel", del: "Delete", remove: "Remove", restart: "Quit and connect", disconnect: "Disconnect" },
     info: { title: "Services", manage: "Manage in the Dashboard", err: "A service has an error" },
-    remote: { title: "Remote access by URL", sub: "Cloudflare tunnel",
-      text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Manus on the web, Claude.ai → Connectors, ChatGPT in developer mode…). It uses a Cloudflare tunnel: no ports are opened on your router.",
+    remote: { title: "Remote access by URL", sub: "Tailscale, ngrok or Cloudflare",
+      svc: "Tunnel service", use: "Use this service", current: "in use", retry: "Retry",
+      fixed: "Fixed URL", changes: "the URL changes on restart",
+      prov: { tailscale: { name: "Tailscale Funnel", tag: "fixed URL · free · recommended" }, ngrok: { name: "ngrok", tag: "fixed URL · free with an account" },
+        quick: { name: "Cloudflare quick", tag: "no account · the URL changes" }, named: { name: "Cloudflare named", tag: "your domain · fixed URL" } },
+      tsSteps: ["Install Tailscale and sign in (it's free).", "Pick Tailscale here and turn remote access on. The first time, Tailscale asks you to enable Funnel with a link.", "Your URL stays the same forever: paste it once in Claude and you're done."],
+      tsDownload: "Get Tailscale", tsMissing: "I couldn't find Tailscale on this computer.", tsWillBe: u => `Your URL will be ${u}/… and won't change.`,
+      tsAction: "Tailscale needs you to enable Funnel (and HTTPS) on your tailnet. Open the link, enable it and brain carries on by itself.", tsActionBtn: "Enable Funnel",
+      tsLinux: "On Linux, if you see “Access denied”, run once in a terminal: sudo tailscale set --operator=$USER",
+      ngSteps: ["Create a free account at ngrok.com and install ngrok (brew install ngrok · winget install ngrok.ngrok · snap install ngrok).", "Copy your authtoken (dashboard.ngrok.com → Your Authtoken) and paste it here. The whole “ngrok config add-authtoken …” command works too.", "Optional: your fixed domain (dashboard.ngrok.com → Domains). Without it, ngrok uses your account's free domain."],
+      ngDownload: "Get ngrok", ngMissing: "I couldn't find ngrok on this computer.", ngToken: "ngrok authtoken", ngDomain: "Domain (optional, e.g. something.ngrok-free.app)",
+      fatalHint: { tailscale: "Tailscale couldn't open the Funnel: check that the app is open and signed in (on Linux the operator permission may be missing). Then click Retry.",
+        ngrok: "ngrok refused the connection: check the authtoken and the domain, and that no other ngrok is running with the same account. Then click Retry." },
+      text: "Publishes brain's MCP server at an internet URL, so agents running in the cloud or on another computer can connect (Claude.ai → Connectors, Manus on the web, ChatGPT in developer mode…). None of the services opens ports on your router.",
       reconnect: "Reconnect", reconnecting: "Reopening the tunnel…",
       test: "Test the URL", testing: "Testing the public URL…", testOk: (n, ms) => `Works: the URL answers like a remote agent would (${n} tools, ${ms} ms).`,
       testErr: t => ({ dns: "That address doesn't resolve yet: try again in a few seconds.", connect: "Couldn't connect to the public URL: the tunnel isn't answering (try Reconnect).", timeout: "The URL didn't answer in time: the tunnel is slow or down (try Reconnect).", tunnel_down: "Cloudflare answers, but the tunnel has no brain behind it (Reconnect).", bad_token: "The URL's token doesn't match: copy the URL again.", redirect: "The URL redirects to another address (" + (t.detail || "") + "): update brain.", tls: "Certificate error reaching the URL.", bad_body: "The URL answers, but it isn't brain's MCP server." }[t.code] || `The URL answered HTTP ${t.status || "?"}. ${t.detail || ""}`).trim(),
@@ -1927,7 +2023,7 @@ const I18N = {
       warn: "The URL carries a secret token: anyone who has it can read and, unless it's read-only, change your vault. Treat it like a password.",
       readOnly: "Read-only (agents using the URL can read and search, but can't write, delete or use your connections)",
       regenerate: "Generate a new URL", regenConfirm: "Generate a new URL? The current one stops working right away: you'll have to paste the new one into each agent.", regenerated: "Done: new URL. The old one no longer works.",
-      quickNote: "Without a Cloudflare account the URL is *.trycloudflare.com and changes every time it starts. For a fixed one, use your account:",
+      quickNote: "No account: the URL is *.trycloudflare.com and changes every time it starts. Claude in the cloud couldn't connect through these URLs: for Claude use Tailscale or ngrok.",
       adv: "Fixed URL with your Cloudflare account", mode: "Tunnel type", modeQuick: "Quick (no account, the URL changes)", modeNamed: "Named (your account, fixed URL)",
       namedHelp: "In Cloudflare: Zero Trust → Networks → Tunnels → Create a tunnel (cloudflared). Copy the token and, under Public Hostname, point your domain to http://localhost:{port}.",
       hostname: "Public hostname (e.g. brain.yourdomain.com)", tunnelToken: "Tunnel token", tokenSaved: "saved: leave it empty to keep it",
@@ -1935,7 +2031,9 @@ const I18N = {
       noCf: "cloudflared is missing: Cloudflare's program that opens the tunnel.", install: "Install cloudflared", installing: "Downloading cloudflared from the official release and checking its SHA256…",
       installed: "cloudflared installed.", cfAt: p => `cloudflared: ${p}`,
       local: "Local (no tunnel)", logs: "Logs",
-      err: { no_url: "There is no public URL yet: turn remote access on and wait for the tunnel to open.", no_cloudflared: "cloudflared is missing: install it with the button.", named_incomplete: "A named tunnel needs both the hostname and the token.",
+      err: { no_url: "There is no public URL yet: turn remote access on and wait for the tunnel to open.", no_cloudflared: "cloudflared is missing: install it with the button.",
+        no_tailscale: "Tailscale is missing: install it and sign in (or pick another service).", no_ngrok: "ngrok is missing: install it (or pick another service).",
+        bad_ngrok_token: "That doesn't look like an ngrok authtoken.", bad_ngrok_domain: "That domain isn't valid.", named_incomplete: "A named tunnel needs both the hostname and the token.",
         bad_hostname: "That hostname isn't valid.", bad_tunnel_token: "That doesn't look like a Cloudflare tunnel token.", bad_mode: "Unknown tunnel type.",
         no_checksum: "Couldn't read the SHA256 Cloudflare publishes, so nothing was installed. Try later or install it yourself (brew install cloudflared / winget install Cloudflare.cloudflared).",
         checksum: "The downloaded file doesn't match the published SHA256: it wasn't installed.", download: "Couldn't download cloudflared:", unsupported_os: "Unsupported system:",
@@ -2059,7 +2157,7 @@ function renderColorGrid() {
     const cur = graphColors(); cur[inp.dataset.kind] = inp.value; saveGraphColors(cur);
   });
 }
-$("#settings-btn").onclick = () => go("ajustes");
+$("#settings-btn").onclick = () => go($("#settings-btn").classList.contains("has-update") ? "ajustes/general" : "ajustes");
 
 // ================= sidebar: servicios en el botón (i) =================
 function renderSideSvcs() {
@@ -2611,9 +2709,9 @@ async function loadVersion() {
   // volvimos de "Actualizar y reiniciar": contar cómo salió
   let up = null; try { up = JSON.parse(sessionStorage.getItem("brain-updating") || "null"); sessionStorage.removeItem("brain-updating"); } catch (e) {}
   if (up && appVersion) {
-    if (appVersion !== up.from && updateFailed === "sync") { showResult($("#update-result"), "err", T.settings.updateSyncFailed); go("ajustes"); }
+    if (appVersion !== up.from && updateFailed === "sync") { showResult($("#update-result"), "err", T.settings.updateSyncFailed); go("ajustes/general"); }
     else if (appVersion !== up.from) { showResult($("#update-result"), "ok", T.settings.updateDone(appVersion)); toast(T.settings.updateDone(appVersion)); }
-    else if (updateFailed) { showResult($("#update-result"), "err", updateFailed === "sync" ? T.settings.updateSyncFailed : T.settings.updateFailed); go("ajustes"); }
+    else if (updateFailed) { showResult($("#update-result"), "err", updateFailed === "sync" ? T.settings.updateSyncFailed : T.settings.updateFailed); go("ajustes/general"); }
     else showResult($("#update-result"), "info", T.settings.upToDate(appVersion));
   }
 }
@@ -2729,7 +2827,10 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
 const VIEWS = ["panel", "chat", "perfil", "agentes", "conexiones", "grafo", "conocimiento", "factcheck", "prompts", "logs", "ajustes"];
 let view = "panel";
 function go(v) {
+  const [base, pane] = String(v || "").split("/");  // "#ajustes/data" abre Ajustes en la pestaña Datos
+  v = base;
   if (!VIEWS.includes(v)) v = "panel";
+  if (pane) showPane(v, pane);
   view = v;
   document.body.classList.toggle("on-chat", v === "chat");
   document.querySelectorAll(".view").forEach(s => s.classList.toggle("active", s.id === `view-${v}`));
@@ -2751,6 +2852,27 @@ function go(v) {
   if (v === "panel" && stats) requestAnimationFrame(renderStats);
 }
 document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => b.dataset.view === "obsidian" ? openObsidian() : go(b.dataset.view));
+
+// ================= pestañas dentro de una vista =================
+// <div class="tabs" data-panes="<vista>"> con botones data-pane, y cada pestaña es un .pane hijo directo de la vista.
+// La última pestaña abierta de cada vista queda en localStorage (brain-pane-<vista>).
+function showPane(v, p, save = true) {
+  const bar = document.querySelector(`.tabs[data-panes="${v}"]`);
+  if (!bar) return;
+  const tabs = [...bar.querySelectorAll(".tab[data-pane]")];
+  if (!tabs.some(b => b.dataset.pane === p)) p = tabs[0].dataset.pane;
+  tabs.forEach(b => { const on = b.dataset.pane === p; b.classList.toggle("active", on); b.setAttribute("aria-selected", on ? "true" : "false"); b.setAttribute("role", "tab"); });
+  document.querySelectorAll(`#view-${v} > .pane`).forEach(el => el.hidden = el.dataset.pane !== p);
+  if (save) { try { localStorage.setItem(`brain-pane-${v}`, p); } catch (e) {} }
+  if (v === "ajustes" && p === "look") renderColorGrid();
+}
+document.querySelectorAll(".tabs[data-panes]").forEach(bar => {
+  const v = bar.dataset.panes;
+  bar.querySelectorAll(".tab[data-pane]").forEach(b => b.onclick = () => showPane(v, b.dataset.pane));
+  let saved = null;
+  try { saved = localStorage.getItem(`brain-pane-${v}`); } catch (e) {}
+  showPane(v, saved, false);
+});
 window.addEventListener("hashchange", () => go(location.hash.slice(1)));
 
 // ================= prompts para agentes (brain_mcp/prompts.json) =================
@@ -2958,6 +3080,7 @@ function renderStats() {
     <span class="path" title="${esc(c.path)}">${esc(c.path)}</span><span class="when">${esc(ago(c.ts))}</span></li>`).join("")
     || `<li class="muted">${esc(T.recent.none)}</li>`;
   $("#sources-sub").textContent = T.know.total(fmt(stats.sources.length));
+  $("#sources-count").textContent = fmt(stats.sources.length);
   $("#sources").innerHTML = stats.sources.length
     ? `<div class="src-wrap"><table class="data" style="margin-top:0"><thead><tr><th>${T.know.thTitle}</th><th>${T.know.thDomain}</th><th class="num">${T.know.thChunks}</th><th>${T.know.thAge}</th><th>${T.know.thChecked}</th><th></th></tr></thead><tbody>${
         stats.sources.map(s => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>${s.refresh_error ? `<div class="src-err">${esc(T.know.refreshFailed)} ${esc(s.refresh_error)}</div>` : ""}</td>
@@ -3062,6 +3185,7 @@ function renderMemory() {
   const q = $("#mem-filter").value.trim().toLowerCase();
   const total = memoryCats.reduce((a, c) => a + c.items.length, 0);
   $("#mem-sub").textContent = T.mem.count(fmt(total), fmt(memoryCats.length));
+  $("#mem-count").textContent = fmt(total);
   if (!total) { $("#mem-list").innerHTML = `<div class="empty-chart" style="height:110px">${esc(T.mem.none)}</div>`; return; }
   $("#mem-list").innerHTML = memoryCats.map(c => {
     const items = c.items.filter(i => !q || i.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
@@ -3127,7 +3251,7 @@ function renderPreview() {
 }
 
 // ================= conectar agente =================
-let agentsData = null, agentTab = "connect";
+let agentsData = null;
 const agentNote = {};  // mensaje post-acción por cliente (se ve en su tarjeta)
 function agentPill(a) {
   if (a.connected) return `<span class="pill ${a.elsewhere ? "st-starting" : "st-running"}">${a.elsewhere ? ICON.alert : ICON.check}${esc(a.elsewhere ? T.agents.elsewhere : T.agents.connected)}</span>`;
@@ -3168,9 +3292,6 @@ function renderAgents() {
   if (!agentsData) return;
   const list = agentsData.agents, mine = agentsData.mine || [];
   $("#agents-count").textContent = mine.length;
-  document.querySelectorAll("#agent-tabs .tab").forEach(b => b.classList.toggle("active", b.dataset.tab === agentTab));
-  $("#agents-connect").hidden = agentTab !== "connect";
-  $("#agents-mine").hidden = agentTab !== "mine";
   $("#agents-desktop").innerHTML = list.filter(a => a.group === "desktop").map(agentCard).join("");
   $("#agents-other").innerHTML = list.filter(a => a.group === "other").map(agentCard).join("");
   const m = agentsData.manual;
@@ -3227,7 +3348,6 @@ async function agentAction(key, act, btn, restart = false) {
   await loadAgents(); statusRefreshSoon();
 }
 function statusRefreshSoon() { setTimeout(loadStatus, 300); }
-document.querySelectorAll("#agent-tabs .tab").forEach(b => b.onclick = () => { agentTab = b.dataset.tab; renderAgents(); });
 $("#client-add-form").onsubmit = async e => {
   e.preventDefault();
   try { await api("/api/clients/add", { name: $("#client-add-name").value }); $("#client-add-name").value = ""; loadAgents(); }
@@ -3242,7 +3362,7 @@ async function copyText(text, btn, label) {
   catch (e) { toast(e.message); }
 }
 
-// ================= acceso remoto por URL (Cloudflare) =================
+// ================= acceso remoto por URL (Tailscale Funnel, ngrok o Cloudflare) =================
 let remoteData = null, remoteBusy = false, remoteMsg = null;
 async function loadRemote() {
   try { remoteData = await api("/api/remote"); } catch (e) { return; }
@@ -3258,85 +3378,114 @@ function remoteState(r) {
   return "off";
 }
 const remoteErr = r => { const e = T.remote.err[r.code]; return `${e || T.remote.err.other} ${["download", "unsupported_os", "busy", "other"].includes(r.code) || !e ? (r.detail || "") : ""}`.trim(); };
+function remoteSetup(r, sel) {
+  const P = T.remote, tool = { tailscale: r.tools.tailscale, ngrok: r.tools.ngrok, quick: r.tools.cloudflared, named: r.tools.cloudflared }[sel];
+  const steps = a => `<ol class="remote-steps">${a.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`;
+  const found = name => tool ? `<p class="muted mono remote-found">${ICON.check} ${esc(name)}: ${esc(tool)}</p>` : "";
+  const isCur = sel === r.mode, useBtn = `<button class="btn primary" type="button" id="remote-save">${esc(isCur ? P.save : P.use)}</button>`;
+  if (sel === "tailscale") return `${steps(P.tsSteps)}${found("tailscale")}
+    ${!tool ? `<div class="remote-row"><span class="muted">${esc(P.tsMissing)}</span><a class="btn" href="https://tailscale.com/download" target="_blank" rel="noopener">${esc(P.tsDownload)}</a></div>` : ""}
+    ${r.tailscale_url ? `<p class="form-hint" style="margin:0">${esc(P.tsWillBe(r.tailscale_url))}</p>` : ""}
+    <p class="form-hint" style="margin:0">${esc(P.tsLinux)}</p>${isCur ? "" : `<div>${useBtn}</div>`}`;
+  if (sel === "ngrok") return `${steps(P.ngSteps)}${found("ngrok")}
+    ${!tool ? `<div class="remote-row"><span class="muted">${esc(P.ngMissing)}</span><a class="btn" href="https://ngrok.com/download" target="_blank" rel="noopener">${esc(P.ngDownload)}</a></div>` : ""}
+    <label class="code-label" for="remote-ngtoken">${esc(P.ngToken)}${r.has_ngrok_token ? ` · ${esc(P.tokenSaved)}` : ""}</label>
+    <input class="input mono" id="remote-ngtoken" type="password" autocomplete="off" spellcheck="false">
+    <label class="code-label" for="remote-ngdomain">${esc(P.ngDomain)}</label>
+    <input class="input mono" id="remote-ngdomain" value="${esc(r.ngrok_domain)}" placeholder="algo.ngrok-free.app" autocomplete="off" spellcheck="false">
+    <div>${useBtn}</div>`;
+  if (sel === "quick") return `<p class="form-hint" style="margin:0">${esc(P.quickNote)}</p>${found("cloudflared")}
+    ${!tool ? `<div class="remote-row"><span class="muted">${esc(P.noCf)}</span><button class="btn" type="button" id="remote-install">${esc(P.install)}</button></div>` : ""}
+    ${isCur ? "" : `<div>${useBtn}</div>`}`;
+  return `<p class="form-hint" style="margin:0">${esc(P.namedHelp.replace("{port}", r.port))}</p>${found("cloudflared")}
+    ${!tool ? `<div class="remote-row"><span class="muted">${esc(P.noCf)}</span><button class="btn" type="button" id="remote-install">${esc(P.install)}</button></div>` : ""}
+    <label class="code-label" for="remote-host">${esc(P.hostname)}</label>
+    <input class="input mono" id="remote-host" value="${esc(r.hostname)}" placeholder="brain.example.com" autocomplete="off" spellcheck="false">
+    <label class="code-label" for="remote-ttoken">${esc(P.tunnelToken)}${r.has_tunnel_token ? ` · ${esc(P.tokenSaved)}` : ""}</label>
+    <input class="input mono" id="remote-ttoken" type="password" autocomplete="off" spellcheck="false">
+    <div>${useBtn}</div>`;
+}
+let remoteSel = null;
 function renderRemote() {
   const r = remoteData, box = $("#remote-card");
   if (!r) return;
-  // no pisar lo que el usuario está escribiendo en el formulario del túnel con nombre
+  // no pisar lo que el usuario está escribiendo en los formularios de los servicios
   const a = document.activeElement;
   if (box.contains(a) && a.matches("input.input")) return;
-  const advOpen = box.querySelector("details.remote-adv")?.open || false;
+  const P = T.remote;
+  if (!remoteSel) remoteSel = r.mode;
   // con error sigue "prendido" (enabled): así el switch sirve para apagarlo
   const st = remoteState(r), on = st !== "off";
   const pillCls = { on: "st-running", starting: "st-starting", reconnecting: "st-starting", error: "st-error", off: "st-stopped" }[st];
   const pillIcon = st === "starting" || st === "reconnecting" ? statusIcon("starting") : st === "error" ? ICON.alert : st === "on" ? ICON.check : ICON.dot;
   const changed = r.tunnel.url_changed_at && r.url && Date.now() / 1000 - r.tunnel.url_changed_at < 86400 && (() => { try { return localStorage.getItem("brain-remote-seen"); } catch (e) { return null; } })() !== r.url;
-  const host = r.url ? new URL(r.url).origin : "";
   const bearerBase = r.base_url ? `${r.base_url.replace(/\/$/, "")}/mcp` : "";
+  const prov = k => `<button type="button" class="remote-prov ${remoteSel === k ? "on" : ""}" data-prov="${k}" role="radio" aria-checked="${remoteSel === k}">
+      <b>${esc(P.prov[k].name)}${r.mode === k ? ` <span class="remote-cur">${esc(P.current)}</span>` : ""}</b><span>${esc(P.prov[k].tag)}</span></button>`;
+  const fatal = r.tunnel.fatal && st !== "on" ? (P.fatalHint[r.mode] || "") : "";
   box.innerHTML = `<div class="card-b">
     <div class="remote-top">
-      <div><h2>${esc(T.remote.title)} <span class="sub">· ${esc(T.remote.sub)}</span></h2><p>${esc(T.remote.text)}</p></div>
-      <label class="switch ${remoteBusy ? "busy" : ""}" title="${esc(on ? T.remote.off : T.remote.on)}">
-        <input type="checkbox" role="switch" id="remote-switch" aria-label="${esc(T.remote.title)}" ${on ? "checked" : ""} ${remoteBusy ? "disabled" : ""}>
+      <div><h2>${esc(P.title)} <span class="sub">· ${esc(P.prov[r.mode].name)}</span></h2><p>${esc(P.text)}</p></div>
+      <label class="switch ${remoteBusy ? "busy" : ""}" title="${esc(on ? P.off : P.on)}">
+        <input type="checkbox" role="switch" id="remote-switch" aria-label="${esc(P.title)}" ${on ? "checked" : ""} ${remoteBusy ? "disabled" : ""}>
         <span class="track"></span></label>
     </div>
-    <div class="remote-state"><span class="pill ${pillCls}">${pillIcon}${esc(T.remote.st[st])}</span>
-      ${r.cloudflared ? `<span class="mono" style="font-size:12px">${esc(T.remote.cfAt(r.cloudflared))}</span>` : ""}
-      ${r.tunnel.managed || st === "error" ? `<button class="btn" type="button" data-logs="tunnel">${ICON.logs}${esc(T.remote.logs)}</button>` : ""}
-      ${r.enabled && ["starting", "reconnecting", "error"].includes(st) && r.cloudflared ? `<button class="btn" type="button" id="remote-reconnect">${esc(T.remote.reconnect)}</button>` : ""}</div>
-    ${st === "reconnecting" ? `<div class="remote-warn">${esc(T.remote.reconnectingNote)}</div>` : ""}
-    ${changed ? `<div class="remote-warn remote-changed"><span>${esc(r.mode === "quick" ? T.remote.urlChangedQuick : T.remote.urlChanged)}</span> <button class="btn" type="button" id="remote-seen">${esc(T.remote.gotIt)}</button></div>` : ""}
-    ${st === "error" && r.error ? `<div class="src-err mono" style="overflow-wrap:anywhere">${esc(r.error)}</div>` : ""}
-    ${!r.cloudflared ? `<div class="remote-row"><span class="muted" style="font-size:13px">${esc(T.remote.noCf)}</span>
-      <button class="btn primary" type="button" id="remote-install">${esc(T.remote.install)}</button></div>` : ""}
-    ${r.url ? `<div class="remote-url">${codeBlock(T.remote.url, r.url, "remote-url-text")}
-      <details><summary class="muted" style="font-size:12.5px;cursor:pointer">${esc(T.remote.bearer)}</summary>
-        ${codeBlock(T.remote.bearerUrl, bearerBase, "remote-bearer-url")}${codeBlock(T.remote.bearerHeader, `Authorization: Bearer ${r.token}`, "remote-bearer-h")}</details></div>` : ""}
-    <div class="remote-warn">${esc(T.remote.warn)}</div>
-    <label class="check"><input type="checkbox" id="remote-ro" ${r.read_only ? "checked" : ""}> <span>${esc(T.remote.readOnly)}</span></label>
-    <label class="check"><input type="checkbox" id="remote-awake" ${r.keep_awake ? "checked" : ""}> <span>${esc(T.remote.keepAwake)}${r.enabled && r.keep_awake ? ` <span class="muted">· ${esc(r.awake ? T.remote.awakeOn : T.remote.awakeNo)}</span>` : ""}</span></label>
-    <div class="remote-row">${r.url && st === "on" ? `<button class="btn" type="button" id="remote-test">${esc(T.remote.test)}</button>` : ""}<button class="btn" type="button" id="remote-regen">${esc(T.remote.regenerate)}</button></div>
-    <details class="remote-adv" ${advOpen ? "open" : ""}><summary>${esc(T.remote.adv)}</summary>
-      <p class="form-hint">${esc(T.remote.quickNote)}</p>
-      <div class="form-grid">
-        <div class="seg" id="remote-mode" role="radiogroup" aria-label="${esc(T.remote.mode)}">
-          <button type="button" data-mode="quick" class="${r.mode === "quick" ? "on" : ""}">${esc(T.remote.modeQuick)}</button>
-          <button type="button" data-mode="named" class="${r.mode === "named" ? "on" : ""}">${esc(T.remote.modeNamed)}</button></div>
-        <p class="form-hint" style="margin:0">${esc(T.remote.namedHelp.replace("{port}", r.port))}</p>
-        <label class="code-label" for="remote-host">${esc(T.remote.hostname)}</label>
-        <input class="input mono" id="remote-host" value="${esc(r.hostname)}" placeholder="brain.example.com" autocomplete="off" spellcheck="false">
-        <label class="code-label" for="remote-ttoken">${esc(T.remote.tunnelToken)}${r.has_tunnel_token ? ` · ${esc(T.remote.tokenSaved)}` : ""}</label>
-        <input class="input mono" id="remote-ttoken" type="password" autocomplete="off" spellcheck="false">
-        <div><button class="btn primary" type="button" id="remote-save">${esc(T.remote.save)}</button></div>
-      </div></details>
+    <div class="remote-grid">
+      <div class="remote-col">
+        <div class="remote-state"><span class="pill ${pillCls}">${pillIcon}${esc(P.st[st])}</span>
+          ${r.url ? `<span class="pill ${r.stable ? "st-running" : "st-external"}">${esc(r.stable ? P.fixed : P.changes)}</span>` : ""}
+          ${r.tunnel.managed || st === "error" ? `<button class="btn" type="button" data-logs="tunnel">${ICON.logs}${esc(P.logs)}</button>` : ""}
+          ${r.enabled && ["starting", "reconnecting", "error"].includes(st) ? `<button class="btn" type="button" id="remote-reconnect">${esc(st === "error" ? P.retry : P.reconnect)}</button>` : ""}</div>
+        ${r.tunnel.action_url ? `<div class="remote-warn"><span>${esc(P.tsAction)}</span> <a class="btn primary" href="${esc(r.tunnel.action_url)}" target="_blank" rel="noopener">${esc(P.tsActionBtn)}</a></div>` : ""}
+        ${st === "reconnecting" ? `<div class="remote-warn">${esc(P.reconnectingNote)}</div>` : ""}
+        ${changed ? `<div class="remote-warn remote-changed"><span>${esc(r.mode === "quick" ? P.urlChangedQuick : P.urlChanged)}</span> <button class="btn" type="button" id="remote-seen">${esc(P.gotIt)}</button></div>` : ""}
+        ${fatal ? `<div class="remote-warn">${esc(fatal)}</div>` : ""}
+        ${st === "error" && r.error ? `<div class="src-err mono" style="overflow-wrap:anywhere">${esc(r.error)}</div>` : ""}
+        ${r.url ? `<div class="remote-url">${codeBlock(P.url, r.url, "remote-url-text")}
+          <details><summary class="muted" style="font-size:12.5px;cursor:pointer">${esc(P.bearer)}</summary>
+            ${codeBlock(P.bearerUrl, bearerBase, "remote-bearer-url")}${codeBlock(P.bearerHeader, `Authorization: Bearer ${r.token}`, "remote-bearer-h")}</details></div>` : ""}
+        <div class="remote-row">${r.url && st === "on" ? `<button class="btn" type="button" id="remote-test">${esc(P.test)}</button>` : ""}<button class="btn" type="button" id="remote-regen">${esc(P.regenerate)}</button></div>
+        <div class="remote-warn">${esc(P.warn)}</div>
+        <label class="check"><input type="checkbox" id="remote-ro" ${r.read_only ? "checked" : ""}> <span>${esc(P.readOnly)}</span></label>
+        <label class="check"><input type="checkbox" id="remote-awake" ${r.keep_awake ? "checked" : ""}> <span>${esc(P.keepAwake)}${r.enabled && r.keep_awake ? ` <span class="muted">· ${esc(r.awake ? P.awakeOn : P.awakeNo)}</span>` : ""}</span></label>
+      </div>
+      <div class="remote-col">
+        <div class="code-label">${esc(P.svc)}</div>
+        <div class="remote-provs" role="radiogroup" aria-label="${esc(P.svc)}">${["tailscale", "ngrok", "quick", "named"].map(prov).join("")}</div>
+        <div class="remote-setup">${remoteSetup(r, remoteSel)}</div>
+      </div>
+    </div>
     <div class="result ${remoteMsg ? `show ${remoteMsg.kind}` : ""}" id="remote-result">${remoteMsg ? `${remoteMsg.kind === "info" ? '<span class="spin"></span>' : remoteMsg.kind === "ok" ? ICON.check : ICON.alert}<span>${esc(remoteMsg.text)}</span>` : ""}</div>
   </div>`;
   box.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copyText($("#" + b.dataset.copy).textContent, b, T.agents.copy));
   box.querySelectorAll("[data-logs]").forEach(b => b.onclick = () => { logSvc = b.dataset.logs; go("logs"); });
+  box.querySelectorAll("[data-prov]").forEach(b => b.onclick = () => { remoteSel = b.dataset.prov; renderRemote(); });
   $("#remote-switch").onchange = e => remoteAction(e.target.checked ? "start" : "stop");
-  if ($("#remote-install")) $("#remote-install").onclick = () => remoteAction("install", {}, T.remote.installing, T.remote.installed);
-  $("#remote-ro").onchange = e => remoteAction("settings", { read_only: e.target.checked }, null, T.remote.saved);
-  $("#remote-awake").onchange = e => remoteAction("settings", { keep_awake: e.target.checked }, null, T.remote.saved);
-  if ($("#remote-reconnect")) $("#remote-reconnect").onclick = () => remoteAction("reconnect", {}, T.remote.reconnecting, null);
+  if ($("#remote-install")) $("#remote-install").onclick = () => remoteAction("install", {}, P.installing, P.installed);
+  $("#remote-ro").onchange = e => remoteAction("settings", { read_only: e.target.checked }, null, P.saved);
+  $("#remote-awake").onchange = e => remoteAction("settings", { keep_awake: e.target.checked }, null, P.saved);
+  if ($("#remote-reconnect")) $("#remote-reconnect").onclick = () => remoteAction("reconnect", {}, P.reconnecting, null);
   if ($("#remote-seen")) $("#remote-seen").onclick = () => { try { localStorage.setItem("brain-remote-seen", r.url); } catch (e) {} renderRemote(); };
   if ($("#remote-test")) $("#remote-test").onclick = async () => {
-    remoteBusy = true; remoteMsg = { kind: "info", text: T.remote.testing }; renderRemote();
+    remoteBusy = true; remoteMsg = { kind: "info", text: P.testing }; renderRemote();
     try {
       const x = await api("/api/remote/test", {});
       const t = x.test;
       remoteMsg = !x.ok ? { kind: "err", text: remoteErr(x) }
-        : t.ok ? { kind: "ok", text: T.remote.testOk(t.tools, t.ms) } : { kind: "err", text: T.remote.testErr(t) };
+        : t.ok ? { kind: "ok", text: P.testOk(t.tools, t.ms) } : { kind: "err", text: P.testErr(t) };
     } catch (e) { remoteMsg = { kind: "err", text: e.message }; }
     remoteBusy = false; renderRemote();
   };
   $("#remote-regen").onclick = async () => {
-    if (!(await ask(T.remote.regenConfirm, { ok: T.remote.regenerate, danger: true }))) return;
-    remoteAction("regenerate", {}, null, T.remote.regenerated);
+    if (!(await ask(P.regenConfirm, { ok: P.regenerate, danger: true }))) return;
+    remoteAction("regenerate", {}, null, P.regenerated);
   };
-  let mode = r.mode;
-  box.querySelectorAll("#remote-mode button").forEach(b => b.onclick = () => {
-    mode = b.dataset.mode; box.querySelectorAll("#remote-mode button").forEach(x => x.classList.toggle("on", x === b));
-  });
-  $("#remote-save").onclick = () => remoteAction("settings", { mode, hostname: $("#remote-host").value, tunnel_token: $("#remote-ttoken").value }, null, T.remote.saved);
+  if ($("#remote-save")) $("#remote-save").onclick = () => {
+    const body = { mode: remoteSel };
+    if (remoteSel === "named") Object.assign(body, { hostname: $("#remote-host").value, tunnel_token: $("#remote-ttoken").value });
+    if (remoteSel === "ngrok") Object.assign(body, { ngrok_domain: $("#remote-ngdomain").value, ngrok_token: $("#remote-ngtoken").value });
+    remoteAction("settings", body, null, P.saved);
+  };
 }
 async function remoteAction(action, body = {}, wait = null, okText = null) {
   remoteBusy = true; remoteMsg = wait ? { kind: "info", text: wait } : null; renderRemote();
@@ -3378,6 +3527,7 @@ function editConnection(c) {
   $("#cf-url").value = ""; $("#cf-url").placeholder = c.url || "https://…";
   $("#cf-headers").value = Object.keys(c.header_keys || {}).map(k => `${k}: `).join("\n");
   $("#cf-cancel").hidden = false; $("#conn-form-title").textContent = T.conn.edit(c.name);
+  showPane("conexiones", "add");
   $("#conn-form-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 $("#cf-cancel").onclick = resetConnForm;
@@ -3430,6 +3580,7 @@ function renderConnections() {
   if (!connData) return;
   const list = connData.connections;
   $("#conn-count").textContent = T.conn.count(list.length);
+  $("#conn-tab-count").textContent = list.length;
   if (!connEditing) $("#conn-form-title").textContent = T.conn.add;
   const props = connData.proposals || [];
   $("#conns").innerHTML = props.map(propCard).join("") + (list.length ? list.map(connCard).join("") : `<div class="empty-chart" style="height:140px">${esc(T.conn.empty)}</div>`);

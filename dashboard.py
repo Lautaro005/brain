@@ -116,14 +116,16 @@ def _remote_info() -> dict:
     err = None
     if "error" in (t["status"], m["status"]):  # la última línea con error de cloudflared o del server, para la tarjeta
         lines = list(SERVICES["tunnel" if t["status"] == "error" else "remote_mcp"].logs)
-        err = next((ln for ln in reversed(lines) if any(w in ln for w in ("ERR", "failed", "Error", "error"))), None)
+        err = next((ln for ln in reversed(lines) if any(w in ln for w in ("ERR", "failed", "Error", "error", "denied"))), None)
+    if t.get("fatal"):
+        err = t["fatal"]
     return {"ok": True, **remote.public(t["link"] if t["status"] == "running" else None), "tunnel": t, "mcp": m,
             "error": err[-300:] if err else None, "awake": KEEP_AWAKE.active(), "awake_method": KEEP_AWAKE.method}
 
 
 def _remote_start() -> None:
-    if not remote.cloudflared_path():
-        raise remote.RemoteError("no_cloudflared")
+    if not remote.tool_path():
+        raise remote.RemoteError(remote.missing_code())  # no_tailscale · no_ngrok · no_cloudflared
     remote.tunnel_command()  # valida el modo (named sin token/hostname) antes de prender nada
     m, t = SERVICES["remote_mcp"], SERVICES["tunnel"]
     if m.status() == "external":
@@ -166,9 +168,12 @@ def _remote_post(action: str, body: dict) -> dict:
             if before["keep_awake"] != after["keep_awake"]:
                 # prende o apaga KeepAwake ya, sin esperar la próxima vuelta del watchdog
                 KEEP_AWAKE.start() if after["enabled"] and after["keep_awake"] else KEEP_AWAKE.stop()
-            if t.ours() and any(before[k] != after[k] for k in ("mode", "hostname", "tunnel_token")):
+            changed = any(before[k] != after[k] for k in ("mode", "hostname", "tunnel_token", "ngrok_token", "ngrok_domain"))
+            if changed and t.ours():
                 t.stop()
                 t.start()
+            elif changed and after["enabled"]:
+                _remote_start()  # estaba prendido pero el túnel había fallado (p. ej. faltaba el login): probar con lo nuevo
         elif action == "regenerate":
             remote.regenerate()  # la URL vieja deja de andar en el acto: el server lee el token en cada pedido
             t = SERVICES["tunnel"]

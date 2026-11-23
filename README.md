@@ -173,13 +173,20 @@ Paths are the macOS ones; on Windows they're under `%APPDATA%` and on Linux unde
 
 ### Remote access by URL
 
-For agents that run in the cloud or on another computer (Manus on the web, Claude.ai custom connectors, ChatGPT developer mode…), **Connect agent → By URL** publishes brain's MCP server through a [Cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). Off by default.
+For agents that run in the cloud or on another computer (Claude.ai custom connectors, Manus on the web, ChatGPT developer mode…), **Connect agent → By URL (cloud)** publishes brain's MCP server through a tunnel. Off by default. Pick the tunnel service on the card:
 
-- brain runs `server.py --http` on `127.0.0.1:8770` and `cloudflared` publishes it; no ports are opened on your router. The first time, *Install cloudflared* downloads it from Cloudflare's GitHub release and checks the published SHA256 (or brain uses the one you installed with brew, winget or apt).
+| Service | URL | What you need |
+|---|---|---|
+| **Tailscale Funnel** (recommended) | fixed: `https://<computer>.<tailnet>.ts.net` | [Tailscale](https://tailscale.com/download) installed and signed in (free). The first time, Tailscale shows a link to enable Funnel; the card shows it as *Enable Funnel*. On Linux you may need `sudo tailscale set --operator=$USER` once. |
+| **ngrok** | fixed: your account's free `*.ngrok-free.app` domain | [ngrok](https://ngrok.com/download) installed and your authtoken pasted on the card (the domain is optional). |
+| **Cloudflare quick** | changes every time it starts (`*.trycloudflare.com`) | nothing: *Install cloudflared* downloads it. Claude in the cloud couldn't connect through these URLs; other agents can. |
+| **Cloudflare named** | fixed: your own domain | a tunnel in your Cloudflare account pointing to `http://localhost:8770` (hostname + token on the card). |
+
+- brain runs `server.py --http` on `127.0.0.1:8770` and the tunnel publishes it; no ports are opened on your router. brain never installs Tailscale or ngrok for you (they don't publish checksums brain can verify, or they're system apps); it finds the ones you installed. *Install cloudflared* downloads `cloudflared` from Cloudflare's GitHub release and checks the published SHA256 (or brain uses the one you installed with brew, winget or apt).
+- The ngrok authtoken is stored in `data/remote.json` (`600`) and handed to ngrok as an environment variable, never on the command line. Tailscale uses the session you already have.
 - The URL is `https://…/<token>/mcp`; without the token every request gets `404`. Apps that prefer a header can use `…/mcp` with `Authorization: Bearer <token>`. **Generate a new URL** cuts off the old one right away, and **Read-only** leaves only the tools that read and search.
-- Without a Cloudflare account the URL is a `*.trycloudflare.com` address that changes each time it starts. For a fixed one, create a tunnel in your account pointing to `http://localhost:8770` and paste its hostname and token under *Fixed URL with your Cloudflare account*.
 - Through the URL, `save_url` and `read_url` only fetch public addresses, never your computer or local network.
-- **It stays up until you turn it off or close brain.** While it's on, brain keeps the computer from going to sleep by itself (the screen can still turn off; untick *Keep the computer from sleeping* to allow it). If the computer sleeps anyway (closing the lid), a watchdog checks the tunnel on wake: `cloudflared` reconnects with the same URL, and if it can't, or the tunnel no longer exists on Cloudflare's side, brain reopens it by itself. A quick tunnel then gets a new `*.trycloudflare.com` URL and the card tells you; a named tunnel keeps its URL. **Reconnect** does the same by hand.
+- **It stays up until you turn it off or close brain.** While it's on, brain keeps the computer from going to sleep by itself (the screen can still turn off; untick *Keep the computer from sleeping* to allow it). If the computer sleeps anyway (closing the lid), a watchdog checks the tunnel on wake: `cloudflared` reconnects with the same URL, and if it can't, or the tunnel no longer exists on Cloudflare's side, brain reopens it by itself. A quick tunnel then gets a new `*.trycloudflare.com` URL and the card tells you; Tailscale, ngrok and a named tunnel keep their URL. **Reconnect** does the same by hand. If the tunnel fails in a way retrying won't fix (Tailscale not signed in, an invalid ngrok authtoken), brain stops retrying and the card says what to fix; **Retry** tries again.
 
 ### Apps with an "Add MCP server" form
 
@@ -256,7 +263,7 @@ flowchart LR
 
 **Pieces:**
 
-- **MCP server (`server.py`).** Each agent launches its own process and talks to it over stdio (MCP's standard for local servers). It exposes the [tools](#mcp-tools) and tells the model to read `BRAIN.md`, your profile and your memory first. With remote access on, the dashboard also runs one copy over streamable HTTP (`server.py --http`, `127.0.0.1:8770`) behind a Cloudflare tunnel.
+- **MCP server (`server.py`).** Each agent launches its own process and talks to it over stdio (MCP's standard for local servers). It exposes the [tools](#mcp-tools) and tells the model to read `BRAIN.md`, your profile and your memory first. With remote access on, the dashboard also runs one copy over streamable HTTP (`server.py --http`, `127.0.0.1:8770`) behind a tunnel (Tailscale Funnel, ngrok or Cloudflare).
 - **Vault (`~/.brain/vault/`).** Markdown files with YAML frontmatter:
   - `BRAIN.md`: the root and short index the agent reads first. Everything comes out of it: `FORMAT.md` (the vault's structure, note types, fields and how to connect notes), `FACT-CHECK.md` (what to do when the vault isn't enough), `profile.md` and the base folders. brain keeps a block at its top with those links; the rest is yours.
   - `profile.md`: your profile.
@@ -344,7 +351,7 @@ brain help            help
 ## Data, privacy and security
 
 - **Everything is local.** Your data lives in `~/.brain/vault/` and `~/.brain/data/`. Both folders are in `.gitignore`, so they're never uploaded anywhere, not even if you fork the repo.
-- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, checks GitHub for a new version (it only reads the latest release number), runs a Fact check that needs the web (the claims go as queries to the search engine you chose, and the result pages are opened; never pages on your machine or local network), or keeps the Cloudflare tunnel open if you turn on remote access. Composio, if you use it, keeps your app tokens in its cloud.
+- **No external services by default.** Embeddings are computed with Ollama on your machine. brain only goes online when you save or refresh a URL, use a connection that talks to a remote service, checks GitHub for a new version (it only reads the latest release number), runs a Fact check that needs the web (the claims go as queries to the search engine you chose, and the result pages are opened; never pages on your machine or local network), or keeps the tunnel (Tailscale, ngrok or Cloudflare) open if you turn on remote access. Composio, if you use it, keeps your app tokens in its cloud.
 - **The dashboard only accepts requests from your own machine.** It listens on `127.0.0.1`, rejects requests with any other `Host` (DNS-rebinding protection), and its actions require a custom header browsers won't send from other pages. No website you have open can start processes or write to your vault.
 - **Remote access is opt-in and locked with a token.** The URL carries a secret token (regenerate it any time), can be set to read-only, and the server behind it listens only on `127.0.0.1`. The token is in `~/.brain/data/remote.json` (`600`).
 - **Agents can't leave the vault.** The tools reject paths with `..`, absolute paths, hidden files and symlinks that point outside. Inside it, `BRAIN.md`, `FORMAT.md`, `FACT-CHECK.md` and the base folders are read-only for them.

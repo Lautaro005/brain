@@ -1,12 +1,14 @@
-"""Acceso remoto: el server MCP de brain por URL, publicado con un túnel de Cloudflare.
+"""Acceso remoto: el server MCP de brain por URL, publicado con un túnel.
 
 Así brain deja de ser solo local: agentes que corren en la nube (Manus, Claude.ai, ChatGPT…) o en otra
 máquina se conectan con una URL. Dos procesos, los dos manejados por el dashboard (services.py):
 
 - `server.py --http`: el mismo server MCP, por streamable HTTP, escuchando SOLO en 127.0.0.1:8770.
-- `cloudflared`: publica ese puerto en internet. Modo "quick" (sin cuenta): URL *.trycloudflare.com
-  que cambia cada vez que se prende. Modo "named": un túnel de la cuenta de Cloudflare del usuario
-  (token del túnel + hostname propio), con URL fija.
+- el túnel, que publica ese puerto en internet. Cuatro servicios (`mode`):
+  - "tailscale": Tailscale Funnel. URL fija https://<compu>.<tailnet>.ts.net, gratis, con la app de Tailscale.
+  - "ngrok": ngrok con el dominio gratis de la cuenta (https://<algo>.ngrok-free.app), fijo.
+  - "quick": túnel rápido de Cloudflare, sin cuenta: URL *.trycloudflare.com que cambia cada vez que se prende.
+  - "named": túnel con nombre de la cuenta de Cloudflare del usuario (token del túnel + hostname propio), fijo.
 
 Seguridad: la URL pública lleva un token secreto (`https://…/<token>/mcp`); sin él, todo da 404. También
 se acepta `Authorization: Bearer <token>` en `/mcp`. El token se puede regenerar (la URL vieja deja de
@@ -34,11 +36,23 @@ BIN = DATA / "bin"
 PORT = int(os.environ.get("BRAIN_REMOTE_PORT", "8770"))
 MCP_PATH = "/mcp"
 DEFAULTS = {"token": "", "enabled": False, "read_only": False, "mode": "quick", "hostname": "", "tunnel_token": "",
-            "keep_awake": True}
+            "keep_awake": True, "ngrok_token": "", "ngrok_domain": ""}
+MODES = ("tailscale", "ngrok", "quick", "named")
+STABLE = {"tailscale": True, "ngrok": True, "quick": False, "named": True}  # ¿la URL sobrevive a un reinicio?
 CF_RELEASES = "https://github.com/cloudflare/cloudflared/releases"
 CF_API = "https://api.github.com/repos/cloudflare/cloudflared/releases/latest"
 QUICK_URL = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
+TS_URL = re.compile(r"https://[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net\b")
+TS_ACTION = re.compile(r"https://login\.tailscale\.com/[^\s\"'<>]+")
+NGROK_URL = re.compile(r"\burl=(https://[^\s\"]+)")
 HOSTNAME = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+# salidas de los túneles que no se arreglan reintentando: el watchdog no los reabre hasta que el usuario haga algo
+FATAL = {
+    "ngrok": ("ERR_NGROK_4018", "ERR_NGROK_105", "ERR_NGROK_107", "ERR_NGROK_108", "ERR_NGROK_120", "ERR_NGROK_313",
+              "ERR_NGROK_320", "ERR_NGROK_15013", "authentication failed"),
+    "tailscale": ("Access denied", "access denied", "NeedsLogin", "Logged out", "not logged in", "failed to connect to local Tailscale",
+                  "is Tailscale running", "tailscaled not running"),
+}
 
 
 class RemoteError(RuntimeError):
@@ -103,21 +117,29 @@ def set_enabled(on: bool) -> dict:
 
 
 def configure(body: dict) -> dict:
-    """Ajustes del acceso remoto: read_only, mode (quick|named), hostname y tunnel_token (vacío = conservar)."""
+    """Ajustes del acceso remoto: read_only, keep_awake, mode (tailscale|ngrok|quick|named), hostname y tunnel_token
+    (Cloudflare con nombre), ngrok_token y ngrok_domain. Un token vacío conserva el guardado."""
     changes = {}
     if "read_only" in body:
         changes["read_only"] = bool(body["read_only"])
     if "keep_awake" in body:
         changes["keep_awake"] = bool(body["keep_awake"])
     if "mode" in body:
-        if body["mode"] not in ("quick", "named"):
+        if body["mode"] not in MODES:
             raise RemoteError("bad_mode")
         changes["mode"] = body["mode"]
-    if "hostname" in body:
-        host = re.sub(r"^https?://", "", str(body["hostname"] or "").strip().lower()).strip("/")
-        if host and not HOSTNAME.match(host):
-            raise RemoteError("bad_hostname", host)
-        changes["hostname"] = host
+    for key, err in (("hostname", "bad_hostname"), ("ngrok_domain", "bad_ngrok_domain")):
+        if key in body:
+            host = re.sub(r"^https?://", "", str(body[key] or "").strip().lower()).strip("/")
+            if host and not HOSTNAME.match(host):
+                raise RemoteError(err, host)
+            changes[key] = host
+    if str(body.get("ngrok_token") or "").strip():
+        # ngrok muestra "ngrok config add-authtoken <token>": aceptamos el comando entero
+        t = str(body["ngrok_token"]).strip().split()[-1]
+        if not re.fullmatch(r"[A-Za-z0-9_\-]{20,}", t):
+            raise RemoteError("bad_ngrok_token")
+        changes["ngrok_token"] = t
     if str(body.get("tunnel_token") or "").strip():
         t = str(body["tunnel_token"]).strip()
         # el comando que muestra Cloudflare es "cloudflared service install <token>": aceptamos el comando entero
@@ -137,12 +159,26 @@ def public(base_url: str | None) -> dict:
     tok = cfg["token"] or token()
     return {
         "enabled": cfg["enabled"], "read_only": cfg["read_only"], "mode": cfg["mode"], "hostname": cfg["hostname"],
-        "keep_awake": cfg["keep_awake"],
+        "keep_awake": cfg["keep_awake"], "stable": STABLE.get(cfg["mode"], False),
         "has_tunnel_token": bool(cfg["tunnel_token"]), "port": PORT,
+        "ngrok_domain": cfg["ngrok_domain"], "has_ngrok_token": bool(cfg["ngrok_token"]),
         "base_url": base_url, "url": f"{base_url.rstrip('/')}/{tok}{MCP_PATH}" if base_url else None,
         "token": tok, "local_url": f"http://127.0.0.1:{PORT}/{tok}{MCP_PATH}",
         "cloudflared": cloudflared_path(),
+        "tools": {"tailscale": tailscale_path(), "ngrok": ngrok_path(), "cloudflared": cloudflared_path()},
+        "tailscale_url": tailscale_url() if cfg["mode"] == "tailscale" else None,
     }
+
+
+def tool_path(mode: str | None = None) -> str | None:
+    """El ejecutable que abre el túnel del servicio elegido (o None si no está instalado)."""
+    mode = mode or load()["mode"]
+    return {"tailscale": tailscale_path, "ngrok": ngrok_path}.get(mode, cloudflared_path)()
+
+
+def missing_code(mode: str | None = None) -> str:
+    mode = mode or load()["mode"]
+    return {"tailscale": "no_tailscale", "ngrok": "no_ngrok"}.get(mode, "no_cloudflared")
 
 
 # ---------- server MCP por HTTP (lo corre server.py --http) ----------
@@ -370,27 +406,110 @@ def install_cloudflared() -> dict:
 
 
 def tunnel_command() -> tuple[list[str], dict]:
-    """(comando, env) para el proceso del túnel. El token del túnel va por env, no en la línea de comando."""
-    exe = cloudflared_path()
-    if not exe:
-        raise RemoteError("no_cloudflared")
+    """(comando, env) para el proceso del túnel. Los tokens van por env, nunca en la línea de comando."""
     cfg = load()
+    mode = cfg["mode"]
+    exe = tool_path(mode)
+    if not exe:
+        raise RemoteError(missing_code(mode))
+    target = f"http://127.0.0.1:{PORT}"
+    if mode == "tailscale":
+        # en primer plano: el Funnel vive lo que vive el proceso (al apagar brain deja de estar en internet)
+        return [exe, "funnel", target], {}
+    if mode == "ngrok":
+        cmd = [exe, "http", target, "--log", "stdout", "--log-format", "logfmt"]
+        if cfg["ngrok_domain"]:
+            cmd += ["--url", f"https://{cfg['ngrok_domain']}"]
+        return cmd, ({"NGROK_AUTHTOKEN": cfg["ngrok_token"]} if cfg["ngrok_token"] else {})
     base = [exe, "tunnel", "--no-autoupdate"]
-    if cfg["mode"] == "named":
+    if mode == "named":
         if not (cfg["tunnel_token"] and cfg["hostname"]):
             raise RemoteError("named_incomplete")
         return base + ["run"], {"TUNNEL_TOKEN": cfg["tunnel_token"]}
-    return base + ["--url", f"http://127.0.0.1:{PORT}"], {}
+    return base + ["--url", target], {}
+
+
+def url_in(line: str, mode: str | None = None) -> str | None:
+    """La URL pública si esta línea de salida del túnel la trae."""
+    mode = mode or load()["mode"]
+    if mode == "tailscale":
+        m = TS_URL.search(line)
+        return m.group(0) if m else None
+    if mode == "ngrok":
+        m = NGROK_URL.search(line)
+        return m.group(1).rstrip("/") if m and ("started tunnel" in line or "obj=tunnels" in line) else None
+    if mode == "quick":
+        m = QUICK_URL.search(line)
+        return m.group(0) if m and "api.trycloudflare.com" not in m.group(0) else None
+    return None
 
 
 def tunnel_url(log_lines) -> str | None:
-    """URL pública del túnel: la fija (named) o la *.trycloudflare.com que imprime cloudflared."""
+    """URL pública del túnel: la fija (named) o la que imprime el túnel (quick, tailscale, ngrok)."""
     cfg = load()
     if cfg["mode"] == "named":
         ready = any("Registered tunnel connection" in line for line in log_lines)
         return f"https://{cfg['hostname']}" if ready and cfg["hostname"] else None
     for line in reversed(list(log_lines)):
-        m = QUICK_URL.search(line)
-        if m and "api.trycloudflare.com" not in m.group(0):
-            return m.group(0)
+        url = url_in(line, cfg["mode"])
+        if url:
+            return url
     return None
+
+
+def is_fatal(line: str, mode: str | None = None) -> bool:
+    mode = mode or load()["mode"]
+    return any(w in line for w in FATAL.get(mode, ()))
+
+
+# ---------- Tailscale Funnel ----------
+# brain no instala Tailscale: es una app del sistema con su servicio (tailscaled) y su login. Solo la detecta y
+# corre `tailscale funnel` con la sesión que ya tiene el usuario.
+
+def tailscale_path() -> str | None:
+    found = shutil.which("tailscale")
+    if found:
+        return found
+    for p in ("/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+              os.path.expandvars(r"%ProgramFiles%\Tailscale\tailscale.exe")):
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+_TS_CACHE: dict = {"at": 0.0, "url": None}
+
+
+def tailscale_url(max_age: float = 60) -> str | None:
+    """La URL fija que va a tener el Funnel (https://<compu>.<tailnet>.ts.net), de `tailscale status --json`.
+    Se puede mostrar antes de prenderlo; se cachea un minuto (el dashboard pregunta seguido)."""
+    import subprocess
+    import time
+
+    if time.time() - _TS_CACHE["at"] < max_age:
+        return _TS_CACHE["url"]
+    url = None
+    exe = tailscale_path()
+    if exe:
+        try:
+            out = subprocess.run([exe, "status", "--json"], capture_output=True, text=True, timeout=4)
+            name = (json.loads(out.stdout or "{}").get("Self") or {}).get("DNSName") or ""
+            name = name.rstrip(".").lower()
+            if name.endswith(".ts.net"):
+                url = f"https://{name}"
+        except (OSError, ValueError, subprocess.SubprocessError):
+            url = None
+    _TS_CACHE.update(at=time.time(), url=url)
+    return url
+
+
+# ---------- ngrok ----------
+# ngrok no publica checksums de sus descargas, así que brain no lo baja (la misma regla que con cloudflared: sin
+# checksum no se instala). Se usa el que instaló el usuario (brew, winget, snap…) o uno puesto en data/bin/.
+
+def ngrok_path() -> str | None:
+    found = shutil.which("ngrok")
+    if found:
+        return found
+    p = BIN / ("ngrok.exe" if os.name == "nt" else "ngrok")
+    return str(p) if p.exists() else None

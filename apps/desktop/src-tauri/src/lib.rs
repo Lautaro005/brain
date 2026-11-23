@@ -258,14 +258,14 @@ fn build_tray(app: &AppHandle, version: &str) -> tauri::Result<()> {
                 "notifications" => show_main(
                     app,
                     Some("ajustes"),
-                    Some("var c=document.querySelector('#notify-card'); if(c) c.scrollIntoView({block:'center'});"),
+                    Some("if(window.showPane) showPane('ajustes','general'); var c=document.querySelector('#notify-card'); if(c) c.scrollIntoView({block:'center'});"),
                 ),
                 "settings" => show_main(app, Some("ajustes"), None),
                 "graph" => notch::present(app, "graph", true),
                 "updates" => show_main(
                     app,
                     Some("ajustes"),
-                    Some("var b=document.querySelector('#update-btn'); if(b) b.click();"),
+                    Some("if(window.showPane) showPane('ajustes','general'); var b=document.querySelector('#update-btn'); if(b) b.click();"),
                 ),
                 "close" => quit(app),
                 _ => {}

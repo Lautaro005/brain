@@ -944,12 +944,20 @@ restore_file("projects/tienda-online.md", 41)</pre>
 <section class="page" id="remote" data-group-en="Using brain" data-group-es="Usar brain" data-title-en="Remote access by URL" data-title-es="Acceso remoto por URL">
 <div class="l-en">
   <h1>Remote access by URL</h1>
-  <p class="lead">Publishes brain's MCP server at an internet URL through a Cloudflare tunnel, so agents in the cloud or on another computer can use your memory. Off by default.</p>
-  <h2>Turning it on</h2>
-  <p>In <b>Connect agent → By URL</b>, flip the <i>Remote access by URL</i> switch. The first time, <i>Install cloudflared</i> downloads Cloudflare's program from its official GitHub release into <code>data/bin/</code> and checks it against the SHA256 Cloudflare publishes (if you already have <code>cloudflared</code> installed with brew, winget or apt, brain uses that one). brain then starts two processes:</p>
+  <p class="lead">Publishes brain's MCP server at an internet URL through a tunnel (Tailscale Funnel, ngrok or Cloudflare), so agents in the cloud or on another computer can use your memory. Off by default.</p>
+  <h2>Pick the tunnel service</h2>
+  <p>In <b>Connect agent → By URL (cloud)</b>, choose a service under <i>Tunnel service</i>; each one shows its steps and whether it's installed:</p>
+  <table>
+    <tr><th>Service</th><th>URL</th><th>What you need</th></tr>
+    <tr><td><b>Tailscale Funnel</b> (recommended)</td><td>fixed: <code>https://&lt;computer&gt;.&lt;tailnet&gt;.ts.net</code></td><td><a href="https://tailscale.com/download">Tailscale</a> installed and signed in (free). The first time, Tailscale asks you to enable Funnel and HTTPS on your tailnet: the card shows the link as <i>Enable Funnel</i> and carries on by itself once you do. On Linux, if it says <i>Access denied</i>, run <code>sudo tailscale set --operator=$USER</code> once.</td></tr>
+    <tr><td><b>ngrok</b></td><td>fixed: your account's free <code>*.ngrok-free.app</code> domain</td><td><a href="https://ngrok.com/download">ngrok</a> installed (<code>brew install ngrok</code>, <code>winget install ngrok.ngrok</code>, <code>snap install ngrok</code>) and your authtoken pasted on the card. The domain is optional.</td></tr>
+    <tr><td><b>Cloudflare quick</b></td><td>changes every time it starts (<code>*.trycloudflare.com</code>)</td><td>nothing: <i>Install cloudflared</i> downloads it from Cloudflare's GitHub release and checks the SHA256 Cloudflare publishes. Claude in the cloud couldn't connect through these URLs; other agents can.</td></tr>
+    <tr><td><b>Cloudflare named</b></td><td>fixed: your own domain</td><td>a tunnel in your Cloudflare account (see below).</td></tr>
+  </table>
+  <p>brain never downloads Tailscale or ngrok: Tailscale is a system app with its own login, and ngrok doesn't publish checksums brain could verify. It finds the ones you installed. With the switch on, brain starts two processes:</p>
   <ul>
     <li><code>server.py --http</code>: the same MCP server your local agents use, over streamable HTTP, listening only on <code>127.0.0.1:8770</code>.</li>
-    <li><code>cloudflared</code>: an outbound tunnel that publishes that port. No ports are opened on your router.</li>
+    <li>the tunnel (<code>tailscale funnel</code>, <code>ngrok http</code> or <code>cloudflared</code>): an outbound connection that publishes that port. No ports are opened on your router. Tailscale's Funnel lives as long as that process: turning remote access off or closing brain takes it off the internet.</li>
   </ul>
   <p>When the tunnel is ready the card shows the URL to copy. It stays on across restarts until you turn it off; it only works while the dashboard is open.</p>
   <h2>The URL and its token</h2>
@@ -960,21 +968,29 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <li><b>Read-only</b> leaves agents using the URL with the tools that read and search (<code>read_file</code>, <code>search_knowledge</code>, <code>list_vault</code>…); writing, deleting and your connections' tools are hidden and refused.</li>
     <li>Through the URL, <code>save_url</code> and <code>read_url</code> only fetch public addresses, never your computer or local network.</li>
   </ul>
-  <h2>Quick or fixed URL</h2>
-  <p>Without a Cloudflare account the tunnel is a <b>quick tunnel</b>: a <code>*.trycloudflare.com</code> address that changes every time it starts, so you have to paste it again in each agent. For a fixed address, create a tunnel in your Cloudflare account (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), point its public hostname to <code>http://localhost:8770</code>, and paste the hostname and the tunnel token under <i>Fixed URL with your Cloudflare account</i>. The token is passed to <code>cloudflared</code> as an environment variable and stored in <code>data/remote.json</code> (<code>600</code>).</p>
+  <h2>Fixed URLs and credentials</h2>
+  <p>The Cloudflare quick tunnel's address changes every time it starts, so you'd have to paste it again in each agent. Tailscale and ngrok keep the same URL. For a fixed address on your own domain, create a tunnel in your Cloudflare account (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), point its public hostname to <code>http://localhost:8770</code>, and paste the hostname and the tunnel token under <i>Cloudflare named</i>. The Cloudflare tunnel token and the ngrok authtoken are passed to the tunnel as environment variables (never on its command line) and stored in <code>data/remote.json</code> (<code>600</code>). If a tunnel fails in a way retrying won't fix (Tailscale not signed in, an invalid ngrok authtoken, another ngrok already running with the same account), brain stops retrying and the card says what to check; <b>Retry</b> tries again.</p>
   <h2>When the computer sleeps</h2>
-  <p>The URL stays up until you turn remote access off or close brain. While it's on, brain keeps the computer from going to sleep by itself (<code>caffeinate</code> on macOS, <code>systemd-inhibit</code> on Linux, <code>SetThreadExecutionState</code> on Windows); the screen can still turn off. Untick <i>Keep the computer from sleeping</i> to allow it. If it sleeps anyway (closing a laptop lid), a watchdog checks the tunnel when it wakes up: <code>cloudflared</code> usually reconnects with the same URL (the card says <i>Reconnecting…</i> meanwhile); if it can't within about a minute, or the tunnel no longer exists on Cloudflare's side, brain reopens it, and also restarts the MCP server or <code>cloudflared</code> if either closed. A quick tunnel then gets a new URL and the card tells you to paste it again; a named tunnel keeps its URL, so use one if your agents must always find brain. <b>Reconnect</b> does the same by hand, and <i>Generate a new URL</i> also reopens the tunnel if it was down.</p>
+  <p>The URL stays up until you turn remote access off or close brain. While it's on, brain keeps the computer from going to sleep by itself (<code>caffeinate</code> on macOS, <code>systemd-inhibit</code> on Linux, <code>SetThreadExecutionState</code> on Windows); the screen can still turn off. Untick <i>Keep the computer from sleeping</i> to allow it. If it sleeps anyway (closing a laptop lid), a watchdog checks the tunnel when it wakes up: <code>cloudflared</code> usually reconnects with the same URL (the card says <i>Reconnecting…</i> meanwhile); if it can't within about a minute, or the tunnel no longer exists on Cloudflare's side, brain reopens it, and also restarts the MCP server or <code>cloudflared</code> if either closed. A quick tunnel then gets a new URL and the card tells you to paste it again; Tailscale, ngrok and a named tunnel keep their URL, so use one of those if your agents must always find brain. <b>Reconnect</b> does the same by hand, and <i>Generate a new URL</i> also reopens the tunnel if it was down.</p>
   <h2>Which agents</h2>
   <p>Any MCP client that connects to a URL with streamable HTTP: Manus on the web (<i>Settings → Connectors → Custom MCP</i>), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT in developer mode, or a local agent on another computer. They show up in <b>My connections</b> once they use brain.</p>
 </div>
 <div class="l-es">
   <h1>Acceso remoto por URL</h1>
-  <p class="lead">Publica el server MCP de brain en una URL de internet con un túnel de Cloudflare, así agentes en la nube o en otra computadora pueden usar tu memoria. Viene apagado.</p>
-  <h2>Prenderlo</h2>
-  <p>En <b>Conectar agente → Por URL</b>, prendé el switch de <i>Acceso remoto por URL</i>. La primera vez, <i>Instalar cloudflared</i> baja el programa de Cloudflare de su release oficial en GitHub a <code>data/bin/</code> y lo verifica con el SHA256 que publica Cloudflare (si ya tenés <code>cloudflared</code> instalado con brew, winget o apt, brain usa ese). Después brain prende dos procesos:</p>
+  <p class="lead">Publica el server MCP de brain en una URL de internet con un túnel (Tailscale Funnel, ngrok o Cloudflare), así agentes en la nube o en otra computadora pueden usar tu memoria. Viene apagado.</p>
+  <h2>Elegir el servicio del túnel</h2>
+  <p>En <b>Conectar agente → Por URL (nube)</b>, elegí un servicio en <i>Servicio del túnel</i>; cada uno muestra sus pasos y si está instalado:</p>
+  <table>
+    <tr><th>Servicio</th><th>URL</th><th>Qué hace falta</th></tr>
+    <tr><td><b>Tailscale Funnel</b> (recomendado)</td><td>fija: <code>https://&lt;compu&gt;.&lt;tailnet&gt;.ts.net</code></td><td><a href="https://tailscale.com/download">Tailscale</a> instalado y con la sesión iniciada (gratis). La primera vez Tailscale pide activar Funnel y HTTPS en tu tailnet: la tarjeta muestra el link como <i>Activar Funnel</i> y sigue sola cuando lo activás. En Linux, si dice <i>Access denied</i>, corré una vez <code>sudo tailscale set --operator=$USER</code>.</td></tr>
+    <tr><td><b>ngrok</b></td><td>fija: el dominio gratis <code>*.ngrok-free.app</code> de tu cuenta</td><td><a href="https://ngrok.com/download">ngrok</a> instalado (<code>brew install ngrok</code>, <code>winget install ngrok.ngrok</code>, <code>snap install ngrok</code>) y tu authtoken pegado en la tarjeta. El dominio es opcional.</td></tr>
+    <tr><td><b>Cloudflare rápido</b></td><td>cambia cada vez que se prende (<code>*.trycloudflare.com</code>)</td><td>nada: <i>Instalar cloudflared</i> lo baja del release de Cloudflare en GitHub y lo verifica con el SHA256 que publica Cloudflare. Claude en la nube no logró conectarse por estas URLs; otros agentes sí.</td></tr>
+    <tr><td><b>Cloudflare con nombre</b></td><td>fija: tu propio dominio</td><td>un túnel en tu cuenta de Cloudflare (ver abajo).</td></tr>
+  </table>
+  <p>brain nunca baja Tailscale ni ngrok: Tailscale es una app del sistema con su propio login, y ngrok no publica checksums que brain pueda verificar. Usa los que instalaste. Con el switch prendido, brain prende dos procesos:</p>
   <ul>
     <li><code>server.py --http</code>: el mismo server MCP que usan tus agentes locales, por streamable HTTP, escuchando solo en <code>127.0.0.1:8770</code>.</li>
-    <li><code>cloudflared</code>: un túnel de salida que publica ese puerto. No se abren puertos en tu router.</li>
+    <li>el túnel (<code>tailscale funnel</code>, <code>ngrok http</code> o <code>cloudflared</code>): una conexión de salida que publica ese puerto. No se abren puertos en tu router. El Funnel de Tailscale vive lo que vive ese proceso: apagar el acceso remoto o cerrar brain lo saca de internet.</li>
   </ul>
   <p>Cuando el túnel está listo, la tarjeta muestra la URL para copiar. Queda prendido entre reinicios hasta que lo apagues; solo funciona mientras el dashboard esté abierto.</p>
   <h2>La URL y su token</h2>
@@ -985,10 +1001,10 @@ restore_file("projects/tienda-online.md", 41)</pre>
     <li><b>Solo lectura</b> deja a los agentes por URL con las tools que leen y buscan (<code>read_file</code>, <code>search_knowledge</code>, <code>list_vault</code>…); escribir, borrar y las tools de tus conexiones quedan ocultas y se rechazan.</li>
     <li>Por la URL, <code>save_url</code> y <code>read_url</code> solo leen direcciones públicas, nunca tu computadora ni tu red local.</li>
   </ul>
-  <h2>URL rápida o fija</h2>
-  <p>Sin cuenta de Cloudflare el túnel es un <b>quick tunnel</b>: una dirección <code>*.trycloudflare.com</code> que cambia cada vez que se prende, así que hay que volver a pegarla en cada agente. Para una dirección fija, creá un túnel en tu cuenta de Cloudflare (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), apuntá su hostname público a <code>http://localhost:8770</code> y pegá el hostname y el token del túnel en <i>URL fija con tu cuenta de Cloudflare</i>. El token le llega a <code>cloudflared</code> por una variable de entorno y se guarda en <code>data/remote.json</code> (<code>600</code>).</p>
+  <h2>URLs fijas y credenciales</h2>
+  <p>La dirección del túnel rápido de Cloudflare cambia cada vez que se prende, así que habría que volver a pegarla en cada agente. Tailscale y ngrok conservan la misma URL. Para una dirección fija con tu propio dominio, creá un túnel en tu cuenta de Cloudflare (<i>Zero Trust → Networks → Tunnels → Create a tunnel</i>), apuntá su hostname público a <code>http://localhost:8770</code> y pegá el hostname y el token del túnel en <i>Cloudflare con nombre</i>. El token del túnel de Cloudflare y el authtoken de ngrok le llegan al túnel por variables de entorno (nunca en su línea de comando) y se guardan en <code>data/remote.json</code> (<code>600</code>). Si un túnel falla de una forma que reintentar no arregla (Tailscale sin sesión, un authtoken de ngrok inválido, otro ngrok abierto con la misma cuenta), brain deja de reintentar y la tarjeta dice qué revisar; <b>Reintentar</b> vuelve a probar.</p>
   <h2>Cuando la compu se duerme</h2>
-  <p>La URL sigue viva hasta que apagás el acceso remoto o cerrás brain. Mientras está prendido, brain evita que la compu se duerma sola (<code>caffeinate</code> en macOS, <code>systemd-inhibit</code> en Linux, <code>SetThreadExecutionState</code> en Windows); la pantalla se puede apagar igual. Destildá <i>Que la compu no se duerma sola</i> para permitirlo. Si se duerme igual (al cerrar la tapa), un watchdog revisa el túnel al despertar: <code>cloudflared</code> casi siempre se reconecta con la misma URL (mientras tanto la tarjeta dice <i>Reconectando…</i>); si en un minuto no puede, o el túnel ya no existe del lado de Cloudflare, brain lo reabre, y también vuelve a prender el server MCP o <code>cloudflared</code> si alguno se cerró. Un túnel rápido recibe entonces una URL nueva y la tarjeta te avisa que la pegues de nuevo; uno con nombre conserva su URL, así que usá uno si tus agentes tienen que encontrar a brain siempre. <b>Reconectar</b> hace lo mismo a mano, y <i>Generar otra URL</i> también reabre el túnel si estaba caído.</p>
+  <p>La URL sigue viva hasta que apagás el acceso remoto o cerrás brain. Mientras está prendido, brain evita que la compu se duerma sola (<code>caffeinate</code> en macOS, <code>systemd-inhibit</code> en Linux, <code>SetThreadExecutionState</code> en Windows); la pantalla se puede apagar igual. Destildá <i>Que la compu no se duerma sola</i> para permitirlo. Si se duerme igual (al cerrar la tapa), un watchdog revisa el túnel al despertar: <code>cloudflared</code> casi siempre se reconecta con la misma URL (mientras tanto la tarjeta dice <i>Reconectando…</i>); si en un minuto no puede, o el túnel ya no existe del lado de Cloudflare, brain lo reabre, y también vuelve a prender el server MCP o <code>cloudflared</code> si alguno se cerró. Un túnel rápido recibe entonces una URL nueva y la tarjeta te avisa que la pegues de nuevo; Tailscale, ngrok y uno con nombre conservan su URL, así que usá uno de esos si tus agentes tienen que encontrar a brain siempre. <b>Reconectar</b> hace lo mismo a mano, y <i>Generar otra URL</i> también reabre el túnel si estaba caído.</p>
   <h2>Qué agentes</h2>
   <p>Cualquier cliente MCP que se conecte a una URL con streamable HTTP: Manus en la web (<i>Settings → Connectors → Custom MCP</i>), Claude.ai (<i>Settings → Connectors → Add custom connector</i>), ChatGPT en modo desarrollador, o un agente local en otra computadora. Aparecen en <b>Mis conexiones</b> apenas usan brain.</p>
 </div>
@@ -1635,7 +1651,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Embeddings, summaries and entities are computed by Ollama on your machine.</li>
     <li>Composio, if you use it, keeps your app tokens in its cloud; everything it fetches is saved locally.</li>
     <li>Sign-ins to MCP servers (OAuth) stay in <code>~/.brain/data/oauth.json</code> (permissions <code>600</code>).</li>
-    <li>brain goes online on its own only to check GitHub for a new version (it reads the latest release number and sends nothing about you), and, if you turn on remote access, to keep the Cloudflare tunnel open.</li>
+    <li>brain goes online on its own only to check GitHub for a new version (it reads the latest release number and sends nothing about you), and, if you turn on remote access, to keep the tunnel you chose (Tailscale, ngrok or Cloudflare) open.</li>
     <li>Fact check sends the claims you verify (as search queries) to the search engine you chose (DuckDuckGo by default) and opens the result pages; only when you run a check, or when the chat does if you turned that on. Pages on your computer or local network are never opened, and nothing is saved to the vault unless you click <i>Save to brain</i>.</li>
     <li>Chat answers can contain HTML, but it's sanitized: no scripts or forms, and no images from other sites (so a hidden instruction can't leak data through an image URL).</li>
     <li>Backups leave credentials out unless you tick <i>Include credentials</i>.</li>
@@ -1657,7 +1673,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <h2>Remote access</h2>
   <ul>
     <li><a href="#remote">Remote access by URL</a> is off until you turn it on. While it's on, your vault is reachable from the internet by anyone who has the URL: it carries a secret token, can be regenerated at any time and can be set to read-only.</li>
-    <li>The MCP server behind it listens only on <code>127.0.0.1</code>; the Cloudflare tunnel is outbound and opens no ports.</li>
+    <li>The MCP server behind it listens only on <code>127.0.0.1</code>; the tunnel (Tailscale, ngrok or Cloudflare) is outbound and opens no ports.</li>
     <li>Through the URL, brain never fetches addresses on your computer or local network.</li>
   </ul>
   <h2>Reporting a vulnerability</h2>
@@ -1672,7 +1688,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
     <li>Los embeddings, resúmenes y entidades los calcula Ollama en tu máquina.</li>
     <li>Composio, si lo usás, guarda los tokens de tus apps en su nube; todo lo que trae se guarda local.</li>
     <li>Las sesiones iniciadas en servers MCP (OAuth) quedan en <code>~/.brain/data/oauth.json</code> (permisos <code>600</code>).</li>
-    <li>brain sale a internet por su cuenta solo para fijarse en GitHub si hay una versión nueva (lee el número del último release y no manda nada tuyo) y, si prendés el acceso remoto, para mantener abierto el túnel de Cloudflare.</li>
+    <li>brain sale a internet por su cuenta solo para fijarse en GitHub si hay una versión nueva (lee el número del último release y no manda nada tuyo) y, si prendés el acceso remoto, para mantener abierto el túnel que elegiste (Tailscale, ngrok o Cloudflare).</li>
     <li>Fact check manda las afirmaciones que verificás (como búsquedas) al buscador que elegiste (DuckDuckGo por defecto) y abre las páginas de los resultados; solo cuando hacés una verificación, o cuando la hace el chat si lo activaste. Nunca abre páginas de tu compu ni de tu red local, y no guarda nada en el vault salvo que toques <i>Guardar en brain</i>.</li>
     <li>Las respuestas del chat pueden traer HTML, pero se sanitiza: sin scripts ni formularios, y sin imágenes de otros sitios (así una instrucción escondida no puede filtrar datos por la URL de una imagen).</li>
     <li>Los backups dejan afuera las credenciales salvo que marques <i>Incluir credenciales</i>.</li>
@@ -1694,7 +1710,7 @@ npx @modelcontextprotocol/inspector uv run python server.py   # Inspector MCP</p
   <h2>Acceso remoto</h2>
   <ul>
     <li>El <a href="#remote">acceso remoto por URL</a> está apagado hasta que lo prendas. Mientras está prendido, tu vault es accesible desde internet para quien tenga la URL: lleva un token secreto, se puede regenerar cuando quieras y se puede poner en solo lectura.</li>
-    <li>El server MCP detrás escucha solo en <code>127.0.0.1</code>; el túnel de Cloudflare es de salida y no abre puertos.</li>
+    <li>El server MCP detrás escucha solo en <code>127.0.0.1</code>; el túnel (Tailscale, ngrok o Cloudflare) es de salida y no abre puertos.</li>
     <li>Por la URL, brain nunca lee direcciones de tu computadora ni de tu red local.</li>
   </ul>
   <h2>Reportar una vulnerabilidad</h2>

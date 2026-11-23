@@ -157,7 +157,15 @@ y los índices, el historial y los ajustes en data/.
 - Fact check puede buscar con DuckDuckGo, SearXNG, Brave o una tool de búsqueda de las Conexiones del usuario. Si
   prende «Que el chat y todos tus agentes verifiquen…», todos los agentes conectados usan fact_check para los
   datos que no están en brain.
-- Acceso remoto: Conectar agente → «Acceso remoto por URL» publica el server MCP con un túnel de Cloudflare.
+- Las vistas largas están en pestañas: Perfil (Sobre vos · Tu memoria · Importar memoria), Conectar agente (Apps y
+  agentes · Por URL (nube) · Configuración manual · Mis conexiones), Conexiones (Tus conexiones · Agregar conexión),
+  Conocimiento (Buscar · Fuentes guardadas) y Ajustes (General · Chat y modelos · Datos y backup · Familia WorkStudio ·
+  Apariencia). Un link como #ajustes/data abre una pestaña directo.
+- Acceso remoto: Conectar agente → pestaña «Por URL (nube)» publica el server MCP con un túnel. Servicios: Tailscale
+  Funnel (URL fija https://<compu>.<tailnet>.ts.net, gratis, recomendado; hay que tener Tailscale instalado y con
+  sesión, y activar Funnel la primera vez), ngrok (URL fija con el dominio gratis de la cuenta; pide el authtoken),
+  Cloudflare rápido (sin cuenta, la URL cambia; Claude en la nube no logró conectarse por ahí) o Cloudflare con
+  nombre (dominio propio).
   La URL lleva un token secreto (es como una contraseña); se puede regenerar y poner en solo lectura. Así se
   conectan agentes en la nube como Manus en la web, Claude.ai o ChatGPT. Mientras está prendido, brain evita
   que la compu se duerma sola y, si se durmió igual, reconecta el túnel al despertar (con un túnel rápido la
@@ -225,7 +233,15 @@ vault/ and the indexes, history and settings in data/.
   changes (it can be turned off or refreshed with "Update now"); it goes at the end of profile.md.
 - Fact check can search with DuckDuckGo, SearXNG, Brave or a search tool from the user's Connections. If they turn
   on "Let the chat and all your agents check…", every connected agent uses fact_check for facts not in brain.
-- Remote access: Connect agent → "Remote access by URL" publishes the MCP server through a Cloudflare tunnel.
+- Long views are split into tabs: Profile (About you · Your memory · Import memory), Connect agent (Apps and agents ·
+  By URL (cloud) · Manual setup · My connections), Connections (Your connections · Add connection), Knowledge
+  (Search · Saved sources) and Settings (General · Chat and models · Data and backup · WorkStudio family ·
+  Appearance). A link like #ajustes/data opens a tab directly.
+- Remote access: Connect agent → "By URL (cloud)" tab publishes the MCP server through a tunnel. Services: Tailscale
+  Funnel (fixed URL https://<computer>.<tailnet>.ts.net, free, recommended; needs Tailscale installed and signed in,
+  and Funnel enabled the first time), ngrok (fixed URL on the account's free domain; asks for the authtoken),
+  Cloudflare quick (no account, the URL changes; Claude in the cloud couldn't connect through it) or Cloudflare
+  named (your own domain).
   The URL carries a secret token (treat it like a password); it can be regenerated and set to read-only. Cloud
   agents such as Manus on the web, Claude.ai or ChatGPT connect this way. While it's on, brain keeps the
   computer from sleeping by itself and, if it slept anyway, reconnects the tunnel on wake (with a quick tunnel

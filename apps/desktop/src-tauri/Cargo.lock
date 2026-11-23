@@ -294,7 +294,7 @@ dependencies = [
 
 [[package]]
 name = "brain-desktop"
-version = "0.3.4-1"
+version = "0.3.4-2"
 dependencies = [
  "chrono",
  "objc2",
